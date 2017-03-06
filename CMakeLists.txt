@@ -20,7 +20,7 @@ include_directories(${Boost_INCLUDE_DIR} ${Poco_DIR}/Foundation/include ${Poco_D
 
 link_directories(${Boost_LIBRARY_DIR} ${Poco_LIBRARY_DIR})
 
-MESSAGE( STATUS "MAKE_SOURCE_DIR"    " ${CMAKE_SOURCE_DIR} )
+MESSAGE( STATUS "MAKE_SOURCE_DIR     " ${CMAKE_SOURCE_DIR} )
 MESSAGE( STATUS "Boost_INCLUDE_DIR:  " ${Boost_INCLUDE_DIR} )
 MESSAGE( STATUS "Boost_LIBRARY_DIR:  " ${Boost_LIBRARY_DIR} )
 MESSAGE( STATUS "Poco_LIBRARY_DIR:   " ${Poco_LIBRARY_DIR} )
