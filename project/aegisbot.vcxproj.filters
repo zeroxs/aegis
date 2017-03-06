@@ -30,6 +30,9 @@
     <None Include="..\install-dependencies.sh">
       <Filter>misc</Filter>
     </None>
+    <None Include="..\CMakeLists.txt">
+      <Filter>misc</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\Bot.cpp">
@@ -47,8 +50,8 @@
     <ClCompile Include="..\src\Member.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\CMakeLists.txt">
-      <Filter>misc</Filter>
+    <ClCompile Include="..\src\ABCache.cpp">
+      <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -68,6 +71,9 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="..\src\Role.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\ABCache.h">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>

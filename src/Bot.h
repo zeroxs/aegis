@@ -61,10 +61,7 @@
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/ip/address.hpp>
 
-#ifdef USE_REDIS
-#include <redisclient/redissyncclient.h>
-#elif USE_SCYLLA//TODO?
-#endif
+#include "ABCache.h"
 
 #include "../lib/json/src/json.hpp"
 
@@ -88,7 +85,6 @@ using Poco::File;
 using std::string;
 
 using boost::shared_ptr;
-using namespace redisclient;
 
 class Guild;
 
@@ -163,7 +159,7 @@ public:
     string sessionId;
     string gatewayurl;
 
-
+    ABCache cache;
 
     //Bot specific data
     string username;
@@ -172,11 +168,6 @@ public:
     string avatar;
     uint64_t userId;
     bool mfa_enabled = false;
-
-    //Redis configuration
-    string redisaddress;
-    string redispass;
-    RedisSyncClient redis;
 
     shared_ptr<Guild> loadGuild(json & obj);
     shared_ptr<Guild> loadGuildFromCache(json & obj);

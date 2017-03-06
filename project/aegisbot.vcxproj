@@ -38,11 +38,12 @@
     <None Include="..\README.md" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\CMakeLists.txt">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClCompile>
+    <None Include="..\CMakeLists.txt">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </None>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\ABCache.cpp" />
     <ClCompile Include="..\src\Bot.cpp" />
     <ClCompile Include="..\src\Channel.cpp" />
     <ClCompile Include="..\src\Guild.cpp" />
@@ -50,6 +51,7 @@
     <ClCompile Include="..\src\Member.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\src\ABCache.h" />
     <ClInclude Include="..\src\Bot.h" />
     <ClInclude Include="..\src\Channel.h" />
     <ClInclude Include="..\src\Guild.h" />

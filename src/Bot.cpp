@@ -30,7 +30,7 @@
 
 Bot::Bot()
     : keepalive_timer_(io_service)
-    , redis(io_service)
+    , cache(io_service)
 {
     pFC = new FormattingChannel(new PatternFormatter("%p:%T %t"));
     pFC->setChannel(new ConsoleChannel);
@@ -63,16 +63,11 @@ bool Bot::initialize()
 {
     //obtain data from cache (redis)
 
-    RedisValue result;
-    result = redis.command("GET", { "ab:config:token" });
 
-    if (result.isOk())
+    token = cache.get("ab:config:token");
+    if (token == "")
     {
-        token = result.toString();
-    }
-    else
-    {
-        std::cout << "Redis token is not set." << std::endl;
+        std::cout << "Bot token is not set." << std::endl;
         return false;
     }
 
