@@ -24,37 +24,21 @@
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "Bot.h"
-
-#include <boost/program_options.hpp>
-#include <boost/program_options/options_description.hpp>
-
-using namespace boost::program_options;
+#include <boost/lexical_cast.hpp>
 
 int main(int argc, char * argv[])
 {
-    uint64_t shardid;
-    options_description desc("Options");
-    desc.add_options()
-        (",s", value<string>()->required(), "Set your bot's shard id");
+    uint64_t shardid = 0;
 
-    variables_map vm;
-    try
+
+    if (argc == 1)
     {
-        store(parse_command_line(argc, argv, desc), vm);
-
-        if (vm.count("s"))
-        {
-            shardid = vm["-s"].as<uint64_t>();
-        }
-
-        notify(vm);
+        //error
+        std::cout << "No shard id passed (pass 0 for single instance)" << std::endl;
+        return 0;
     }
-    catch (boost::program_options::error & e)
-    {
-        std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
-        std::cerr << desc << std::endl;
-        return -1;
-    }
+
+    shardid = boost::lexical_cast<uint64_t>(argv);
 
 
     try

@@ -63,7 +63,6 @@ if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
 fi
 cmake --version
 
-(cd ${BOOST_DIR} && ./bootstrap.sh && ./b2 toolset=gcc --with-program_options --with-date_time --with-thread --with-system)
 if [[ "${LLVM_VERSION}" != "" ]]; then
     LLVM_DIR=${DEPS_DIR}/llvm-${LLVM_VERSION}
     if [[ -z "$(ls -A ${LLVM_DIR})" ]]; then
@@ -87,6 +86,8 @@ if [[ "${LLVM_VERSION}" != "" ]]; then
 fi
 ${CXX} --version
 
+(cd ${BOOST_DIR} && ./bootstrap.sh && ./b2 toolset=${COMPILER} --with-program_options --with-date_time --with-thread --with-system)
+
 POCO_DIR=${DEPS_DIR}/poco-${POCO_VERSION}
 POCO_URL="https://pocoproject.org/releases/poco-${POCO_VERSION}/poco-${POCO_VERSION}-all.tar.gz"
 mkdir -p ${POCO_DIR}
@@ -96,12 +97,6 @@ if [[ "${LLVM_VERSION}" != "" ]]; then
 else
     (cd ${POCO_DIR} && cmake . -DCMAKE_CXX_COMPILER=g++ && make)
 fi
-- |
-rm -rf lib/poco-1.7.8/build
-rm -rf lib/boost-1.63.0/bin.v2
-rm -f lib/*.tar.*
-
-
 
 cd ${BASE_DIR}
 (cmake . ${CMAKE_OPTIONS})
