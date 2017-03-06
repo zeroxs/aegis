@@ -1,0 +1,9 @@
+[submodule "lib/json"]
+	path = lib/json
+	url = https://github.com/nlohmann/json.git
+[submodule "lib/websocketpp"]
+	path = lib/websocketpp
+	url = https://github.com/zaphoyd/websocketpp.git
+[submodule "lib/redisclient"]
+	path = lib/redisclient
+	url = https://github.com/nekipelov/redisclient.git
