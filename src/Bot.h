@@ -156,6 +156,7 @@ public:
     uint64_t sequence = 0;
     string token;
     uint64_t shardid = 0;
+    uint64_t shardidmax = 0;
     string sessionId;
     string gatewayurl;
 

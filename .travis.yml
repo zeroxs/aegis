@@ -120,8 +120,6 @@ install:
     else
       (cd ${POCO_DIR} && cmake . -DCMAKE_CXX_COMPILER=g++ && make)
     fi
-  - |
-
 
 
 before_script:

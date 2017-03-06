@@ -30,15 +30,34 @@ int main(int argc, char * argv[])
 {
     uint64_t shardid = 0;
 
-
     if (argc == 1)
     {
         //error
-        std::cout << "No shard id passed (pass 0 for single instance)" << std::endl;
+        std::cout << "No shard id min/max passed (pass 0 for single instance)" << std::endl;
         return 0;
     }
 
-    shardid = boost::lexical_cast<uint64_t>(argv);
+    shardid = boost::lexical_cast<uint64_t>(argv[1]);
+
+    if (shardid != 0)
+    {
+        if (argc <= 2)
+        {
+            //error
+            std::cout << "No shard id max passed." << std::endl;
+            return 0;
+        }
+    }
+
+    uint64_t maxshard;
+    maxshard = boost::lexical_cast<uint64_t>(argv[2]);
+
+    if (maxshard <= shardid)
+    {
+        //error
+        std::cout << "Shard id must be less than the max." << std::endl;
+        return 0;
+    }
 
 
     try
@@ -46,6 +65,7 @@ int main(int argc, char * argv[])
         Bot bot;
 
         bot.shardid = shardid;
+        bot.shardidmax = maxshard;
         bot.initialize();
 
         boost::asio::io_service::work work(bot.io_service);
