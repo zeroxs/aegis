@@ -33,10 +33,7 @@
     <None Include="..\.travis.yml">
       <FileType>Document</FileType>
     </None>
-    <ClCompile Include="..\install-dependencies.sh">
-      <FileType>Document</FileType>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClCompile>
+    <None Include="..\install-dependencies.sh" />
     <None Include="..\LICENSE" />
     <None Include="..\README.md" />
   </ItemGroup>
@@ -118,7 +115,7 @@
       <AdditionalOptions> -L /home/zero/projects/aegisbot/lib/boost-1.63.0/stage/lib/ -L /home/zero/projects/aegisbot/lib/poco-1.7.8/lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ClCompile>
-      <PreprocessorDefinitions>_DEBUG;BOOST_DYN_LINK_ALL</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;BOOST_DYN_LINK_ALL;USE_REDIS</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(StlIncludeDirectories);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>-Wswitch -Wno-deprecated-declarations -Wempty-body -Wconversion -Wreturn-type -Wparentheses -Wno-format -Wuninitialized -Wunreachable-code -Wunused-function -Wunknown-pragmas </AdditionalOptions>
       <CppAdditionalWarning>

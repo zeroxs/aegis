@@ -121,9 +121,6 @@ install:
       (cd ${POCO_DIR} && cmake . -DCMAKE_CXX_COMPILER=g++ && make)
     fi
   - |
-    rm -rf lib/poco-1.7.8/build
-    rm -rf lib/boost-1.63.0/bin.v2
-    rm -f lib/*.tar.*
 
 
 

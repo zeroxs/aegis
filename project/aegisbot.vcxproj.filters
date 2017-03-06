@@ -27,6 +27,9 @@
     <None Include="..\.travis.yml">
       <Filter>misc</Filter>
     </None>
+    <None Include="..\install-dependencies.sh">
+      <Filter>misc</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\Bot.cpp">
@@ -43,9 +46,6 @@
     </ClCompile>
     <ClCompile Include="..\src\Member.cpp">
       <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\install-dependencies.sh">
-      <Filter>misc</Filter>
     </ClCompile>
     <ClCompile Include="..\CMakeLists.txt">
       <Filter>misc</Filter>
