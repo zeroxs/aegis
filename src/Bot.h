@@ -104,6 +104,8 @@ public:
     Bot();
     ~Bot();
 
+    void setup_cache(ABCache * in);
+
     void keepalive(const boost::system::error_code& error, const uint64_t ms);
     void onMessage(websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg);
     void onConnect(websocketpp::connection_hdl hdl);
@@ -161,7 +163,7 @@ public:
     string sessionId;
     string gatewayurl;
 
-    ABCache cache;
+    ABCache * cache;
 
     //Bot specific data
     string username;

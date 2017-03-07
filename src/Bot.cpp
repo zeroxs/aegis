@@ -30,7 +30,6 @@
 
 Bot::Bot()
     : keepalive_timer_(io_service)
-    , cache(io_service)
 {
     pFC = new FormattingChannel(new PatternFormatter("%p:%T %t"));
     pFC->setChannel(new ConsoleChannel);
@@ -59,12 +58,17 @@ Bot::~Bot()
 {
 }
 
+void Bot::setup_cache(ABCache * in)
+{
+    cache = in;
+}
+
 bool Bot::initialize()
 {
     //obtain data from cache (redis)
 
 
-    token = cache.get("ab:config:token");
+    token = cache->get("ab:config:token");
     if (token == "")
     {
         std::cout << "Bot token is not set." << std::endl;

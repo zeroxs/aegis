@@ -24,6 +24,7 @@
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "Bot.h"
+#include "ABRedisCache.h"
 #include <boost/lexical_cast.hpp>
 
 int main(int argc, char * argv[])
@@ -59,7 +60,6 @@ int main(int argc, char * argv[])
         return 0;
     }
 
-
     try
     {
         Bot bot;
@@ -67,6 +67,12 @@ int main(int argc, char * argv[])
         bot.shardid = shardid;
         bot.shardidmax = maxshard;
         bot.initialize();
+
+        ABRedisCache cache(bot.io_service);
+        cache.address = "localhost";
+        cache.port = 6379;
+        cache.password = "";
+        bot.setup_cache(&cache);
 
         boost::asio::io_service::work work(bot.io_service);
 

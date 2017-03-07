@@ -1,5 +1,5 @@
 //
-// ABCache.h
+// ABRedisCache.h
 // aegisbot
 //
 // Copyright (c) 2017 Zero (zero at xandium dot net)
@@ -25,30 +25,31 @@
 
 #pragma once
 
-#include <string>
-#include <iostream>
+#include "ABCache.h"
 
+#ifdef USE_REDIS
+#include <redisclient/redissyncclient.h>
+#endif
 
-using std::string;
+using namespace redisclient;
 
-
-class ABCache
+class ABRedisCache : public ABCache
 {
 public:
-    ABCache() {};
-    virtual ~ABCache() {};
+    ABRedisCache(boost::asio::io_service & io_service);
+    ~ABRedisCache();
 
-    virtual string get(string key) = 0;
-    virtual string put(string key, string value) = 0;
+    string get(string key);
+    string put(string key, string value);
     //may not have a portable function in other database solutions
     //for Redis, -1 is infinite, 0 is delete now, >= 1 is seconds until expiry
     //databases that do not support entry expiration could have a timer
     //created that deletes it, though that is subject to 'leaks' in case of
     //application termination before it finishes
-    virtual void expire(string key, int64_t value) = 0;
+    void expire(string key, int64_t value);
+    void initialize();
 
-    string address;
-    uint16_t port;
-    string password;
+    //Redis configuration
+    RedisSyncClient redis;
 };
 

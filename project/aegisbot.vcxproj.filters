@@ -50,9 +50,7 @@
     <ClCompile Include="..\src\Member.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\ABCache.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
+    <ClCompile Include="..\src\ABRedisCache.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\Bot.h">
@@ -79,5 +77,6 @@
     <ClInclude Include="..\src\RateLimits.h">
       <Filter>src</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\ABRedisCache.h" />
   </ItemGroup>
 </Project>

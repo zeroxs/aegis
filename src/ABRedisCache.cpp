@@ -1,5 +1,5 @@
 //
-// ABCache.cpp
+// ABRedisCache.cpp
 // aegisbot
 //
 // Copyright (c) 2017 Zero (zero at xandium dot net)
@@ -23,23 +23,51 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+#ifdef USE_REDIS
 
-#include "ABCache.h"
+#include "ABRedisCache.h"
 #include <boost/lexical_cast.hpp>
+#include <boost/asio.hpp>
+#include <boost/asio/ip/address.hpp>
 
 
-ABCache::ABCache(boost::asio::io_service & io_service)
+ABRedisCache::ABRedisCache(boost::asio::io_service & io_service)
     : redis(io_service)
 {
+    port = 6379;
 }
 
 
-ABCache::~ABCache()
+ABRedisCache::~ABRedisCache()
 {
 }
 
-#ifdef USE_REDIS
-string ABCache::get(string key)
+void ABRedisCache::initialize()
+{
+    boost::asio::ip::address connectaddress = boost::asio::ip::address::from_string(address);
+    string errmsg;
+    if (!redis.connect(connectaddress, port, errmsg))
+    {
+        std::cerr << "Can't connect to redis: " << errmsg << std::endl;
+    }
+    else
+    {
+        std::cerr << "Redis connected" << std::endl;
+    }
+
+    RedisValue result;
+    if (password != "")
+    {
+        result = redis.command("AUTH", { password });
+        if (result.isError())
+        {
+            std::cerr << "AUTH error: " << result.toString() << "\n";
+            return;
+        }
+    }
+}
+
+string ABRedisCache::get(string key)
 {
     RedisValue result;
     result = redis.command("GET", { key });
@@ -54,7 +82,7 @@ string ABCache::get(string key)
     }
 }
 
-string ABCache::put(string key, string value)
+string ABRedisCache::put(string key, string value)
 {
     RedisValue result;
     result = redis.command("GET", { key });
@@ -69,7 +97,7 @@ string ABCache::put(string key, string value)
     }
 }
 
-void ABCache::expire(string key, int64_t value)
+void ABRedisCache::expire(string key, int64_t value)
 {
     RedisValue result;
     result = redis.command("EXPIRE", { key, boost::lexical_cast<std::string>(value) });
