@@ -108,6 +108,7 @@ public:
     ~Bot();
 
     void setup_cache(ABCache * in);
+    void loadConfigs();
 
     void keepalive(const boost::system::error_code& error, const uint64_t ms);
     void onMessage(websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg);
@@ -116,6 +117,7 @@ public:
     void userMessage(json & obj);
     bool initialize();
     void processReady(json & d);
+    void connectWS();
 
     string call(string url, string obj = "", EndpointHint endpointHint = EndpointHint::CHANNEL, string method = "GET", string query = "", shared_ptr<boost::asio::steady_timer> timer = nullptr);
 

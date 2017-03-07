@@ -26,6 +26,10 @@
 #include "Bot.h"
 #include "Guild.h"
 
+#ifdef USE_REDIS
+#include "ABRedisCache.h"
+#endif
+
 #include <boost/tokenizer.hpp>
 
 Bot::Bot(uint64_t shardid, uint64_t maxshard)
@@ -68,12 +72,25 @@ void Bot::setup_cache(ABCache * in)
     cache = in;
 }
 
+void Bot::loadConfigs()
+{
+#ifdef USE_REDIS
+    int32_t level = boost::lexical_cast<int8_t>(cache->get("config:loglevel"));
+    logf->setLevel(level);
+    log->setLevel(level);
+
+
+#endif
+
+    sendMessage("Configs reloaded", CONTROL_CHANNEL);
+}
+
 bool Bot::initialize()
 {
     //obtain data from cache (redis)
 
 
-    token = cache->getNoPrefix("config:token");
+    token = cache->get("config:token", false);
     if (token == "")
     {
         std::cout << "Bot token is not set." << std::endl;
@@ -112,15 +129,36 @@ bool Bot::initialize()
     }
 }
 
+void Bot::connectWS()
+{
+    //make a portable way to do this even though I like the atomic-ness of redis scripts for obtaining inter-process locks
+#ifdef USE_REDIS
+    while (true)
+    {
+        uint64_t epoch = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+        string obtainlock = Poco::format("\"local time = redis.call('get', KEYS[1]) if (time == nil) then redis.call('set', KEYS[1], ARGV[1]) return 1 end if (time < ARGV[1]) then return 0 else redis.call('set', KEYS[1], ARGV[1]) return 1 end\" 1 config:wslock %Lu", epoch);
+        if (static_cast<ABRedisCache*>(cache)->eval(obtainlock) == "1")
+            break;
+        else
+        {
+            log->warning("Websocket lock held. Waiting to reconnect.");
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        }
+    }
+
+#endif
+
+    websocketpp::lib::error_code ec;
+    connection = ws.get_connection(gatewayurl + "/?encoding=json&v=6", ec);
+    ws.connect(connection);
+}
+
 void Bot::onClose(websocketpp::connection_hdl hdl)
 {
     keepalive_timer_.cancel();
     poco_error(*log, "Connection closed.");
-    //TODO: throttle reconnects to prevent being denied due to spam
     poco_information(*log, "Reconnecting.");
-    websocketpp::lib::error_code ec;
-    connection = ws.get_connection(gatewayurl + "/?encoding=json&v=6", ec);
-    ws.connect(connection);
+    connectWS();
 }
 
 void Bot::processReady(json & d)
@@ -244,7 +282,7 @@ void Bot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::asio_c
                 uint64_t heartbeat = result["d"]["heartbeat_interval"];
                 poco_trace_f1(*log, "Heartbeat timer added : %Lu ms", heartbeat);
                 keepalive_timer_.expires_from_now(std::chrono::milliseconds(heartbeat));
-                keepalive_timer_.async_wait([&](const boost::system::error_code & ec) { keepalive(ec, heartbeat); });
+                keepalive_timer_.async_wait([heartbeat, this](const boost::system::error_code & ec) { keepalive(ec, heartbeat); });
             }
             if (result["op"] == 11)
             {
@@ -318,7 +356,7 @@ void Bot::userMessage(json & obj)
     }
 
     //TODO: add some core bot management
-    if ((content == "?exit") && (userid == 171000788183678976L))
+    if ((content == "?exit") && (userid == 171000788183678976LL))
     {
         //
         poco_critical_f3(*log, "Bot shutdown g[%Lu] c[%Lu] u[%Lu]", id, channel_id, userid);
@@ -354,7 +392,7 @@ void Bot::keepalive(const boost::system::error_code& error, const uint64_t ms)
 
         poco_trace_f1(*log, "Heartbeat timer added: %Lu ms", ms);
         keepalive_timer_.expires_from_now(std::chrono::milliseconds(ms));
-        keepalive_timer_.async_wait([&](const boost::system::error_code & ec) { keepalive(ec, ms); });
+        keepalive_timer_.async_wait([ms, this](const boost::system::error_code & ec) { keepalive(ec, ms); });
     }
 }
 
@@ -377,7 +415,9 @@ void Bot::onConnect(websocketpp::connection_hdl hdl)
                         { "$referrer", "" },
                         { "$referring_domain", "" }
                     }
-                }
+                },
+                {"compress", false},
+                {"large_threshhold", 250}
             }
         }
     };
@@ -412,7 +452,7 @@ string Bot::call(string url, string obj, EndpointHint endpointHint, string metho
         HTTPSClientSession session(uri.getHost(), uri.getPort());
         HTTPRequest request(HTTPRequest::HTTP_GET, path, HTTPMessage::HTTP_1_1);
         request.set("Authorization", string("Bot ") + token);
-        request.set("User-Agent", "DiscordBot (https://github.com/zeroxs/discordcpp, 0.1)");
+        request.set("User-Agent", "DiscordBot (https://github.com/zeroxs/aegisbot 0.1)");
         request.set("Content-Type", "application/json");
 
 
