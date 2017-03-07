@@ -25,7 +25,7 @@
 
 
 #include "ABCache.h"
-
+#include <boost/lexical_cast.hpp>
 
 
 ABCache::ABCache(boost::asio::io_service & io_service)
@@ -67,5 +67,11 @@ string ABCache::put(string key, string value)
     {
         return "";
     }
+}
+
+void ABCache::expire(string key, int64_t value)
+{
+    RedisValue result;
+    result = redis.command("EXPIRE", { key, boost::lexical_cast<std::string>(value) });
 }
 #endif
