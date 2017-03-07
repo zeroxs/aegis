@@ -35,7 +35,7 @@ int main(int argc, char * argv[])
     {
         //error
         std::cout << "No shard id min/max passed (pass 0 for single instance)" << std::endl;
-        return 0;
+        return -1;
     }
 
     shardid = boost::lexical_cast<uint64_t>(argv[1]);
@@ -46,7 +46,7 @@ int main(int argc, char * argv[])
         {
             //error
             std::cout << "No shard id max passed." << std::endl;
-            return 0;
+            return -1;
         }
     }
 
@@ -57,7 +57,7 @@ int main(int argc, char * argv[])
     {
         //error
         std::cout << "Shard id must be less than the max." << std::endl;
-        return 0;
+        return -1;
     }
 
     try

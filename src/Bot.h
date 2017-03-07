@@ -89,7 +89,10 @@ using boost::shared_ptr;
 
 class Guild;
 
+#ifdef _DEBUG
 #define DEBUG_OUTPUT
+#define _TRACE
+#endif
 
 enum EndpointHint
 {

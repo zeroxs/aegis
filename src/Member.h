@@ -25,12 +25,13 @@
 
 #pragma once
 #include "Permission.h"
+#include "RateLimits.h"
 #include <string>
 #include <vector>
 
 using std::string;
 
-class Member : public Permission
+class Member : public Permission, public RateLimits
 {
 public:
     Member() {  };

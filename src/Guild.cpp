@@ -33,7 +33,6 @@ Guild::Guild(Bot & b)
 {
 }
 
-
 Guild::~Guild()
 {
 }

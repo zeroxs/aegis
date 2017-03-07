@@ -513,7 +513,7 @@ void Bot::bulkDelete(uint64_t channel, std::vector<string> messages)
     json arr(messages);
     json obj;
     obj["messages"] = arr;
-    call(Poco::format("/channels/%Lu/messages/bulk-delete", channel), obj.dump(-1), EndpointHint::CHANNEL, "POST");
+    call(Poco::format("/channels/%Lu/messages/bulk-delete", channel), obj.dump(), EndpointHint::CHANNEL, "POST");
     tempmessages.clear();
 }
 void Bot::getMessages(uint64_t channel, uint64_t messageid)

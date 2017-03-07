@@ -34,6 +34,7 @@
 ABRedisCache::ABRedisCache(boost::asio::io_service & io_service)
     : redis(io_service)
 {
+    address = "127.0.0.1";
     port = 6379;
 }
 
