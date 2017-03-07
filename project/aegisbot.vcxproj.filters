@@ -50,8 +50,12 @@
     <ClCompile Include="..\src\Member.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\ABRedisCache.cpp" />
-    <ClCompile Include="..\src\ABMemoryCache.cpp" />
+    <ClCompile Include="..\src\ABMemoryCache.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ABRedisCache.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\Bot.h">
@@ -78,7 +82,11 @@
     <ClInclude Include="..\src\RateLimits.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\ABRedisCache.h" />
-    <ClInclude Include="..\src\ABMemoryCache.h" />
+    <ClInclude Include="..\src\ABRedisCache.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\ABMemoryCache.h">
+      <Filter>src</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

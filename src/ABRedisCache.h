@@ -47,6 +47,8 @@ public:
     //application termination before it finishes
     void expire(string key, int64_t value = 0, bool useprefix = true);
     void initialize();
+    string getset(string key, string value, bool useprefix = true);
+    string eval(string script);
 
 private:
     RedisSyncClient redis;

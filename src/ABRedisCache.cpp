@@ -48,13 +48,9 @@ void ABRedisCache::initialize()
     boost::asio::ip::address connectaddress = boost::asio::ip::address::from_string(address);
     string errmsg;
     if (!redis.connect(connectaddress, port, errmsg))
-    {
         std::cerr << "Can't connect to redis: " << errmsg << std::endl;
-    }
     else
-    {
         std::cerr << "Redis connected" << std::endl;
-    }
 
     RedisValue result;
     if (password != "")
@@ -77,13 +73,9 @@ string ABRedisCache::get(string key, bool useprefix)
         result = redis.command("GET", { key });
 
     if (result.isOk())
-    {
         return result.toString();
-    }
     else
-    {
         return "";
-    }
 }
 
 bool ABRedisCache::put(string key, string value, bool useprefix)
@@ -95,13 +87,9 @@ bool ABRedisCache::put(string key, string value, bool useprefix)
         result = redis.command("SET", { key });
 
     if (result.isOk())
-    {
         return true;
-    }
     else
-    {
         return false;
-    }
 }
 
 void ABRedisCache::expire(string key, int64_t value, bool useprefix)
@@ -112,4 +100,29 @@ void ABRedisCache::expire(string key, int64_t value, bool useprefix)
     else
         result = redis.command("EXPIRE", { key, boost::lexical_cast<std::string>(value) });
 }
+
+string ABRedisCache::getset(string key, string value, bool useprefix)
+{
+    RedisValue result;
+    if (useprefix)
+        result = redis.command("GETSET", { prefix + key });
+    else
+        result = redis.command("GETSET", { key });
+
+    if (result.isOk())
+        return result.toString();
+    else
+        return "";
+}
+
+string ABRedisCache::eval(string script)
+{
+    RedisValue result = redis.command("EVAL", { script });
+
+    if (result.isOk())
+        return result.toString();
+    else
+        return "";
+}
+
 #endif
