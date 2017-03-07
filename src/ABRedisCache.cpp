@@ -70,6 +70,21 @@ void ABRedisCache::initialize()
 string ABRedisCache::get(string key)
 {
     RedisValue result;
+    result = redis.command("GET", { prefix+key });
+
+    if (result.isOk())
+    {
+        return result.toString();
+    }
+    else
+    {
+        return "";
+    }
+}
+
+string ABRedisCache::getNoPrefix(string key)
+{
+    RedisValue result;
     result = redis.command("GET", { key });
 
     if (result.isOk())
@@ -85,7 +100,7 @@ string ABRedisCache::get(string key)
 string ABRedisCache::put(string key, string value)
 {
     RedisValue result;
-    result = redis.command("GET", { key });
+    result = redis.command("GET", { prefix+key });
 
     if (result.isOk())
     {
@@ -100,6 +115,6 @@ string ABRedisCache::put(string key, string value)
 void ABRedisCache::expire(string key, int64_t value)
 {
     RedisValue result;
-    result = redis.command("EXPIRE", { key, boost::lexical_cast<std::string>(value) });
+    result = redis.command("EXPIRE", { prefix+key, boost::lexical_cast<std::string>(value) });
 }
 #endif

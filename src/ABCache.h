@@ -38,7 +38,11 @@ public:
     ABCache() {};
     virtual ~ABCache() {};
 
+    //get key entry
     virtual string get(string key) = 0;
+    //get key entry without prefix - for entries like global configs that do not
+    //need to be attached to a specific shard
+    virtual string getNoPrefix(string key) = 0;
     virtual string put(string key, string value) = 0;
     //may not have a portable function in other database solutions
     //for Redis, -1 is infinite, 0 is delete now, >= 1 is seconds until expiry

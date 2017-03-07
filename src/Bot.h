@@ -101,7 +101,7 @@ enum EndpointHint
 class Bot : public RateLimits
 {
 public:
-    Bot();
+    Bot(uint64_t shardid, uint64_t maxshard);
     ~Bot();
 
     void setup_cache(ABCache * in);

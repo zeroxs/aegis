@@ -28,8 +28,10 @@
 
 #include <boost/tokenizer.hpp>
 
-Bot::Bot()
+Bot::Bot(uint64_t shardid, uint64_t maxshard)
     : keepalive_timer_(io_service)
+    , shardid(shardid)
+    , shardidmax(maxshard)
 {
     pFC = new FormattingChannel(new PatternFormatter("%p:%T %t"));
     pFC->setChannel(new ConsoleChannel);
@@ -56,6 +58,9 @@ Bot::Bot()
 
 Bot::~Bot()
 {
+    Poco::Logger::shutdown();
+    pFCf->close();
+    pFC->close();
 }
 
 void Bot::setup_cache(ABCache * in)
@@ -68,7 +73,7 @@ bool Bot::initialize()
     //obtain data from cache (redis)
 
 
-    token = cache->get("ab:config:token");
+    token = cache->getNoPrefix("config:token");
     if (token == "")
     {
         std::cout << "Bot token is not set." << std::endl;
@@ -343,9 +348,9 @@ void Bot::keepalive(const boost::system::error_code& error, const uint64_t ms)
         obj["op"] = 1;
 
 #ifdef _TRACE
-        std::cout << "Sending Heartbeat: " << out.str() << "\n";
+        std::cout << "Sending Heartbeat: " << obj.dump() << "\n";
 #endif
-        ws.send(connection, obj.dump(-1), websocketpp::frame::opcode::text);
+        ws.send(connection, obj.dump(), websocketpp::frame::opcode::text);
 
         poco_trace_f1(*log, "Heartbeat timer added: %Lu ms", ms);
         keepalive_timer_.expires_from_now(std::chrono::milliseconds(ms));
@@ -390,9 +395,9 @@ void Bot::onConnect(websocketpp::connection_hdl hdl)
 //     d["large_threshold"] = 250;
 //     obj["d"] = d;
 #ifdef _TRACE
-    //std::cout << "Client Handshake:\n" << out.str() << "\n";
+    std::cout << "Client Handshake:\n" << obj.dump() << "\n";
 #endif
-    ws.send(hdl, obj.dump(-1), websocketpp::frame::opcode::text);
+    ws.send(hdl, obj.dump(), websocketpp::frame::opcode::text);
 }
 
 string Bot::call(string url, string obj, EndpointHint endpointHint, string method, string query, shared_ptr<boost::asio::steady_timer> timer)

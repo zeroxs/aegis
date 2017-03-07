@@ -40,6 +40,7 @@ public:
     ~ABRedisCache();
 
     string get(string key);
+    string getNoPrefix(string key);
     string put(string key, string value);
     //may not have a portable function in other database solutions
     //for Redis, -1 is infinite, 0 is delete now, >= 1 is seconds until expiry
@@ -49,7 +50,12 @@ public:
     void expire(string key, int64_t value);
     void initialize();
 
+    //prefix for all keys
+    string prefix;
+
     //Redis configuration
     RedisSyncClient redis;
+
+    //
 };
 

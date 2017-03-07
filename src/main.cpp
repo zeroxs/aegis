@@ -62,17 +62,15 @@ int main(int argc, char * argv[])
 
     try
     {
-        Bot bot;
-
-        bot.shardid = shardid;
-        bot.shardidmax = maxshard;
-        bot.initialize();
+        Bot bot(shardid, maxshard);
 
         ABRedisCache cache(bot.io_service);
         cache.address = "localhost";
         cache.port = 6379;
         cache.password = "";
         bot.setup_cache(&cache);
+
+        bot.initialize();
 
         boost::asio::io_service::work work(bot.io_service);
 
