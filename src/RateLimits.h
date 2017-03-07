@@ -1,5 +1,5 @@
 //
-// Channel.h
+// RateLimits.h
 // aegisbot
 //
 // Copyright (c) 2017 Zero (zero at xandium dot net)
@@ -25,41 +25,43 @@
 
 #pragma once
 
-#include "Permission.h"
-#include <boost/shared_ptr.hpp>
-#include <string>
-#include "RateLimits.h"
+#include <stdint.h>
 
-class Guild;
-using boost::shared_ptr;
-using std::string;
-
-enum class ChannelType
-{
-    TEXT = 0,
-    VOICE = 2
-};
-
-class Channel : public Permission, public RateLimits
+class RateLimits
 {
 public:
-    Channel();
-    ~Channel();
+    RateLimits() {};
+    ~RateLimits() {};
 
-    void belongs_to(shared_ptr<Guild> g) { guild = g; }
-    shared_ptr<Guild> belongs_to() { return guild; }
 
-    uint64_t id = 0;
-    uint64_t last_message_id = 0;
-    string name;
-    string topic;
-    uint32_t position = 0;
-    ChannelType type = ChannelType::TEXT;// 0 = text, 2 = voice
+    //If you have rate remaining, return 0. If you have 0 remaining, returns time until reset to wait
+    uint32_t shouldWait() const
+    {
+        if (_rate_remaining == 0) return _rate_reset;
+        if (_retry_after > 0) return _retry_after;
+    }
 
-    uint32_t bitrate = 0;
-    uint32_t user_limit = 0;
+    void rateRemaining(uint32_t rate) { _rate_remaining = rate; }
+    uint32_t rateRemaining() { return _rate_remaining; }
+    void rateReset(uint32_t rate) { _rate_reset = rate; }
+    uint32_t rateReset() { return _rate_reset; }
+    void rateLimit(uint32_t rate) { _rate_limit = rate; }
+    uint32_t rateLimit() { return _rate_limit; }
+    void rateRetry(uint32_t rate) { _retry_after = rate; }
+    uint32_t rateRetry() { return _retry_after; }
+
+    void setRates(uint32_t limit, uint32_t remaining, uint32_t reset, uint32_t retry)
+    {
+        _rate_limit = limit;
+        _rate_remaining = remaining;
+        _rate_reset = reset;
+        _retry_after = retry;
+    }
 
 private:
-    shared_ptr<Guild> guild;
+    uint32_t _rate_limit = 10;
+    uint32_t _rate_remaining = 10;
+    uint32_t _rate_reset = 0;
+    uint32_t _retry_after = 0;
 };
 

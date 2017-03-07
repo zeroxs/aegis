@@ -57,6 +57,7 @@
     <ClInclude Include="..\src\Guild.h" />
     <ClInclude Include="..\src\Member.h" />
     <ClInclude Include="..\src\Permission.h" />
+    <ClInclude Include="..\src\RateLimits.h" />
     <ClInclude Include="..\src\Role.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -117,7 +118,7 @@
       <AdditionalOptions> -L /home/zero/projects/aegisbot/lib/boost-1.63.0/stage/lib/ -L /home/zero/projects/aegisbot/lib/poco-1.7.8/lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ClCompile>
-      <PreprocessorDefinitions>_DEBUG;BOOST_DYN_LINK_ALL;USE_REDIS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;BOOST_DYN_LINK_ALL;USE_REDIS;TEST_GID=287048029524066334LL</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(StlIncludeDirectories);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>-Wswitch -Wno-deprecated-declarations -Wempty-body -Wconversion -Wreturn-type -Wparentheses -Wno-format -Wuninitialized -Wunreachable-code -Wunused-function -Wunknown-pragmas </AdditionalOptions>
       <CppAdditionalWarning>

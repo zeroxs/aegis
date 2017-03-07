@@ -68,6 +68,7 @@
 #include "Guild.h"
 #include "Member.h"
 #include "Channel.h"
+#include "RateLimits.h"
 
 using json = nlohmann::json;
 using namespace Poco::Net;
@@ -97,7 +98,7 @@ enum EndpointHint
     MAX
 };
 
-class Bot
+class Bot : public RateLimits
 {
 public:
     Bot();

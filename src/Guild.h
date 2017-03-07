@@ -33,6 +33,7 @@
 #include "Channel.h"
 #include "Role.h"
 #include "../lib/json/src/json.hpp"
+#include "RateLimits.h"
 
 using boost::shared_ptr;
 class Bot;
@@ -40,7 +41,7 @@ class Bot;
 using std::string;
 using json = nlohmann::json;
 
-class Guild : public Permission
+class Guild : public Permission, public RateLimits
 {
 public:
     Guild(Bot & b);
