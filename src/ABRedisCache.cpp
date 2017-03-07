@@ -68,10 +68,13 @@ void ABRedisCache::initialize()
     }
 }
 
-string ABRedisCache::get(string key)
+string ABRedisCache::get(string key, bool useprefix)
 {
     RedisValue result;
-    result = redis.command("GET", { prefix+key });
+    if (useprefix)
+        result = redis.command("GET", { prefix + key });
+    else
+        result = redis.command("GET", { key });
 
     if (result.isOk())
     {
@@ -83,39 +86,30 @@ string ABRedisCache::get(string key)
     }
 }
 
-string ABRedisCache::getNoPrefix(string key)
+bool ABRedisCache::put(string key, string value, bool useprefix)
 {
     RedisValue result;
-    result = redis.command("GET", { key });
+    if (useprefix)
+        result = redis.command("SET", { prefix + key });
+    else
+        result = redis.command("SET", { key });
 
     if (result.isOk())
     {
-        return result.toString();
+        return true;
     }
     else
     {
-        return "";
+        return false;
     }
 }
 
-string ABRedisCache::put(string key, string value)
+void ABRedisCache::expire(string key, int64_t value, bool useprefix)
 {
     RedisValue result;
-    result = redis.command("GET", { prefix+key });
-
-    if (result.isOk())
-    {
-        return result.toString();
-    }
+    if (useprefix)
+        result = redis.command("EXPIRE", { prefix + key, boost::lexical_cast<std::string>(value) });
     else
-    {
-        return "";
-    }
-}
-
-void ABRedisCache::expire(string key, int64_t value)
-{
-    RedisValue result;
-    result = redis.command("EXPIRE", { prefix+key, boost::lexical_cast<std::string>(value) });
+        result = redis.command("EXPIRE", { key, boost::lexical_cast<std::string>(value) });
 }
 #endif

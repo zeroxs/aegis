@@ -1,5 +1,5 @@
 //
-// ABRedisCache.h
+// ABMemoryCache.h
 // aegisbot
 //
 // Copyright (c) 2017 Zero (zero at xandium dot net)
@@ -25,18 +25,20 @@
 
 #pragma once
 
-#ifdef USE_REDIS
+#ifdef USE_MEMORY
 
 #include "ABCache.h"
-#include <redisclient/redissyncclient.h>
+#include <map>
+#include <boost/asio.hpp>
 
-using namespace redisclient;
-
-class ABRedisCache : public ABCache
+//Memory based cache for single shard bots that don't need any form of
+//inter-process communication (such as between multiple shards, or to
+//an external application like a website)
+class ABMemoryCache : public ABCache
 {
 public:
-    ABRedisCache(boost::asio::io_service & io_service);
-    ~ABRedisCache();
+    ABMemoryCache(boost::asio::io_service & io_service);
+    ~ABMemoryCache();
 
     string get(string key, bool useprefix = true);
     bool put(string key, string value, bool useprefix = true);
@@ -47,9 +49,10 @@ public:
     //application termination before it finishes
     void expire(string key, int64_t value = 0, bool useprefix = true);
     void initialize();
+    boost::asio::io_service & io_service;
 
 private:
-    RedisSyncClient redis;
+    std::map<std::string, std::string> memdata;
 };
-#endif
 
+#endif

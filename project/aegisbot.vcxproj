@@ -43,6 +43,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\ABMemoryCache.cpp" />
     <ClCompile Include="..\src\ABRedisCache.cpp" />
     <ClCompile Include="..\src\Bot.cpp" />
     <ClCompile Include="..\src\Channel.cpp" />
@@ -52,6 +53,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\ABCache.h" />
+    <ClInclude Include="..\src\ABMemoryCache.h" />
     <ClInclude Include="..\src\ABRedisCache.h" />
     <ClInclude Include="..\src\Bot.h" />
     <ClInclude Include="..\src\Channel.h" />

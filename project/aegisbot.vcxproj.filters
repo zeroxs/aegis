@@ -51,6 +51,7 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\src\ABRedisCache.cpp" />
+    <ClCompile Include="..\src\ABMemoryCache.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\Bot.h">
@@ -78,5 +79,6 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="..\src\ABRedisCache.h" />
+    <ClInclude Include="..\src\ABMemoryCache.h" />
   </ItemGroup>
 </Project>
