@@ -62,6 +62,7 @@
     <ClInclude Include="..\src\Permission.h" />
     <ClInclude Include="..\src\RateLimits.h" />
     <ClInclude Include="..\src\Role.h" />
+    <ClInclude Include="..\src\rss.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{7892ad94-fd49-48b7-afa3-9bf6b16fd202}</ProjectGuid>
@@ -128,6 +129,7 @@
       </CppAdditionalWarning>
       <CAdditionalWarning />
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <CppLanguageStandard>c++1y</CppLanguageStandard>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

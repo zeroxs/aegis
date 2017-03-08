@@ -85,8 +85,6 @@ using Poco::File;
 
 using std::string;
 
-using boost::shared_ptr;
-
 class Guild;
 
 #ifdef _DEBUG
@@ -94,7 +92,7 @@ class Guild;
 #define _TRACE
 #endif
 
-class AegisBot : public RateLimits
+class AegisBot
 {
 public:
     AegisBot();
@@ -112,7 +110,7 @@ public:
     void processReady(json & d);
     void connectWS();
 
-    string call(string url, string obj = "", RateLimits * endpoint = nullptr, string method = "GET", string query = "", shared_ptr<boost::asio::steady_timer> timer = nullptr);
+    string call(string url, string obj = "", RateLimits * endpoint = nullptr, string method = "GET", string query = "");
 
     template <typename T, typename... _BoundArgs>
     void createTimer(uint64_t t, shared_ptr<boost::asio::steady_timer> timer, T f, _BoundArgs&&... __args);
@@ -129,6 +127,8 @@ public:
     websocketpp::client<websocketpp::config::asio_tls_client>::connection_type::ptr connection;
     boost::asio::steady_timer keepalive_timer_;
 
+    RateLimits ratelimits;
+
     //Private chat tracking
     struct PrivateChat
     {
@@ -142,9 +142,6 @@ public:
 
     //Guild tracking (Servers)
     std::map<uint64_t, shared_ptr<Guild>> guildlist;
-
-    //outgoing message queue
-
 
     //Authorization
     uint64_t sequence = 0;
@@ -163,16 +160,14 @@ public:
     string avatar;
     uint64_t userId;
     bool mfa_enabled = false;
+    bool isrunning = true;
 
     shared_ptr<Guild> loadGuild(json & obj);
     shared_ptr<Guild> loadGuildFromCache(json & obj);
     shared_ptr<Member> loadMember(json & obj);
     shared_ptr<Member> loadMemberFromCache(json & obj);
 
-    void sendMessageEmbed(string content, uint64_t channel, json & embed);
-    void sendMessage(string content, uint64_t channel);
-    void bulkDelete(uint64_t channel, std::vector<string> messages);
-    void getMessages(uint64_t channel, uint64_t messageid);
+    void run();
 
     //debug
     std::vector<string> tempmessages;

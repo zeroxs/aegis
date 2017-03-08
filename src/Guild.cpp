@@ -24,6 +24,7 @@
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "Guild.h"
+#include "AegisBot.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
 
@@ -41,61 +42,42 @@ Guild::~Guild()
 void Guild::processMessage(json obj)
 {
     json author = obj["author"];
-    uint64_t userid = author["id"];
+    uint64_t userid = std::stoll(author["id"].get<string>());
     string avatar = author["avatar"];
     string username = author["username"];
-    uint16_t discriminator = author["discriminator"];
+    uint16_t discriminator = std::stoll(author["discriminator"].get<string>());
 
-    uint64_t channel_id = obj["channel_id"];
-    uint64_t id = obj["id"];
-    uint64_t nonce = obj["nonce"];
+    uint64_t channel_id = std::stoll(obj["channel_id"].get<string>());
+    uint64_t id = std::stoll(obj["id"].get<string>());
+    uint64_t nonce = std::stoll(obj["nonce"].get<string>());
 
     string content = obj["content"];
     bool tts = obj["tts"];
     bool pinned = obj["pinned"];
 
 
-    std::vector<string> tokens;
-    boost::split(tokens, content, boost::is_any_of(" "));
+    boost::char_separator<char> sep{ " " };
+    boost::tokenizer<boost::char_separator<char>> tok{ content, sep };
 
-    string cmd = tokens[0].substr(1, tokens[0].length() - 1);
+    string cmd = (*tok.begin()).substr(1, (*tok.begin()).length() - 1);
 
-    if (cmd == "echo")
+
+    if (cmdlist.count(cmd))
     {
-        echo(content, channel_id);
+        //command exists - construct callback object and perform callback
+        boost::shared_ptr<ABMessage> message = boost::make_shared<ABMessage>();
+        message->content = content;
+        message->channel = channellist[channel_id];
+        message->member = bot.globalusers[userid];
+        message->guild = this->shared_from_this();
+        cmdlist[cmd](message);
     }
-    else if (cmd == "timer")
-    {
-        int64_t time = Var(tokens[1]).convert<int64_t>();
-        if (time > 1000 * 60 * 60)//1 hour max timer
-        {
-            bot.sendMessage(Poco::format("Timer too large `%Ld`", time), channel_id);
-            return;
-        }
-        bot.sendMessage(Poco::format("Timer started `%Ld`", time), channel_id);
-        std::thread t([&]() {
-            bot.io_service.post([&, time]()
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(time));
-                bot.sendMessage(Poco::format("Response to `%s`", content), channel_id);
-            });
-        });
-    }
-    else if (cmd == "clean_channel")
-    {
-        bot.bulkDelete(channel_id, bot.tempmessages);
-    }
-    else if (cmd == "get_history")
-    {
-        bot.getMessages(channel_id, id);
-    }
-
-
-
-
 }
 
-void Guild::echo(string content, uint64_t channel_id)
+void Guild::addCommand(string command, std::function<void(boost::shared_ptr<ABMessage>)> callback)
 {
-    bot.sendMessage(Poco::format("Response to `%s`", content), channel_id);
+    cmdlist[command] = callback;
 }
+
+
+

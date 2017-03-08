@@ -88,5 +88,8 @@
     <ClInclude Include="..\src\AegisBot.h">
       <Filter>src</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\rss.h">
+      <Filter>src</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

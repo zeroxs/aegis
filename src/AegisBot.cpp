@@ -72,15 +72,12 @@ void AegisBot::setup_cache(ABCache * in)
 
 void AegisBot::loadConfigs()
 {
+    //TODO: might need to add a mutex here to prevent actions from running while configs reload
 #ifdef USE_REDIS
-    int32_t level = boost::lexical_cast<int8_t>(cache->get("config:loglevel"));
+    int32_t level = boost::lexical_cast<int32_t>(cache->get("config:loglevel"));
     logf->setLevel(level);
     log->setLevel(level);
-
-
 #endif
-
-    sendMessage("Configs reloaded", CONTROL_CHANNEL);
 }
 
 bool AegisBot::initialize(uint64_t shardid, uint64_t maxshard)
@@ -90,7 +87,6 @@ bool AegisBot::initialize(uint64_t shardid, uint64_t maxshard)
     //obtain data from cache (redis)
 
 
-    token = cache->get("config:token", false);
     if (token == "")
     {
         std::cout << "Bot token is not set." << std::endl;
@@ -166,7 +162,7 @@ void AegisBot::processReady(json & d)
     json guilds = d["guilds"];
     for (auto & guildobj : guilds)
     {
-        uint64_t id = guildobj["id"];
+        uint64_t id = std::stoll(guildobj["id"].get<string>());
         bool unavailable = guildobj["unavailable"];
 
         auto guild = guildlist[id];
@@ -189,8 +185,8 @@ void AegisBot::processReady(json & d)
     json pchannels = d["private_channels"];
     for (auto & channel : pchannels)
     {
-        uint64_t channel_id = channel["id"];
-        uint64_t last_message_id = channel["last_message_id"];
+        uint64_t channel_id = std::stoll(channel["id"].get<string>());
+        uint64_t last_message_id = std::stoll(channel["last_message_id"].get<string>());
         int32_t channelType = channel["type"];
         json recipients = channel["recipients"];
       
@@ -205,9 +201,9 @@ void AegisBot::processReady(json & d)
         for (auto & recipient : recipients)
         {
             string recipientAvatar = recipient["avatar"];
-            uint16_t recipientDiscriminator = recipient["discriminator"];
+            uint16_t recipientDiscriminator = std::stoll(recipient["discriminator"].get<string>());
             string recipientName = recipient["username"];
-            uint64_t recipientId = recipient["id"];
+            uint64_t recipientId = std::stoll(recipient["id"].get<string>());
 
             auto rec = privateChat->recipients[recipientId];
             auto glob = globalusers[recipientId];
@@ -217,7 +213,7 @@ void AegisBot::processReady(json & d)
                 if (rec == nullptr)
                 {
                     //new entry entirely
-                    globalusers[recipientId] = privateChat->recipients[recipientId] = rec = boost::make_shared<Member>();
+                    globalusers[recipientId] = privateChat->recipients[recipientId] = rec = boost::make_shared<Member>(*this);
                     poco_trace_f1(*log, "User created: %Lu", recipientId);
                 }
                 else
@@ -241,12 +237,12 @@ void AegisBot::processReady(json & d)
     sessionId = d["session_id"];
     json & userdata = d["user"];
     avatar = userdata["avatar"];
-    discriminator = userdata["discriminator"];
-    userId = userdata["id"];
+    discriminator = std::stoll(userdata["discriminator"].get<string>());
+    userId = std::stoll(userdata["id"].get<string>());
     username = userdata["username"];
     mfa_enabled = userdata["mfa_enabled"];
 }
-//    "d":{  "presences":[], "relationships" : [], "user_settings" : {}, "v" : 6}, "op" : 0, "s" : 1, "t" : "READY"
+
 void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg)
 {
     try
@@ -290,27 +286,6 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                 poco_trace(*log, "Heartbeat ACK");
             }
         }
-//     JSON: 
-//     { 
-//         "d":
-//         {
-//             "attachments":[],
-//             "edited_timestamp" : null,
-//             "embeds" : [],
-//             "mention_everyone" : false,
-//             "mention_roles" : [],
-//             "mentions" : [],
-//             "timestamp" : "2017-02-28T15:22:25.955000+00:00",
-//             "type" : 0
-//             //"webhook_id": ""
-//         },
-//         "op" : 0,
-//         "s" : 4,
-//         "t" : "MESSAGE_CREATE"
-//     }
-//         std::ostringstream out;
-//         result->stringify(out);
-//         std::cout << "JSON: " << out.str() << "\n";
     }
     catch (Poco::BadCastException& e)
     {
@@ -326,11 +301,11 @@ void AegisBot::userMessage(json & obj)
 {
     json author = obj["author"];
 
-    uint64_t userid = author["id"];
+    uint64_t userid = std::stoll(author["id"].get<string>());
     string username = author["username"];
 
-    uint64_t channel_id = obj["channel_id"];
-    uint64_t id = obj["id"];
+    uint64_t channel_id = std::stoll(obj["channel_id"].get<string>());
+    uint64_t id = std::stoll(obj["id"].get<string>());
     string content = obj["content"];
 
     //process chat
@@ -421,26 +396,13 @@ void AegisBot::onConnect(websocketpp::connection_hdl hdl)
             }
         }
     };
-//     obj["op"] = 2;
-//     json d;
-//     d["token"] = token;
-//     json properties;
-//     properties["$os"] = "linux";
-//     properties["$browser"] = "discordcpp";
-//     properties["$device"] = "discordcpp";
-//     properties["$referrer"] = "";
-//     properties["$referring_domain"] = "";
-//     d["properties"] = properties;
-//     d["compress"] = false;
-//     d["large_threshold"] = 250;
-//     obj["d"] = d;
 #ifdef _TRACE
     std::cout << "Client Handshake:\n" << obj.dump() << "\n";
 #endif
     ws.send(hdl, obj.dump(), websocketpp::frame::opcode::text);
 }
 
-string AegisBot::call(string url, string obj, RateLimits * endpoint, string method, string query, shared_ptr<boost::asio::steady_timer> timer)
+string AegisBot::call(string url, string obj, RateLimits * endpoint, string method, string query)
 {
     uint64_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
@@ -496,30 +458,34 @@ string AegisBot::call(string url, string obj, RateLimits * endpoint, string meth
         Poco::StreamCopier::copyToString(rs, output);
         std::cout << "Result: " << output << "\n";
 
-        if (response.has("X-RateLimit-Global"))
+        if (endpoint)
         {
-            rate_global = true;
-            endpoint->rateRetry(Poco::DynamicAny(response.get("Retry-After")).convert<uint32_t>());
-            log->error(Poco::format("Global rate limit reached. Pausing for %Lums", endpoint->rateRetry()));
-            std::this_thread::sleep_for(std::chrono::milliseconds(endpoint->rateRetry()));
-            rate_global = false;
-        }
-        else
-        {
-            if (response.has("X-RateLimit-Limit"))
-                endpoint->rateLimit(Poco::DynamicAny(response.get("X-RateLimit-Limit")).convert<uint32_t>());
-            if (response.has("X-RateLimit-Remaining"))
-                endpoint->rateRemaining(Poco::DynamicAny(response.get("X-RateLimit-Remaining")).convert<uint32_t>());
-            if (response.has("X-RateLimit-Reset"))
-                endpoint->rateReset(Poco::DynamicAny(response.get("X-RateLimit-Reset")).convert<uint32_t>());
+            if (response.has("X-RateLimit-Global"))
+            {
+                rate_global = true;
+                endpoint->rateRetry(Poco::DynamicAny(response.get("Retry-After")).convert<uint32_t>());
+                log->error(Poco::format("Global rate limit reached. Pausing for %Lums", endpoint->rateRetry()));
+                std::this_thread::sleep_for(std::chrono::milliseconds(endpoint->rateRetry()));
+                rate_global = false;
+            }
+            else
+            {
+                if (response.has("X-RateLimit-Limit"))
+                    endpoint->rateLimit(Poco::DynamicAny(response.get("X-RateLimit-Limit")).convert<uint32_t>());
+                if (response.has("X-RateLimit-Remaining"))
+                    endpoint->rateRemaining(Poco::DynamicAny(response.get("X-RateLimit-Remaining")).convert<uint32_t>());
+                if (response.has("X-RateLimit-Reset"))
+                    endpoint->rateReset(Poco::DynamicAny(response.get("X-RateLimit-Reset")).convert<uint32_t>());
 
 #ifdef DEBUG_OUTPUT
-            poco_trace_f1(*log, "rate_limit:     %u", endpoint->rateLimit());
-            poco_trace_f1(*log, "rate_remaining: %u", endpoint->rateRemaining());
-            poco_trace_f1(*log, "rate_reset:     %Lu", endpoint->rateReset());
-            poco_trace_f1(*log, "epoch:          %Lu", epoch);
+                poco_trace_f1(*log, "rate_limit:     %u", endpoint->rateLimit());
+                poco_trace_f1(*log, "rate_remaining: %u", endpoint->rateRemaining());
+                poco_trace_f1(*log, "rate_reset:     %u", endpoint->rateReset());
+                poco_trace_f1(*log, "epoch:          %Lu", epoch);
+                poco_trace_f1(*log, "content:        %s", obj);
 #endif
-            log->information(Poco::format("Rates: %u:%u resets in: %Lums", endpoint->rateLimit(), endpoint->rateRemaining(), (endpoint->rateReset() > 0) ? (endpoint->rateReset() - epoch) : 0));
+                log->information(Poco::format("Rates: %u:%u resets in: %Lums", endpoint->rateLimit(), endpoint->rateRemaining(), (endpoint->rateReset() > 0) ? (endpoint->rateReset() - epoch) : 0));
+            }
         }
 
         return output;
@@ -532,68 +498,39 @@ string AegisBot::call(string url, string obj, RateLimits * endpoint, string meth
     return "";
 }
 
-void AegisBot::sendMessage(string content, uint64_t channel)
+void AegisBot::run()
 {
-    uint64_t epoch = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    if (rateRemaining() > 0)
+    while (isrunning)
     {
-        //rate limit reached, create timer
-        createTimer(rateLimits[EndpointHint::CHANNEL].rate_reset - epoch, nullptr, std::mem_fn(&AegisBot::sendMessage), content, channel);
-        return;
-    }
-
-    poco_trace(*log, "sendMessage() goes through");
-    json obj;
-    obj["content"] = content;
-    call(Poco::format("/channels/%Lu/messages", channel), obj.dump());
-}
-
-void AegisBot::_sendMessage(string content, uint64_t channel)
-{
-    poco_trace(*log, "_sendMessage() goes through");
-    json obj;
-    obj["content"] = content;
-    call(Poco::format("/channels/%Lu/messages", channel), obj.dump());
-}
-
-void AegisBot::bulkDelete(uint64_t channel, std::vector<string> messages)
-{
-    json arr(messages);
-    json obj;
-    obj["messages"] = arr;
-    call(Poco::format("/channels/%Lu/messages/bulk-delete", channel), obj.dump(), EndpointHint::CHANNEL, "POST");
-    tempmessages.clear();
-}
-void AegisBot::getMessages(uint64_t channel, uint64_t messageid)
-{
-    string res = call(Poco::format("/channels/%Lu/messages", channel), "", EndpointHint::CHANNEL, "GET", Poco::format("?before=%Lu&limit=100", messageid));
-
-    json arr = json::parse(res);
-
-    for (auto & m : arr)
-    {
-        string entry = m["id"];
-        poco_trace_f1(*log, "Message entry: %s", entry);
-        tempmessages.push_back(entry);
-    }
-
-}
-
-bool AegisBot::rateLimitCheck(uint64_t epoch, EndpointHint endpointHint)
-{
-    if (rateLimits[endpointHint].rate_remaining == 0)
-    {
-        if (rateLimits[endpointHint].rate_reset < epoch)
+        for (auto & guild : guildlist)
         {
-            //reset rates
-            rateLimits[endpointHint].rate_reset = 0;
-            rateLimits[endpointHint].rate_remaining = rateLimits[endpointHint].rate_limit;
-            return true;
+            for (auto & channel : guild.second->channellist)
+            {
+                if (channel.second->ratelimits.outqueue.size() > 0)
+                {
+                    if (channel.second->ratelimits.rateRemaining())
+                    {
+                        uint32_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+                        auto message = channel.second->ratelimits.getMessage();
+                        poco_trace_f2(*log, "Message sent: [%s] [%s]", message->endpoint, message->content);
+                        message->content = call(message->endpoint, message->content, (RateLimits *)&message->channel->ratelimits, message->method, message->query);
+#ifdef DEBUG_OUTPUT
+                        poco_trace_f1(*log, "rate_limit:     %u", message->channel->ratelimits.rateLimit());
+                        poco_trace_f1(*log, "rate_remaining: %u", message->channel->ratelimits.rateRemaining());
+                        poco_trace_f1(*log, "rate_reset:     %u", message->channel->ratelimits.rateReset());
+                        poco_trace_f1(*log, "epoch:          %u", epoch);
+                        poco_trace_f1(*log, "content:        %s", message->content);
+#endif
+                        if (message->callback)
+                        {
+                            message->callback(message);
+                        }
+                    }
+                }
+            }
         }
-        //not enough rate left, queue this message
-        return false;
+        std::this_thread::sleep_for(std::chrono::microseconds(1));
     }
-    return true;
 }
 
 template <typename T, typename... _BoundArgs>
@@ -613,7 +550,7 @@ shared_ptr<Guild> AegisBot::loadGuild(json & obj)
     shared_ptr<Guild> guild;
 
     //uint64_t application_id = obj->get("application_id").convert<uint64_t>();
-    uint64_t id = obj["id"];
+    uint64_t id = std::stoll(obj["id"].get<string>());
 
     try
     {
@@ -630,9 +567,9 @@ shared_ptr<Guild> AegisBot::loadGuild(json & obj)
         guild->name = GET_NULL(obj, "name");
         guild->icon = GET_NULL(obj, "icon");
         guild->splash = GET_NULL(obj, "splash");
-        guild->owner_id = obj["owner_id"];
+        guild->owner_id = std::stoll(obj["owner_id"].get<string>());
         guild->region = obj["region"];
-        guild->afk_channel_id = GET_NULL(obj, "afk_channel_id");
+        guild->afk_channel_id = obj["afk_channel_id"].is_null() ? 0 : std::stoll(obj["afk_channel_id"].get<string>());
         guild->afk_timeout = obj["afk_timeout"];//in seconds
         //guild->embed_enabled = obj->get("embed_enabled").convert<bool>();
         //guild->embed_channel_id = obj->get("embed_channel_id").convert<uint64_t>();
@@ -643,7 +580,7 @@ shared_ptr<Guild> AegisBot::loadGuild(json & obj)
         guild->large = obj["large"];
         guild->unavailable = obj["unavailable"];
         guild->member_count = obj["member_count"];
-        guild->voice_states = obj["voice_states"];
+        json voice_states = obj["voice_states"];
         json members = obj["members"];
         json channels = obj["channels"];
         json presences = obj["presences"];
@@ -653,16 +590,19 @@ shared_ptr<Guild> AegisBot::loadGuild(json & obj)
 
         for (auto & channel : channels)
         {
-            uint64_t channel_id = channel["id"];
+            uint64_t channel_id = std::stoll(channel["id"].get<string>());
 
             try
             {
                 //does channel exist?
+                //TODO: these 'leak' memory in the sense that they create a shared_ptr entry set to empty
+                //doesn't really hurt, and shouldn't really add up to anything to be concerned about, but maybe
+                //do a check for .count() on all the checks instead?
                 auto checkchannel = channellist[channel_id];
                 if (checkchannel == nullptr)
                 {
                     //not cached - create
-                    channellist[channel_id] = checkchannel = boost::make_shared<Channel>();
+                    channellist[channel_id] = checkchannel = boost::make_shared<Channel>(*this, guild);
                     checkchannel->id = channel_id;
                     checkchannel->belongs_to(guild);
                     poco_trace_f2(*log, "Channel[%Lu] created for guild[%Lu]", channel_id, id);
@@ -682,7 +622,7 @@ shared_ptr<Guild> AegisBot::loadGuild(json & obj)
                 {
                     //not a voice channel, so has a topic field and last message id
                     checkchannel->topic = GET_NULL(channel, "topic");
-                    checkchannel->last_message_id = (channel["last_message_id"].is_null()) ? 0 : (uint64_t)channel["last_message_id"];
+                    checkchannel->last_message_id = (channel["last_message_id"].is_null()) ? 0 : std::stoll(channel["last_message_id"].get<string>());
                 }
 
 
@@ -691,7 +631,7 @@ shared_ptr<Guild> AegisBot::loadGuild(json & obj)
                 {
                     uint32_t allow = permission["allow"];
                     uint32_t deny = permission["deny"];
-                    uint64_t p_id = permission["id"];
+                    uint64_t p_id = std::stoll(permission["id"].get<string>());
                     string p_role = GET_NULL(permission, "role");
                     //TODO: implement
                 }
@@ -701,14 +641,14 @@ shared_ptr<Guild> AegisBot::loadGuild(json & obj)
             }
             catch (std::exception&e)
             {
-                poco_error_f2(*log, "Error processing channel[%Lu] of guild[%Lu]", channel_id, id);
+                poco_error_f3(*log, "Error processing channel[%Lu] of guild[%Lu] %s", channel_id, id, (string)e.what());
             }
         }
 
         for (auto & member : members)
         {
             json user = member["user"];
-            uint64_t member_id = user["id"];
+            uint64_t member_id = std::stoll(user["id"].get<string>());
             try
             {
                 //does member exist?
@@ -716,23 +656,24 @@ shared_ptr<Guild> AegisBot::loadGuild(json & obj)
                 if (checkmember == nullptr)
                 {
                     //not cached - create
-                    globalusers[member_id] = checkmember = boost::make_shared<Member>();
+                    globalusers[member_id] = checkmember = boost::make_shared<Member>(*this);
                     checkmember->id = member_id;
                     poco_trace_f2(*log, "Member[%Lu] created for guild[%Lu]", member_id, id);
                 }
 
                 checkmember->avatar = GET_NULL(user, "avatar");
-                checkmember->discriminator = user["discriminator"];
+                checkmember->discriminator = std::stoll(user["discriminator"].get<string>());
                 checkmember->name = GET_NULL(user, "name");
 
                 checkmember->deaf = member["deaf"];
                 checkmember->joined_at = member["joined_at"];
                 checkmember->mute = member["mute"];
+                checkmember->isbot = member["bot"].is_null()?false:true;
                 checkmember->nick = GET_NULL(member, "nick");
 
                 json roles = member["roles"];
                 for (auto & r : roles)
-                    checkmember->roles.push_back(r.get<uint64_t>());
+                    checkmember->roles.push_back(std::stoll(r.get<string>()));
 
 
 
@@ -740,14 +681,14 @@ shared_ptr<Guild> AegisBot::loadGuild(json & obj)
             }
             catch (std::exception&e)
             {
-                poco_error_f2(*log, "Error processing member[%Lu] of guild[%Lu]", member_id, id);
+                poco_error_f3(*log, "Error processing member[%Lu] of guild[%Lu] %s", member_id, id, (string)e.what());
             }
         }
 
         for (auto  &role : roles)
         {
             shared_ptr<Role> _role = boost::make_shared<Role>();
-            uint64_t role_id = role["id"];
+            uint64_t role_id = std::stoll(role["id"].get<string>());
             try
             {
                 _role->hoist = role["hoist"];
@@ -761,7 +702,7 @@ shared_ptr<Guild> AegisBot::loadGuild(json & obj)
             }
             catch (std::exception&e)
             {
-                poco_error_f2(*log, "Error processing role[%Lu] of guild[%Lu]", role_id, id);
+                poco_error_f3(*log, "Error processing role[%Lu] of guild[%Lu] %s", role_id, id, (string)e.what());
             }
         }
 
@@ -776,10 +717,14 @@ shared_ptr<Guild> AegisBot::loadGuild(json & obj)
         for (auto & feature : features)
         {
         }
+
+        for (auto & voicestate : voice_states)
+        {
+        }
     }
     catch(std::exception&e)
     {
-        poco_error_f1(*log, "Error processing guild[%Lu]", id);
+        poco_error_f2(*log, "Error processing guild[%Lu] %s", id, e.what());
     }
 
     return guild;

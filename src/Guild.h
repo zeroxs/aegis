@@ -25,7 +25,7 @@
 
 #pragma once
 
-#include "Bot.h"
+#include "AegisBot.h"
 #include <map>
 #include "Member.h"
 #include <boost/shared_ptr.hpp>
@@ -34,6 +34,7 @@
 #include "Role.h"
 #include "../lib/json/src/json.hpp"
 #include "RateLimits.h"
+#include <boost/enable_shared_from_this.hpp>
 
 using boost::shared_ptr;
 class AegisBot;
@@ -41,19 +42,22 @@ class AegisBot;
 using std::string;
 using json = nlohmann::json;
 
-class Guild : public Permission, public RateLimits
+class Guild : public Permission, public boost::enable_shared_from_this<Guild>
 {
 public:
     Guild(AegisBot & b);
     ~Guild();
 
     void processMessage(json obj);
+    void addCommand(string command, ABMessageCallback callback);
 
     AegisBot & bot;
 
     std::map<uint64_t, shared_ptr<Member>> clientlist;
     std::map<uint64_t, shared_ptr<Channel>> channellist;
     std::map<uint64_t, shared_ptr<Role>> rolelist;
+
+    RateLimits ratelimits;
 
     string prefix = "?";
 
@@ -74,12 +78,10 @@ public:
     bool large = false;
     bool unavailable = true;
     uint32_t member_count = 0;
-    string voice_states;
+    //string voice_states;//this is really an array
 
-    //provide some generic functionality as a base to extend
-    //std::map<std::string, std::_Bind<std::_Mem_fn<void(Guild::*)(Object::Ptr)>(Guild*)>> cmdlist = {};
-
-    //commands
-    void echo(string content, uint64_t channel_id);
+    //extendable command list. this list allows you to place c++ functions into matching to a command
+    //for more than just simple responses
+    std::map<std::string, std::function<void(boost::shared_ptr<ABMessage>)>> cmdlist = {};
 };
 

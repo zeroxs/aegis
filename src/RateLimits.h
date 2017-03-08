@@ -31,8 +31,10 @@
 #include <string>
 #include <functional>
 #include <chrono>
+#include <boost/shared_ptr.hpp>
+#include <mutex>
 
-typedef std::tuple<std::string, std::function<void(std::string)>> ABMessage;
+class ABMessage;
 
 class RateLimits
 {
@@ -51,7 +53,7 @@ public:
     void rateRemaining(uint32_t rate) { _rate_remaining = rate; }
     uint32_t rateRemaining()
     {
-        uint64_t epoch = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+        uint64_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
         if (_rate_reset < epoch)
         {
             _rate_reset = 0;
@@ -74,14 +76,32 @@ public:
         _retry_after = retry;
     }
 
-    std::queue<ABMessage> queue;
+    boost::shared_ptr<ABMessage> getMessage()
+    {
+        std::lock_guard<std::mutex> lock(m);
+        if (outqueue.size() > 0)
+        {
+            boost::shared_ptr<ABMessage> t = outqueue.front();
+            outqueue.pop();
+            return t;
+        }
+    }
 
-    //virtual void sendMessage(ABMessage msg);
+    void putMessage(boost::shared_ptr<ABMessage> message)
+    {
+        std::lock_guard<std::mutex> lock(m);
+        outqueue.push(message);
+    }
+
+    std::queue<boost::shared_ptr<ABMessage>> outqueue;
+
+    static bool rate_global;
 
 private:
     uint32_t _rate_limit = 10;
     uint32_t _rate_remaining = 10;
     uint32_t _rate_reset = 0;
     uint32_t _retry_after = 0;
+    std::mutex m;
 };
 
