@@ -1,5 +1,5 @@
 //
-// Member.cpp
+// ABRedisCache.h
 // aegisbot
 //
 // Copyright (c) 2017 Zero (zero at xandium dot net)
@@ -23,38 +23,35 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#include "Member.h"
-#include "Guild.h"
-#include "AegisBot.h"
+#pragma once
 
+#ifdef USE_REDIS
 
+#include "ABCache.h"
+#include <redisclient/redissyncclient.h>
 
-Member::Member(AegisBot & bot, uint64_t id, string name, uint16_t discriminator, string avatar)
-    : bot(bot)
-    , id(id)
-    , name(name)
-    , discriminator(discriminator)
-    , avatar(avatar)
+using namespace redisclient;
+
+class ABRedisCache : public ABCache
 {
-}
+public:
+    ABRedisCache(boost::asio::io_service & io_service);
+    ~ABRedisCache();
 
+    string get(string key, bool useprefix = true);
+    bool put(string key, string value, bool useprefix = true);
+    //may not have a portable function in other database solutions
+    //for Redis, -1 is infinite, 0 is delete now, >= 1 is seconds until expiry
+    //databases that do not support entry expiration could have a timer
+    //created that deletes it, though that is subject to 'leaks' in case of
+    //application termination before it finishes
+    void expire(string key, int64_t value = 0, bool useprefix = true);
+    bool initialize();
+    string getset(string key, string value, bool useprefix = true);
+    string eval(string script);
 
-Member::~Member()
-{
-}
+private:
+    RedisSyncClient redis;
+};
+#endif
 
-std::vector<boost::shared_ptr<Guild>> Member::guilds()
-{
-    //TODO: Performance test this some time
-    //should we keep a cache local to each user of what guilds we can see them on?
-    //or just check the lists for results
-    std::vector<boost::shared_ptr<Guild>> result;
-    for (auto & guild : bot.guildlist)
-    {
-        if (guild.second->clientlist.count(id) > 0)
-        {
-            result.push_back(guild.second);
-        }
-    }
-    return result;
-}

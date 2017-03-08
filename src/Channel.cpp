@@ -24,14 +24,62 @@
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "Channel.h"
+#include <json.hpp>
+#include "Guild.h"
+#include "AegisBot.h"
+#include "Member.h"
 
 
-
-Channel::Channel()
+void Channel::getMessages(uint64_t messageid, ABMessageCallback callback)
 {
+    poco_trace(*(bot.log), "getMessages() goes through");
+
+    boost::shared_ptr<ABMessage> message = boost::make_shared<ABMessage>();
+    message->guild = belongs_to();
+    message->channel = shared_from_this();
+    message->endpoint = Poco::format("/channels/%Lu/messages", id);
+    message->method = "GET";
+    message->query = Poco::format("?before=%Lu&limit=100", messageid);
+    if (callback)
+        message->callback = callback;
+
+    ratelimits.putMessage(message);
 }
 
-
-Channel::~Channel()
+void Channel::sendMessage(string content, ABMessageCallback callback)
 {
+    poco_trace(*(bot.log), "sendMessage() goes through");
+    json obj;
+    obj["content"] = content;
+
+    boost::shared_ptr<ABMessage> message = boost::make_shared<ABMessage>();
+    message->content = obj.dump();
+    message->guild = belongs_to();
+    message->channel = shared_from_this();
+    message->endpoint = Poco::format("/channels/%Lu/messages", id);
+    message->method = "POST";
+    if (callback)
+        message->callback = callback;
+
+    ratelimits.putMessage(message);
+}
+
+void Channel::bulkDelete(std::vector<string> messages, ABMessageCallback callback)
+{
+    poco_trace(*(bot.log), "bulkDelete() goes through");
+    json arr(messages);
+    json obj;
+    obj["messages"] = arr;
+
+    boost::shared_ptr<ABMessage> message = boost::make_shared<ABMessage>();
+    message->content = obj.dump();
+    message->guild = belongs_to();
+    message->channel = shared_from_this();
+    message->endpoint = Poco::format("/channels/%Lu/messages/bulk-delete", id);
+    message->method = "POST";
+    if (callback)
+        message->callback = callback;
+
+    ratelimits.putMessage(message);
+    bot.tempmessages.clear();
 }

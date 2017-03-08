@@ -93,9 +93,9 @@ POCO_URL="https://pocoproject.org/releases/poco-${POCO_VERSION}/poco-${POCO_VERS
 mkdir -p ${POCO_DIR}
 wget --quiet -O - ${POCO_URL}      | tar --strip-components=1 -xz -C ${POCO_DIR}
 if [[ "${LLVM_VERSION}" != "" ]]; then
-    (cd ${POCO_DIR} && cmake . -DCMAKE_CXX_COMPILER=clang++ && make)
+    (cd ${POCO_DIR} && cmake . -DCMAKE_CXX_COMPILER=${COMPILER} && make)
 else
-    (cd ${POCO_DIR} && cmake . -DCMAKE_CXX_COMPILER=g++ && make)
+    (cd ${POCO_DIR} && cmake . -DCMAKE_CXX_COMPILER=${COMPILER} && make)
 fi
 
 cd ${BASE_DIR}

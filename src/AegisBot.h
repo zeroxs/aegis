@@ -68,6 +68,7 @@
 #include "Guild.h"
 #include "Member.h"
 #include "Channel.h"
+#include "RateLimits.h"
 
 using json = nlohmann::json;
 using namespace Poco::Net;
@@ -84,47 +85,35 @@ using Poco::File;
 
 using std::string;
 
-using boost::shared_ptr;
-
 class Guild;
 
+#ifdef _DEBUG
 #define DEBUG_OUTPUT
+#define _TRACE
+#endif
 
-enum EndpointHint
-{
-    GUILD,
-    CHANNEL,
-    MAX
-};
-
-class Bot
+class AegisBot
 {
 public:
-    Bot();
-    ~Bot();
+    AegisBot();
+    ~AegisBot();
+
+    void setup_cache(ABCache * in);
+    void loadConfigs();
 
     void keepalive(const boost::system::error_code& error, const uint64_t ms);
     void onMessage(websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg);
     void onConnect(websocketpp::connection_hdl hdl);
     void onClose(websocketpp::connection_hdl hdl);
     void userMessage(json & obj);
-    bool initialize();
+    bool initialize(uint64_t shardid, uint64_t maxshard);
     void processReady(json & d);
+    void connectWS();
 
-    string call(string url, string obj = "", EndpointHint endpointHint = EndpointHint::CHANNEL, string method = "GET", string query = "", shared_ptr<boost::asio::steady_timer> timer = nullptr);
+    string call(string url, string obj = "", RateLimits * endpoint = nullptr, string method = "GET", string query = "");
 
-    bool rateLimitCheck(uint64_t epoch, EndpointHint endpointHint = EndpointHint::CHANNEL);
     template <typename T, typename... _BoundArgs>
     void createTimer(uint64_t t, shared_ptr<boost::asio::steady_timer> timer, T f, _BoundArgs&&... __args);
-
-    struct
-    {
-        //Rate limits
-        uint32_t rate_limit = 10;
-        uint32_t rate_remaining = 10;
-        uint64_t rate_reset = 0;
-        uint64_t retry_after = 0;
-    } rateLimits[EndpointHint::MAX];
 
     FormattingChannel * pFC;
     FormattingChannel * pFCf;
@@ -137,6 +126,8 @@ public:
     websocketpp::config::asio_client::message_type::ptr message;
     websocketpp::client<websocketpp::config::asio_tls_client>::connection_type::ptr connection;
     boost::asio::steady_timer keepalive_timer_;
+
+    RateLimits ratelimits;
 
     //Private chat tracking
     struct PrivateChat
@@ -156,10 +147,11 @@ public:
     uint64_t sequence = 0;
     string token;
     uint64_t shardid = 0;
+    uint64_t shardidmax = 0;
     string sessionId;
     string gatewayurl;
 
-    ABCache cache;
+    ABCache * cache;
 
     //Bot specific data
     string username;
@@ -168,16 +160,14 @@ public:
     string avatar;
     uint64_t userId;
     bool mfa_enabled = false;
+    bool isrunning = true;
 
     shared_ptr<Guild> loadGuild(json & obj);
     shared_ptr<Guild> loadGuildFromCache(json & obj);
     shared_ptr<Member> loadMember(json & obj);
     shared_ptr<Member> loadMemberFromCache(json & obj);
 
-    void sendMessageEmbed(string content, uint64_t channel, json & embed);
-    void sendMessage(string content, uint64_t channel, shared_ptr<boost::asio::steady_timer> timer = nullptr);
-    void bulkDelete(uint64_t channel, std::vector<string> messages);
-    void getMessages(uint64_t channel, uint64_t messageid);
+    void run();
 
     //debug
     std::vector<string> tempmessages;
@@ -195,6 +185,10 @@ public:
     * * without having to restart the bot.
     * Add zlib support
     */
+
+private:
+    //internal function for sending messages
+    void _sendMessage(string content, uint64_t channel);
 
 };
 

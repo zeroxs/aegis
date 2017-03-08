@@ -43,8 +43,9 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\ABCache.cpp" />
-    <ClCompile Include="..\src\Bot.cpp" />
+    <ClCompile Include="..\src\ABMemoryCache.cpp" />
+    <ClCompile Include="..\src\ABRedisCache.cpp" />
+    <ClCompile Include="..\src\AegisBot.cpp" />
     <ClCompile Include="..\src\Channel.cpp" />
     <ClCompile Include="..\src\Guild.cpp" />
     <ClCompile Include="..\src\main.cpp" />
@@ -52,12 +53,16 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\ABCache.h" />
-    <ClInclude Include="..\src\Bot.h" />
+    <ClInclude Include="..\src\ABMemoryCache.h" />
+    <ClInclude Include="..\src\ABRedisCache.h" />
+    <ClInclude Include="..\src\AegisBot.h" />
     <ClInclude Include="..\src\Channel.h" />
     <ClInclude Include="..\src\Guild.h" />
     <ClInclude Include="..\src\Member.h" />
     <ClInclude Include="..\src\Permission.h" />
+    <ClInclude Include="..\src\RateLimits.h" />
     <ClInclude Include="..\src\Role.h" />
+    <ClInclude Include="..\src\rss.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{7892ad94-fd49-48b7-afa3-9bf6b16fd202}</ProjectGuid>
@@ -99,10 +104,10 @@
     <TargetExt />
     <SourcePath>
     </SourcePath>
-    <RemoteCppCompileToolExe>g++-5</RemoteCppCompileToolExe>
+    <RemoteCppCompileToolExe>g++-6</RemoteCppCompileToolExe>
     <LibraryPath>lib/poco-1.7.8/lib;lib/boost-1.63.0/stage/lib</LibraryPath>
-    <RemoteCCompileToolExe>g++-5</RemoteCCompileToolExe>
-    <RemoteLdToolExe>g++-5</RemoteLdToolExe>
+    <RemoteCCompileToolExe>g++-6</RemoteCCompileToolExe>
+    <RemoteLdToolExe>g++-6</RemoteLdToolExe>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>$(IncludePath)</IncludePath>
@@ -117,13 +122,14 @@
       <AdditionalOptions> -L /home/zero/projects/aegisbot/lib/boost-1.63.0/stage/lib/ -L /home/zero/projects/aegisbot/lib/poco-1.7.8/lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ClCompile>
-      <PreprocessorDefinitions>_DEBUG;BOOST_DYN_LINK_ALL;USE_REDIS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;BOOST_DYN_LINK_ALL;USE_REDIS;TEST_GID=287048029524066334LL;CONTROL_CHANNEL=288707540844412928LL</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(StlIncludeDirectories);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>-Wswitch -Wno-deprecated-declarations -Wempty-body -Wconversion -Wreturn-type -Wparentheses -Wno-format -Wuninitialized -Wunreachable-code -Wunused-function -Wunknown-pragmas </AdditionalOptions>
       <CppAdditionalWarning>
       </CppAdditionalWarning>
       <CAdditionalWarning />
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <CppLanguageStandard>c++1y</CppLanguageStandard>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

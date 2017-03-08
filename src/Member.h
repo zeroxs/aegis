@@ -25,26 +25,38 @@
 
 #pragma once
 #include "Permission.h"
+#include "RateLimits.h"
 #include <string>
 #include <vector>
+#include <boost/shared_ptr.hpp>
+
+class AegisBot;
+class Guild;
 
 using std::string;
 
-class Member : public Permission
+class Member : public Permission 
 {
 public:
-    Member() {  };
-    Member(uint64_t id, string name, uint16_t discriminator, string avatar);
+    Member(AegisBot & bot) : bot(bot) {  };
+    Member(AegisBot & bot, uint64_t id, string name, uint16_t discriminator, string avatar);
     ~Member();
+
+    AegisBot & bot;
+
+    std::vector<boost::shared_ptr<Guild>> guilds();
 
     uint64_t id = 0;
     string name;
     string nick;
     uint16_t discriminator = 0;
     string avatar;
+    bool isbot = false;
     bool deaf = false;
     bool mute = false;
     string joined_at;
     std::vector<uint64_t> roles;
+
+    RateLimits ratelimits;
 };
 

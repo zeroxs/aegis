@@ -1,5 +1,5 @@
 //
-// Member.cpp
+// ABMemoryCache.h
 // aegisbot
 //
 // Copyright (c) 2017 Zero (zero at xandium dot net)
@@ -23,38 +23,36 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#include "Member.h"
-#include "Guild.h"
-#include "AegisBot.h"
+#pragma once
 
+#ifdef USE_MEMORY
 
+#include "ABCache.h"
+#include <map>
+#include <boost/asio.hpp>
 
-Member::Member(AegisBot & bot, uint64_t id, string name, uint16_t discriminator, string avatar)
-    : bot(bot)
-    , id(id)
-    , name(name)
-    , discriminator(discriminator)
-    , avatar(avatar)
+//Memory based cache for single shard bots that don't need any form of
+//inter-process communication (such as between multiple shards, or to
+//an external application like a website)
+class ABMemoryCache : public ABCache
 {
-}
+public:
+    ABMemoryCache(boost::asio::io_service & io_service);
+    ~ABMemoryCache();
 
+    string get(string key, bool useprefix = true);
+    bool put(string key, string value, bool useprefix = true);
+    //may not have a portable function in other database solutions
+    //for Redis, -1 is infinite, 0 is delete now, >= 1 is seconds until expiry
+    //databases that do not support entry expiration could have a timer
+    //created that deletes it, though that is subject to 'leaks' in case of
+    //application termination before it finishes
+    void expire(string key, int64_t value = 0, bool useprefix = true);
+    bool initialize();
+    boost::asio::io_service & io_service;
 
-Member::~Member()
-{
-}
+private:
+    std::map<std::string, std::string> memdata;
+};
 
-std::vector<boost::shared_ptr<Guild>> Member::guilds()
-{
-    //TODO: Performance test this some time
-    //should we keep a cache local to each user of what guilds we can see them on?
-    //or just check the lists for results
-    std::vector<boost::shared_ptr<Guild>> result;
-    for (auto & guild : bot.guildlist)
-    {
-        if (guild.second->clientlist.count(id) > 0)
-        {
-            result.push_back(guild.second);
-        }
-    }
-    return result;
-}
+#endif

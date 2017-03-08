@@ -28,27 +28,32 @@
 #include <string>
 #include <iostream>
 
-#ifdef USE_REDIS
-#include <redisclient/redissyncclient.h>
-#elif USE_SCYLLA//TODO?
-#endif
 
 using std::string;
-using namespace redisclient;
 
 
 class ABCache
 {
 public:
-    ABCache(boost::asio::io_service & io_service);
-    ~ABCache();
+    ABCache() {};
+    virtual ~ABCache() {};
 
-    string get(string key);
-    string put(string key, string value);
+    //get key entry - set no prefix to false for entries like global configs that do not
+    //need to be attached to a specific shard
+    virtual string get(string key, bool useprefix = true) = 0;
+    virtual bool put(string key, string value, bool useprefix = true) = 0;
+    //may not have a portable function in other database solutions
+    //for Redis, -1 is infinite, 0 is delete now, >= 1 is seconds until expiry
+    //databases that do not support entry expiration could have a timer
+    //created that deletes it, though that is subject to 'leaks' in case of
+    //application termination before it finishes
+    virtual void expire(string key, int64_t value = 0, bool useprefix = true) = 0;
 
-    //Redis configuration
-    string redisaddress;
-    string redispass;
-    RedisSyncClient redis;
+    string address;
+    uint16_t port;
+    string password;
+
+    //prefix for all keys
+    string prefix;
 };
 

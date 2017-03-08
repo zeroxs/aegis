@@ -1,5 +1,5 @@
 //
-// ABCache.cpp
+// ABMemoryCache.cpp
 // aegisbot
 //
 // Copyright (c) 2017 Zero (zero at xandium dot net)
@@ -23,49 +23,61 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+#ifdef USE_MEMORY
 
-#include "ABCache.h"
+#include "ABMemoryCache.h"
+#include <boost/lexical_cast.hpp>
+#include <boost/asio/steady_timer.hpp>
+#include <chrono>
 
 
-
-ABCache::ABCache(boost::asio::io_service & io_service)
-    : redis(io_service)
+ABMemoryCache::ABMemoryCache(boost::asio::io_service & io_service)
+    : io_service(io_service)
 {
+    address = "127.0.0.1";
+    port = 6379;
 }
 
 
-ABCache::~ABCache()
+ABMemoryCache::~ABMemoryCache()
 {
 }
 
-#ifdef USE_REDIS
-string ABCache::get(string key)
+bool ABMemoryCache::initialize()
 {
-    RedisValue result;
-    result = redis.command("GET", { key });
+    //nothing to do here
+}
 
-    if (result.isOk())
-    {
-        return result.toString();
-    }
+string ABMemoryCache::get(string key, bool useprefix)
+{
+    if (useprefix)
+        return memdata[prefix + key];
     else
-    {
-        return "";
-    }
+        return memdata[key];
 }
 
-string ABCache::put(string key, string value)
-{
-    RedisValue result;
-    result = redis.command("GET", { key });
 
-    if (result.isOk())
-    {
-        return result.toString();
-    }
+bool ABMemoryCache::put(string key, string value, bool useprefix)
+{
+    if (useprefix)
+        memdata[prefix + key] = value;
     else
+        memdata[key] = value;
+}
+
+void ABMemoryCache::expire(string key, int64_t value, bool useprefix)
+{
+    if (value == 0)
     {
-        return "";
+        auto it = memdata.find(prefix + key);
+        if (it != memdata.end())
+            memdata.erase(it);
+        return;
     }
+
+    std::shared_ptr<boost::asio::steady_timer> timer = std::make_shared<std::shared_ptr<boost::asio::steady_timer>::element_type>(io_service);
+
+    timer->expires_from_now(std::chrono::milliseconds(value));
+    timer->async_wait(std::bind(&ABMemoryCache::expire, this, key, 0, useprefix));
 }
 #endif

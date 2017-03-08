@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/zeroxs/aegisbot.svg?branch=master)](https://travis-ci.org/zeroxs/aegisbot)
+[![Build Status](https://travis-ci.org/zeroxs/aegisbot.svg?branch=master)](https://travis-ci.org/zeroxs/aegisbot) [![Discord](https://discordapp.com/api/guilds/287048029524066334/widget.png)](https://discord.gg/w7Y3Bb8) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/zeroxs/aegisbot/blob/master/LICENSE)
 
 
 AegisBot
@@ -13,8 +13,7 @@ This project is licensed under the MIT license. See [LICENSE](https://github.com
 # Installation instructions #
 This is just the public repository of the AegisBot. If you'd like an instance in your server,
 an easy link can be found [here](https://discordapp.com/oauth2/authorize?client_id=288063163729969152&scope=bot&permissions=2146958463) .
-Please note, this link gives the bot full admin. If you'd like to refine the permissions, please generate your own link for botid 288063163729969152
-Also note that until the bot is fully functional it's presence will not be guaranteed should you invite it.
+Please note, this link gives the bot full admin. Please refine it further if you wish to limit its abilities.
 
 
 This project is a WIP

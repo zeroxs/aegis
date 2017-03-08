@@ -23,30 +23,209 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#include "Bot.h"
+#include "AegisBot.h"
+#include "ABRedisCache.h"
 #include <boost/lexical_cast.hpp>
+#include <json.hpp>
+#include <boost/algorithm/string.hpp>
+#include <boost/tokenizer.hpp>
+#include "rss.h"
+
+
+//Example usage
+class Bot : public AegisBot
+{
+public:
+    Bot() {}
+    ~Bot() {}
+
+    void echo(shared_ptr<ABMessage> message)
+    {
+        if ((message->guild) && (message->channel) && (message->member))
+        {
+            //all 3 are set, so this is a channel message
+            if (message->guild->id == 288707540844412928LL)
+            {
+                //control channel
+                if (message->member->id == 171000788183678976LL)
+                {
+                    //me
+                    std::cout << "Message callback triggered on channel[" << message->channel->name << "] from [" << message->member->name << "]" << std::endl;
+                    message->channel->sendMessage(message->content);
+                }
+            }
+        }
+        else if (message->member)
+        {
+
+        }
+    }
+
+    void rates2(shared_ptr<ABMessage> message)
+    {
+        uint32_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+        message->channel->sendMessage(Poco::format("Content: %s\nLimit: %u\nRemain: %u\nReset: %u\nEpoch: %u\nDiff: %u", message->content, message->channel->ratelimits.rateLimit()
+        , message->channel->ratelimits.rateRemaining(), message->channel->ratelimits.rateReset(), epoch, message->channel->ratelimits.rateReset() - epoch));
+    }
+
+    void callback(ABMessage message)
+    {
+        //if (message)
+            //sendMessage("data", );
+    }
+
+
+};
 
 int main(int argc, char * argv[])
 {
     uint64_t shardid = 0;
 
-
     if (argc == 1)
     {
         //error
-        std::cout << "No shard id passed (pass 0 for single instance)" << std::endl;
-        return 0;
+        std::cout << "No shard id min/max passed (pass 0 for single instance)" << std::endl;
+        return -1;
     }
 
-    shardid = boost::lexical_cast<uint64_t>(argv);
+    shardid = std::atoll(argv[1]);
 
+    if (shardid != 0)
+    {
+        if (argc <= 2)
+        {
+            //error
+            std::cout << "No shard id max passed." << std::endl;
+            return -1;
+        }
+    }
+
+    uint64_t maxshard;
+    maxshard = std::atoll(argv[2]);
+
+    if (maxshard <= shardid)
+    {
+        //error
+        std::cout << "Shard id must be less than the max." << std::endl;
+        return -1;
+    }
 
     try
     {
+        //create our Bot object and cache and configure the basic settings
         Bot bot;
+ 
+        ABRedisCache cache(bot.io_service);
+        cache.address = "127.0.0.1";
+        cache.port = 6379;
+        cache.password = "";
+        if (!cache.initialize())
+        {
+            //error with cache
+            return -1;
+        }
+        bot.setup_cache(&cache);
 
-        bot.shardid = shardid;
-        bot.initialize();
+#ifdef USE_REDIS
+        string token = cache.get("config:token");
+#elif USE_MEMORY
+        string token = "yourtokenhere";
+#endif
+
+        bot.token = token;
+
+        //register some callbacks
+
+        //set up a single guild with the bot (official use will have this be dynamic and loaded from a DB)
+        shared_ptr<Guild> myguild = bot.guildlist[287048029524066334LL] = boost::make_shared<Guild>(bot);
+
+        myguild->prefix = "!";
+        myguild->cmdlist["echo"] = std::bind(&Bot::echo, &bot, std::placeholders::_1);
+
+        myguild->addCommand("timer", [&bot](shared_ptr<ABMessage> message)
+        {
+            uint64_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+
+            std::vector<string> tokens;
+            boost::split(tokens, message->content, boost::is_any_of(" "));
+
+            if (tokens.size() < 3)
+            {
+                //not enough tokens
+                message->channel->sendMessage(Poco::format("Error parsing. Format is %s%s time-in-seconds message", message->guild->prefix, message->cmd));
+                return;
+            }
+
+            int64_t time = std::stoll(tokens[1]);
+            if (time > 1000 * 60 * 60)//1 hour max timer
+            {
+                //fix this mess, have Channel class have a sendMessage function instead of guild
+                message->channel->sendMessage(Poco::format("Timer too large `%Ld`", time));
+                return;
+            }
+            message->channel->sendMessage(Poco::format("Timer started `%Ld`", time));
+            //this WILL instantly fire and possibly crash since t loses scope. leaving it here just because.
+            //add a timers vector to the bot that tracks users, channels, reasons, and times and have main loop
+            //process it instead
+            std::thread t([&]() {
+                std::this_thread::sleep_for(std::chrono::milliseconds(time));
+                bot.io_service.post([message, time]()
+                {
+                    message->channel->sendMessage(Poco::format("Response to `%s`", message->content));
+                });
+            });
+        });
+        myguild->cmdlist["rates2"] = std::bind(&Bot::rates2, &bot, std::placeholders::_1);
+        myguild->addCommand("rates", [&bot](shared_ptr<ABMessage> message)
+        {
+            uint32_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+            message->channel->sendMessage(Poco::format("Content: %s\nLimit: %u\nRemain: %u\nReset: %u\nEpoch: %u\nDiff: %u", message->content, message->channel->ratelimits.rateLimit()
+                , message->channel->ratelimits.rateRemaining(), message->channel->ratelimits.rateReset(), epoch, message->channel->ratelimits.rateReset() - epoch));
+        });
+        myguild->addCommand("clean_channel", [&bot](shared_ptr<ABMessage> message)
+        {
+            message->channel->bulkDelete(bot.tempmessages);
+        });
+        myguild->addCommand("get_history", [&bot](shared_ptr<ABMessage> message)
+        {
+            message->channel->getMessages(message->channel->id, [&bot](shared_ptr<ABMessage> message)
+            {
+                json arr = json::parse(message->content);
+
+                for (auto & m : arr)
+                {
+                    string entry = m["id"];
+                    poco_trace_f1(*(bot.log), "Message entry: %s", entry);
+                    bot.tempmessages.push_back(entry);
+                }
+            });
+        });
+        myguild->addCommand("reload", [&bot](shared_ptr<ABMessage> message)
+        {
+            bot.loadConfigs();
+            message->channel->sendMessage("Configs reloaded.");
+        });
+        myguild->addCommand("info", [&bot](shared_ptr<ABMessage> message)
+        {
+            string stats;
+            stats = Poco::format("```Memory usage: %[#2]fMB\nMax Memory: %[#2]fMB```", double(getCurrentRSS()) / (1024 * 1024), double(getPeakRSS()) / (1024 * 1024));
+            message->channel->sendMessage(stats);
+        });
+
+
+
+        //find a better way to do this
+        //ultimately, a master application would spin these bots up passing params
+        //as the shard ids.
+        json ret = json::parse(bot.call("/gateway/bot"));
+        bot.gatewayurl = ret["url"];
+
+        std::cout << "Recommended shard count: " << ret["shards"] << std::endl;
+        std::cout << "Current set shard count: " << maxshard << std::endl;
+        std::cout << "My shard id: " << shardid << std::endl;
+
+        bot.initialize(shardid, maxshard);
+
 
         boost::asio::io_service::work work(bot.io_service);
 
@@ -65,6 +244,7 @@ int main(int argc, char * argv[])
         {
             threadPool.push_back(std::thread([&bot]() { bot.io_service.run(); }));
         }
+        bot.run();
         for (std::thread& t : threadPool)
         {
             t.join();
@@ -72,6 +252,7 @@ int main(int argc, char * argv[])
     }
     catch (std::exception & e)
     {
+        std::cout << e.what() << std::endl;
         return -1;
     }
     return 0;
