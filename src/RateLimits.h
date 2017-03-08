@@ -30,6 +30,7 @@
 #include <tuple>
 #include <string>
 #include <functional>
+#include <chrono>
 
 typedef std::tuple<std::string, std::function<void(std::string)>> ABMessage;
 
@@ -48,7 +49,16 @@ public:
     }
 
     void rateRemaining(uint32_t rate) { _rate_remaining = rate; }
-    uint32_t rateRemaining() { return _rate_remaining; }
+    uint32_t rateRemaining()
+    {
+        uint64_t epoch = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+        if (_rate_reset < epoch)
+        {
+            _rate_reset = 0;
+            _rate_remaining = _rate_limit;
+        }
+        return _rate_remaining;
+    }
     void rateReset(uint32_t rate) { _rate_reset = rate; }
     uint32_t rateReset() { return _rate_reset; }
     void rateLimit(uint32_t rate) { _rate_limit = rate; }

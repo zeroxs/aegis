@@ -440,7 +440,7 @@ void AegisBot::onConnect(websocketpp::connection_hdl hdl)
     ws.send(hdl, obj.dump(), websocketpp::frame::opcode::text);
 }
 
-string AegisBot::call(string url, string obj, EndpointHint endpointHint, string method, string query, shared_ptr<boost::asio::steady_timer> timer)
+string AegisBot::call(string url, string obj, RateLimits * endpoint, string method, string query, shared_ptr<boost::asio::steady_timer> timer)
 {
     uint64_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
@@ -499,27 +499,27 @@ string AegisBot::call(string url, string obj, EndpointHint endpointHint, string 
         if (response.has("X-RateLimit-Global"))
         {
             rate_global = true;
-            rateLimits[endpointHint].retry_after = Poco::DynamicAny(response.get("Retry-After")).convert<uint32_t>();
-            log->error(Poco::format("Global rate limit reached. Pausing for %Lums", rateLimits[endpointHint].retry_after));
-            std::this_thread::sleep_for(std::chrono::milliseconds(rateLimits[endpointHint].retry_after));
+            endpoint->rateRetry(Poco::DynamicAny(response.get("Retry-After")).convert<uint32_t>());
+            log->error(Poco::format("Global rate limit reached. Pausing for %Lums", endpoint->rateRetry()));
+            std::this_thread::sleep_for(std::chrono::milliseconds(endpoint->rateRetry()));
             rate_global = false;
         }
         else
         {
             if (response.has("X-RateLimit-Limit"))
-                rateLimits[endpointHint].rate_limit = Poco::DynamicAny(response.get("X-RateLimit-Limit")).convert<uint32_t>();
+                endpoint->rateLimit(Poco::DynamicAny(response.get("X-RateLimit-Limit")).convert<uint32_t>());
             if (response.has("X-RateLimit-Remaining"))
-                rateLimits[endpointHint].rate_remaining = Poco::DynamicAny(response.get("X-RateLimit-Remaining")).convert<uint32_t>();
+                endpoint->rateRemaining(Poco::DynamicAny(response.get("X-RateLimit-Remaining")).convert<uint32_t>());
             if (response.has("X-RateLimit-Reset"))
-                rateLimits[endpointHint].rate_reset = Poco::DynamicAny(response.get("X-RateLimit-Reset")).convert<uint32_t>();
+                endpoint->rateReset(Poco::DynamicAny(response.get("X-RateLimit-Reset")).convert<uint32_t>());
 
 #ifdef DEBUG_OUTPUT
-            poco_trace_f1(*log, "rate_limit:     %u", rateLimits[endpointHint].rate_limit);
-            poco_trace_f1(*log, "rate_remaining: %u", rateLimits[endpointHint].rate_remaining);
-            poco_trace_f1(*log, "rate_reset:     %Lu", rateLimits[endpointHint].rate_reset);
+            poco_trace_f1(*log, "rate_limit:     %u", endpoint->rateLimit());
+            poco_trace_f1(*log, "rate_remaining: %u", endpoint->rateRemaining());
+            poco_trace_f1(*log, "rate_reset:     %Lu", endpoint->rateReset());
             poco_trace_f1(*log, "epoch:          %Lu", epoch);
 #endif
-            log->information(Poco::format("Rates: %u:%u resets in: %Lums", rateLimits[endpointHint].rate_limit, rateLimits[endpointHint].rate_remaining, (rateLimits[endpointHint].rate_reset > 0) ? (rateLimits[endpointHint].rate_reset - epoch) : 0));
+            log->information(Poco::format("Rates: %u:%u resets in: %Lums", endpoint->rateLimit(), endpoint->rateRemaining(), (endpoint->rateReset() > 0) ? (endpoint->rateReset() - epoch) : 0));
         }
 
         return output;
@@ -535,7 +535,7 @@ string AegisBot::call(string url, string obj, EndpointHint endpointHint, string 
 void AegisBot::sendMessage(string content, uint64_t channel)
 {
     uint64_t epoch = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    if (!rateLimitCheck(epoch, EndpointHint::CHANNEL))
+    if (rateRemaining() > 0)
     {
         //rate limit reached, create timer
         createTimer(rateLimits[EndpointHint::CHANNEL].rate_reset - epoch, nullptr, std::mem_fn(&AegisBot::sendMessage), content, channel);
@@ -545,7 +545,7 @@ void AegisBot::sendMessage(string content, uint64_t channel)
     poco_trace(*log, "sendMessage() goes through");
     json obj;
     obj["content"] = content;
-    call(Poco::format("/channels/%Lu/messages", channel), obj.dump(), EndpointHint::CHANNEL);
+    call(Poco::format("/channels/%Lu/messages", channel), obj.dump());
 }
 
 void AegisBot::_sendMessage(string content, uint64_t channel)
@@ -553,7 +553,7 @@ void AegisBot::_sendMessage(string content, uint64_t channel)
     poco_trace(*log, "_sendMessage() goes through");
     json obj;
     obj["content"] = content;
-    call(Poco::format("/channels/%Lu/messages", channel), obj.dump(), EndpointHint::CHANNEL);
+    call(Poco::format("/channels/%Lu/messages", channel), obj.dump());
 }
 
 void AegisBot::bulkDelete(uint64_t channel, std::vector<string> messages)

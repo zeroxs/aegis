@@ -94,13 +94,6 @@ class Guild;
 #define _TRACE
 #endif
 
-enum EndpointHint
-{
-    GUILD,
-    CHANNEL,
-    MAX
-};
-
 class AegisBot : public RateLimits
 {
 public:
@@ -119,20 +112,10 @@ public:
     void processReady(json & d);
     void connectWS();
 
-    string call(string url, string obj = "", EndpointHint endpointHint = EndpointHint::CHANNEL, string method = "GET", string query = "", shared_ptr<boost::asio::steady_timer> timer = nullptr);
+    string call(string url, string obj = "", RateLimits * endpoint = nullptr, string method = "GET", string query = "", shared_ptr<boost::asio::steady_timer> timer = nullptr);
 
-    bool rateLimitCheck(uint64_t epoch, EndpointHint endpointHint = EndpointHint::CHANNEL);
     template <typename T, typename... _BoundArgs>
     void createTimer(uint64_t t, shared_ptr<boost::asio::steady_timer> timer, T f, _BoundArgs&&... __args);
-
-    struct
-    {
-        //Rate limits
-        uint32_t rate_limit = 10;
-        uint32_t rate_remaining = 10;
-        uint64_t rate_reset = 0;
-        uint64_t retry_after = 0;
-    } rateLimits[EndpointHint::MAX];
 
     FormattingChannel * pFC;
     FormattingChannel * pFCf;
