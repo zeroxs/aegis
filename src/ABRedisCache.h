@@ -46,7 +46,7 @@ public:
     //created that deletes it, though that is subject to 'leaks' in case of
     //application termination before it finishes
     void expire(string key, int64_t value = 0, bool useprefix = true);
-    void initialize();
+    bool initialize();
     string getset(string key, string value, bool useprefix = true);
     string eval(string script);
 

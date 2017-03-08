@@ -82,7 +82,11 @@ int main(int argc, char * argv[])
         cache.address = "127.0.0.1";
         cache.port = 6379;
         cache.password = "";
-        cache.initialize();
+        if (!cache.initialize())
+        {
+            //error with cache
+            return -1;
+        }
         bot.setup_cache(&cache);
 
 #ifdef USE_REDIS

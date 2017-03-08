@@ -48,7 +48,7 @@ public:
     //created that deletes it, though that is subject to 'leaks' in case of
     //application termination before it finishes
     void expire(string key, int64_t value = 0, bool useprefix = true);
-    void initialize();
+    bool initialize();
     boost::asio::io_service & io_service;
 
 private:

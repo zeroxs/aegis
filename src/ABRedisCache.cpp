@@ -43,12 +43,15 @@ ABRedisCache::~ABRedisCache()
 {
 }
 
-void ABRedisCache::initialize()
+bool ABRedisCache::initialize()
 {
     boost::asio::ip::address connectaddress = boost::asio::ip::address::from_string(address);
     string errmsg;
     if (!redis.connect(connectaddress, port, errmsg))
+    {
         std::cerr << "Can't connect to redis: " << errmsg << std::endl;
+        return false;
+    }
     else
         std::cerr << "Redis connected" << std::endl;
 
@@ -59,9 +62,10 @@ void ABRedisCache::initialize()
         if (result.isError())
         {
             std::cerr << "AUTH error: " << result.toString() << "\n";
-            return;
+            return false;
         }
     }
+    return true;
 }
 
 string ABRedisCache::get(string key, bool useprefix)

@@ -43,7 +43,7 @@ ABMemoryCache::~ABMemoryCache()
 {
 }
 
-void ABMemoryCache::initialize()
+bool ABMemoryCache::initialize()
 {
     //nothing to do here
 }
