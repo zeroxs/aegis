@@ -32,10 +32,8 @@
 
 #include <boost/tokenizer.hpp>
 
-Bot::Bot(uint64_t shardid, uint64_t maxshard)
+AegisBot::AegisBot()
     : keepalive_timer_(io_service)
-    , shardid(shardid)
-    , shardidmax(maxshard)
 {
     pFC = new FormattingChannel(new PatternFormatter("%p:%T %t"));
     pFC->setChannel(new ConsoleChannel);
@@ -60,19 +58,19 @@ Bot::Bot(uint64_t shardid, uint64_t maxshard)
     log = &Poco::Logger::create("consoleLogger", pFC, Message::PRIO_TRACE);
 }
 
-Bot::~Bot()
+AegisBot::~AegisBot()
 {
     Poco::Logger::shutdown();
     pFCf->close();
     pFC->close();
 }
 
-void Bot::setup_cache(ABCache * in)
+void AegisBot::setup_cache(ABCache * in)
 {
     cache = in;
 }
 
-void Bot::loadConfigs()
+void AegisBot::loadConfigs()
 {
 #ifdef USE_REDIS
     int32_t level = boost::lexical_cast<int8_t>(cache->get("config:loglevel"));
@@ -85,8 +83,10 @@ void Bot::loadConfigs()
     sendMessage("Configs reloaded", CONTROL_CHANNEL);
 }
 
-bool Bot::initialize()
+bool AegisBot::initialize(uint64_t shardid, uint64_t maxshard)
 {
+    this->shardid = shardid;
+    this->shardidmax = maxshard;
     //obtain data from cache (redis)
 
 
@@ -108,9 +108,9 @@ bool Bot::initialize()
 
     ws.init_asio(&io_service);
 
-    ws.set_message_handler(std::bind(&Bot::onMessage, this, std::placeholders::_1, std::placeholders::_2));
-    ws.set_open_handler(std::bind(&Bot::onConnect, this, std::placeholders::_1));
-    ws.set_close_handler(std::bind(&Bot::onClose, this, std::placeholders::_1));
+    ws.set_message_handler(std::bind(&AegisBot::onMessage, this, std::placeholders::_1, std::placeholders::_2));
+    ws.set_open_handler(std::bind(&AegisBot::onConnect, this, std::placeholders::_1));
+    ws.set_close_handler(std::bind(&AegisBot::onClose, this, std::placeholders::_1));
 
     websocketpp::lib::error_code ec;
     json ret = json::parse(call("/gateway"));
@@ -129,7 +129,7 @@ bool Bot::initialize()
     }
 }
 
-void Bot::connectWS()
+void AegisBot::connectWS()
 {
     //make a portable way to do this even though I like the atomic-ness of redis scripts for obtaining inter-process locks
 #ifdef USE_REDIS
@@ -153,7 +153,7 @@ void Bot::connectWS()
     ws.connect(connection);
 }
 
-void Bot::onClose(websocketpp::connection_hdl hdl)
+void AegisBot::onClose(websocketpp::connection_hdl hdl)
 {
     keepalive_timer_.cancel();
     poco_error(*log, "Connection closed.");
@@ -161,7 +161,7 @@ void Bot::onClose(websocketpp::connection_hdl hdl)
     connectWS();
 }
 
-void Bot::processReady(json & d)
+void AegisBot::processReady(json & d)
 {
     json guilds = d["guilds"];
     for (auto & guildobj : guilds)
@@ -247,7 +247,7 @@ void Bot::processReady(json & d)
     mfa_enabled = userdata["mfa_enabled"];
 }
 //    "d":{  "presences":[], "relationships" : [], "user_settings" : {}, "v" : 6}, "op" : 0, "s" : 1, "t" : "READY"
-void Bot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg)
+void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg)
 {
     try
     {
@@ -322,7 +322,7 @@ void Bot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::asio_c
     }
 }
 
-void Bot::userMessage(json & obj)
+void AegisBot::userMessage(json & obj)
 {
     json author = obj["author"];
 
@@ -377,7 +377,7 @@ void Bot::userMessage(json & obj)
 
 }
 
-void Bot::keepalive(const boost::system::error_code& error, const uint64_t ms)
+void AegisBot::keepalive(const boost::system::error_code& error, const uint64_t ms)
 {
     if (error != boost::asio::error::operation_aborted)
     {
@@ -396,7 +396,7 @@ void Bot::keepalive(const boost::system::error_code& error, const uint64_t ms)
     }
 }
 
-void Bot::onConnect(websocketpp::connection_hdl hdl)
+void AegisBot::onConnect(websocketpp::connection_hdl hdl)
 {
     std::cout << "Connection established.\n";
 
@@ -440,7 +440,7 @@ void Bot::onConnect(websocketpp::connection_hdl hdl)
     ws.send(hdl, obj.dump(), websocketpp::frame::opcode::text);
 }
 
-string Bot::call(string url, string obj, EndpointHint endpointHint, string method, string query, shared_ptr<boost::asio::steady_timer> timer)
+string AegisBot::call(string url, string obj, EndpointHint endpointHint, string method, string query, shared_ptr<boost::asio::steady_timer> timer)
 {
     uint64_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
@@ -532,23 +532,31 @@ string Bot::call(string url, string obj, EndpointHint endpointHint, string metho
     return "";
 }
 
-void Bot::sendMessage(string content, uint64_t channel, shared_ptr<boost::asio::steady_timer> timer)
+void AegisBot::sendMessage(string content, uint64_t channel)
 {
     uint64_t epoch = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     if (!rateLimitCheck(epoch, EndpointHint::CHANNEL))
     {
         //rate limit reached, create timer
-        createTimer(rateLimits[EndpointHint::CHANNEL].rate_reset - epoch, timer, std::mem_fn(&Bot::sendMessage), content, channel);
+        createTimer(rateLimits[EndpointHint::CHANNEL].rate_reset - epoch, nullptr, std::mem_fn(&AegisBot::sendMessage), content, channel);
         return;
     }
 
     poco_trace(*log, "sendMessage() goes through");
     json obj;
     obj["content"] = content;
-    call(Poco::format("/channels/%Lu/messages", channel), obj.dump(-1), EndpointHint::CHANNEL);
+    call(Poco::format("/channels/%Lu/messages", channel), obj.dump(), EndpointHint::CHANNEL);
 }
 
-void Bot::bulkDelete(uint64_t channel, std::vector<string> messages)
+void AegisBot::_sendMessage(string content, uint64_t channel)
+{
+    poco_trace(*log, "_sendMessage() goes through");
+    json obj;
+    obj["content"] = content;
+    call(Poco::format("/channels/%Lu/messages", channel), obj.dump(), EndpointHint::CHANNEL);
+}
+
+void AegisBot::bulkDelete(uint64_t channel, std::vector<string> messages)
 {
     json arr(messages);
     json obj;
@@ -556,7 +564,7 @@ void Bot::bulkDelete(uint64_t channel, std::vector<string> messages)
     call(Poco::format("/channels/%Lu/messages/bulk-delete", channel), obj.dump(), EndpointHint::CHANNEL, "POST");
     tempmessages.clear();
 }
-void Bot::getMessages(uint64_t channel, uint64_t messageid)
+void AegisBot::getMessages(uint64_t channel, uint64_t messageid)
 {
     string res = call(Poco::format("/channels/%Lu/messages", channel), "", EndpointHint::CHANNEL, "GET", Poco::format("?before=%Lu&limit=100", messageid));
 
@@ -571,7 +579,7 @@ void Bot::getMessages(uint64_t channel, uint64_t messageid)
 
 }
 
-bool Bot::rateLimitCheck(uint64_t epoch, EndpointHint endpointHint)
+bool AegisBot::rateLimitCheck(uint64_t epoch, EndpointHint endpointHint)
 {
     if (rateLimits[endpointHint].rate_remaining == 0)
     {
@@ -589,18 +597,18 @@ bool Bot::rateLimitCheck(uint64_t epoch, EndpointHint endpointHint)
 }
 
 template <typename T, typename... _BoundArgs>
-void Bot::createTimer(uint64_t t, shared_ptr<boost::asio::steady_timer> timer, T f, _BoundArgs&&... __args)
+void AegisBot::createTimer(uint64_t t, shared_ptr<boost::asio::steady_timer> timer, T f, _BoundArgs&&... __args)
 {
     //new timer
     if (timer == nullptr)
         timer = boost::make_shared<shared_ptr<boost::asio::steady_timer>::element_type>(io_service);
 
     timer->expires_from_now(std::chrono::milliseconds(t));
-    timer->async_wait(std::bind(f, this, __args..., timer));
+    timer->async_wait(std::bind(f, this, __args...));
     poco_trace_f1(*log, "createTimer(%Lu)", t);
 }
 
-shared_ptr<Guild> Bot::loadGuild(json & obj)
+shared_ptr<Guild> AegisBot::loadGuild(json & obj)
 {
     shared_ptr<Guild> guild;
 

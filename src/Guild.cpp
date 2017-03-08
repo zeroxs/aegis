@@ -25,10 +25,11 @@
 
 #include "Guild.h"
 #include <boost/algorithm/string.hpp>
+#include <boost/tokenizer.hpp>
 
 
 
-Guild::Guild(Bot & b)
+Guild::Guild(AegisBot & b)
     : bot(b)
 {
 }

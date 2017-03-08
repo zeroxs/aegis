@@ -26,6 +26,12 @@
 #pragma once
 
 #include <stdint.h>
+#include <queue>
+#include <tuple>
+#include <string>
+#include <functional>
+
+typedef std::tuple<std::string, std::function<void(std::string)>> ABMessage;
 
 class RateLimits
 {
@@ -57,6 +63,10 @@ public:
         _rate_reset = reset;
         _retry_after = retry;
     }
+
+    std::queue<ABMessage> queue;
+
+    //virtual void sendMessage(ABMessage msg);
 
 private:
     uint32_t _rate_limit = 10;

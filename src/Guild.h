@@ -36,7 +36,7 @@
 #include "RateLimits.h"
 
 using boost::shared_ptr;
-class Bot;
+class AegisBot;
 
 using std::string;
 using json = nlohmann::json;
@@ -44,12 +44,12 @@ using json = nlohmann::json;
 class Guild : public Permission, public RateLimits
 {
 public:
-    Guild(Bot & b);
+    Guild(AegisBot & b);
     ~Guild();
 
     void processMessage(json obj);
 
-    Bot & bot;
+    AegisBot & bot;
 
     std::map<uint64_t, shared_ptr<Member>> clientlist;
     std::map<uint64_t, shared_ptr<Channel>> channellist;

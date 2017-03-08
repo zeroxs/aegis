@@ -101,11 +101,11 @@ enum EndpointHint
     MAX
 };
 
-class Bot : public RateLimits
+class AegisBot : public RateLimits
 {
 public:
-    Bot(uint64_t shardid, uint64_t maxshard);
-    ~Bot();
+    AegisBot();
+    ~AegisBot();
 
     void setup_cache(ABCache * in);
     void loadConfigs();
@@ -115,7 +115,7 @@ public:
     void onConnect(websocketpp::connection_hdl hdl);
     void onClose(websocketpp::connection_hdl hdl);
     void userMessage(json & obj);
-    bool initialize();
+    bool initialize(uint64_t shardid, uint64_t maxshard);
     void processReady(json & d);
     void connectWS();
 
@@ -160,6 +160,9 @@ public:
     //Guild tracking (Servers)
     std::map<uint64_t, shared_ptr<Guild>> guildlist;
 
+    //outgoing message queue
+
+
     //Authorization
     uint64_t sequence = 0;
     string token;
@@ -184,7 +187,7 @@ public:
     shared_ptr<Member> loadMemberFromCache(json & obj);
 
     void sendMessageEmbed(string content, uint64_t channel, json & embed);
-    void sendMessage(string content, uint64_t channel, shared_ptr<boost::asio::steady_timer> timer = nullptr);
+    void sendMessage(string content, uint64_t channel);
     void bulkDelete(uint64_t channel, std::vector<string> messages);
     void getMessages(uint64_t channel, uint64_t messageid);
 
@@ -204,6 +207,10 @@ public:
     * * without having to restart the bot.
     * Add zlib support
     */
+
+private:
+    //internal function for sending messages
+    void _sendMessage(string content, uint64_t channel);
 
 };
 

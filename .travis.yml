@@ -28,13 +28,13 @@ matrix:
   include:
     # Clang 3.9
     - os: linux
-      env: LLVM_VERSION=3.9.0 BOOST_VERSION=1.63.0 POCO_VERSION=1.7.8
+      env: LLVM_VERSION=3.9.0 BOOST_C=clang-3.9 BOOST_VERSION=1.63.0 POCO_VERSION=1.7.8
       compiler: clang
       packages: libcrypto++-dev
 
     # GCC 6
     - os: linux
-      env: COMPILER=g++-6 BOOST_VERSION=1.63.0 POCO_VERSION=1.7.8
+      env: COMPILER=g++-6 COMPILERGCC=gcc-6 BOOST_C=gcc-6 BOOST_VERSION=1.63.0 POCO_VERSION=1.7.8
       compiler: gcc
       packages: libcrypto++-dev
 
@@ -80,7 +80,7 @@ install:
   ############################################################################
   # Install Boost.Build
   ############################################################################
-  - (cd ${BOOST_DIR} && ./bootstrap.sh && ./b2 toolset=gcc --with-program_options --with-date_time --with-thread --with-system)
+  - (cd ${BOOST_DIR} && ./bootstrap.sh && ./b2 toolset=${BOOST_C} --with-program_options --with-date_time --with-thread --with-system)
   ############################################################################
   # Install Clang, libc++ and libc++abi
   ############################################################################
@@ -97,7 +97,7 @@ install:
         travis_retry wget --quiet -O - ${LIBCXX_URL}    | tar --strip-components=1 -xJ -C ${LLVM_DIR}/projects/libcxx
         travis_retry wget --quiet -O - ${LIBCXXABI_URL} | tar --strip-components=1 -xJ -C ${LLVM_DIR}/projects/libcxxabi
         travis_retry wget --quiet -O - ${CLANG_URL}     | tar --strip-components=1 -xJ -C ${LLVM_DIR}/clang
-        (cd ${LLVM_DIR}/build && cmake .. -DCMAKE_INSTALL_PREFIX=${LLVM_DIR}/install -DCMAKE_CXX_COMPILER=clang++)
+        (cd ${LLVM_DIR}/build && cmake .. -DCMAKE_INSTALL_PREFIX=${LLVM_DIR}/install -DCMAKE_CXX_COMPILER=${COMPILER})
         (cd ${LLVM_DIR}/build/projects/libcxx && make install -j2)
         (cd ${LLVM_DIR}/build/projects/libcxxabi && make install -j2)
       fi
@@ -116,9 +116,9 @@ install:
     mkdir -p ${POCO_DIR}
     travis_retry wget --quiet -O - ${POCO_URL}      | tar --strip-components=1 -xz -C ${POCO_DIR}
     if [[ "${LLVM_VERSION}" != "" ]]; then
-      (cd ${POCO_DIR} && cmake . -DCMAKE_CXX_COMPILER=clang++ && make)
+      (cd ${POCO_DIR} && cmake . -DCMAKE_CXX_COMPILER=${COMPILER} && make)
     else
-      (cd ${POCO_DIR} && cmake . -DCMAKE_CXX_COMPILER=g++ && make)
+      (cd ${POCO_DIR} && cmake . -DCMAKE_CXX_COMPILER=${COMPILER} -DCMAKE_C_COMPILER=${COMPILERGCC} && make)
     fi
 
 

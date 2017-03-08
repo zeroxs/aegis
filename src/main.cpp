@@ -23,9 +23,22 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#include "Bot.h"
+#include "AegisBot.h"
 #include "ABRedisCache.h"
 #include <boost/lexical_cast.hpp>
+#include <json.hpp>
+
+
+//Example usage
+class Bot : public AegisBot
+{
+public:
+    Bot() {}
+    ~Bot() {}
+
+
+
+};
 
 int main(int argc, char * argv[])
 {
@@ -62,15 +75,36 @@ int main(int argc, char * argv[])
 
     try
     {
-        Bot bot(shardid, maxshard);
-
+        //create our Bot object and cache and configure the basic settings
+        Bot bot;
+ 
         ABRedisCache cache(bot.io_service);
-        cache.address = "localhost";
+        cache.address = "127.0.0.1";
         cache.port = 6379;
         cache.password = "";
+        cache.initialize();
         bot.setup_cache(&cache);
 
-        bot.initialize();
+#ifdef USE_REDIS
+        string token = cache.get("config:token");
+#elif USE_MEMORY
+        string token = "yourtokenhere";
+#endif
+
+        bot.token = token;
+
+        //find a better way to do this
+        //ultimately, a mastery application would spin these bots up passing params
+        //as the shard ids.
+        json ret = json::parse(bot.call("/gateway/bot"));
+        bot.gatewayurl = ret["url"];
+
+        std::cout << "Recommended shard count: " << ret["shards"] << std::endl;
+        std::cout << "Current set shard count: " << maxshard << std::endl;
+        std::cout << "My shard id: " << shardid << std::endl;
+
+        bot.initialize(shardid, maxshard);
+
 
         boost::asio::io_service::work work(bot.io_service);
 
@@ -96,6 +130,7 @@ int main(int argc, char * argv[])
     }
     catch (std::exception & e)
     {
+        std::cout << e.what() << std::endl;
         return -1;
     }
     return 0;

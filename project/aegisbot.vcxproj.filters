@@ -35,9 +35,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\Bot.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\Channel.cpp">
       <Filter>src</Filter>
     </ClCompile>
@@ -56,11 +53,11 @@
     <ClCompile Include="..\src\ABRedisCache.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\AegisBot.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\Bot.h">
-      <Filter>src</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\Channel.h">
       <Filter>src</Filter>
     </ClInclude>
@@ -86,6 +83,9 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="..\src\ABMemoryCache.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\AegisBot.h">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>

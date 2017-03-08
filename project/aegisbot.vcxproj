@@ -45,7 +45,7 @@
   <ItemGroup>
     <ClCompile Include="..\src\ABMemoryCache.cpp" />
     <ClCompile Include="..\src\ABRedisCache.cpp" />
-    <ClCompile Include="..\src\Bot.cpp" />
+    <ClCompile Include="..\src\AegisBot.cpp" />
     <ClCompile Include="..\src\Channel.cpp" />
     <ClCompile Include="..\src\Guild.cpp" />
     <ClCompile Include="..\src\main.cpp" />
@@ -55,7 +55,7 @@
     <ClInclude Include="..\src\ABCache.h" />
     <ClInclude Include="..\src\ABMemoryCache.h" />
     <ClInclude Include="..\src\ABRedisCache.h" />
-    <ClInclude Include="..\src\Bot.h" />
+    <ClInclude Include="..\src\AegisBot.h" />
     <ClInclude Include="..\src\Channel.h" />
     <ClInclude Include="..\src\Guild.h" />
     <ClInclude Include="..\src\Member.h" />
@@ -103,10 +103,10 @@
     <TargetExt />
     <SourcePath>
     </SourcePath>
-    <RemoteCppCompileToolExe>g++-5</RemoteCppCompileToolExe>
+    <RemoteCppCompileToolExe>g++-6</RemoteCppCompileToolExe>
     <LibraryPath>lib/poco-1.7.8/lib;lib/boost-1.63.0/stage/lib</LibraryPath>
-    <RemoteCCompileToolExe>g++-5</RemoteCCompileToolExe>
-    <RemoteLdToolExe>g++-5</RemoteLdToolExe>
+    <RemoteCCompileToolExe>g++-6</RemoteCCompileToolExe>
+    <RemoteLdToolExe>g++-6</RemoteLdToolExe>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>$(IncludePath)</IncludePath>
