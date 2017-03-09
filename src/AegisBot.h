@@ -95,7 +95,13 @@ class Guild;
 class AegisBot
 {
 public:
+    static AegisBot & CreateInstance() { _instance = new AegisBot(); return *_instance; }
+    static AegisBot & GetSingleton() { return *_instance; }
+    static void DestroyInstance() { delete _instance; }
+private:
     AegisBot();
+    static AegisBot * _instance;
+public:
     ~AegisBot();
 
     void setup_cache(ABCache * in);

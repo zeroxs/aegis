@@ -32,7 +32,7 @@
 
 void Channel::getMessages(uint64_t messageid, ABMessageCallback callback)
 {
-    poco_trace(*(bot.log), "getMessages() goes through");
+    poco_trace(*(AegisBot::GetSingleton().log), "getMessages() goes through");
 
     boost::shared_ptr<ABMessage> message = boost::make_shared<ABMessage>();
     message->guild = belongs_to();
@@ -48,9 +48,9 @@ void Channel::getMessages(uint64_t messageid, ABMessageCallback callback)
 
 void Channel::sendMessage(string content, ABMessageCallback callback)
 {
-    poco_trace(*(bot.log), "sendMessage() goes through");
+    poco_trace(*(AegisBot::GetSingleton().log), "sendMessage() goes through");
     json obj;
-    obj["content"] = content;
+    obj["content"] = "\u200B" + content;
 
     boost::shared_ptr<ABMessage> message = boost::make_shared<ABMessage>();
     message->content = obj.dump();
@@ -66,7 +66,7 @@ void Channel::sendMessage(string content, ABMessageCallback callback)
 
 void Channel::bulkDelete(std::vector<string> messages, ABMessageCallback callback)
 {
-    poco_trace(*(bot.log), "bulkDelete() goes through");
+    poco_trace(*(AegisBot::GetSingleton().log), "bulkDelete() goes through");
     json arr(messages);
     json obj;
     obj["messages"] = arr;
@@ -81,5 +81,5 @@ void Channel::bulkDelete(std::vector<string> messages, ABMessageCallback callbac
         message->callback = callback;
 
     ratelimits.putMessage(message);
-    bot.tempmessages.clear();
+    AegisBot::GetSingleton().tempmessages.clear();
 }

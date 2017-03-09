@@ -31,6 +31,7 @@
 #include "RateLimits.h"
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/optional.hpp>
+#include <iostream>
 
 class ABMessage;
 class Guild;
@@ -47,9 +48,9 @@ struct ABMessage
 {
     string content;
     string cmd;
-    boost::shared_ptr<Guild> guild = nullptr;
-    boost::shared_ptr<Channel> channel = nullptr;
-    boost::shared_ptr<Member> member = nullptr;
+    shared_ptr<Guild> guild;
+    shared_ptr<Channel> channel;
+    shared_ptr<Member> member;
     string method;
     string endpoint;
     string query;
@@ -65,15 +66,8 @@ enum class ChannelType
 class Channel : public Permission, public boost::enable_shared_from_this<Channel>
 {
 public:
-    Channel(AegisBot & bot, shared_ptr<Guild> guild)
-        : bot(bot)
-        , guild(guild)
-    {
-
-    };
+    Channel(shared_ptr<Guild> guild) : guild(guild) {}
     ~Channel() {};
-
-    AegisBot & bot;
 
     void belongs_to(shared_ptr<Guild> g) { guild = g; }
     shared_ptr<Guild> belongs_to() { return guild; }

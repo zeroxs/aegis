@@ -29,9 +29,8 @@
 
 
 
-Member::Member(AegisBot & bot, uint64_t id, string name, uint16_t discriminator, string avatar)
-    : bot(bot)
-    , id(id)
+Member::Member(uint64_t id, string name, uint16_t discriminator, string avatar)
+    : id(id)
     , name(name)
     , discriminator(discriminator)
     , avatar(avatar)
@@ -49,7 +48,7 @@ std::vector<boost::shared_ptr<Guild>> Member::guilds()
     //should we keep a cache local to each user of what guilds we can see them on?
     //or just check the lists for results
     std::vector<boost::shared_ptr<Guild>> result;
-    for (auto & guild : bot.guildlist)
+    for (auto & guild : AegisBot::GetSingleton().guildlist)
     {
         if (guild.second->clientlist.count(id) > 0)
         {

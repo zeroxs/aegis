@@ -45,13 +45,11 @@ using json = nlohmann::json;
 class Guild : public Permission, public boost::enable_shared_from_this<Guild>
 {
 public:
-    Guild(AegisBot & b);
+    Guild();
     ~Guild();
 
     void processMessage(json obj);
     void addCommand(string command, ABMessageCallback callback);
-
-    AegisBot & bot;
 
     std::map<uint64_t, shared_ptr<Member>> clientlist;
     std::map<uint64_t, shared_ptr<Channel>> channellist;

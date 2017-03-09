@@ -33,25 +33,25 @@
 
 
 //Example usage
-class Bot : public AegisBot
+class Bot
 {
 public:
     Bot() {}
     ~Bot() {}
 
-    void echo(shared_ptr<ABMessage> message)
+    void echo(boost::shared_ptr<ABMessage> message)
     {
         if ((message->guild) && (message->channel) && (message->member))
         {
             //all 3 are set, so this is a channel message
-            if (message->guild->id == 288707540844412928LL)
+            if (message->guild->id == 287048029524066334LL)
             {
                 //control channel
                 if (message->member->id == 171000788183678976LL)
                 {
                     //me
                     std::cout << "Message callback triggered on channel[" << message->channel->name << "] from [" << message->member->name << "]" << std::endl;
-                    message->channel->sendMessage(message->content);
+                    message->channel->sendMessage(message->content.substr(message->cmd.size()+message->guild->prefix.size()));
                 }
             }
         }
@@ -113,7 +113,7 @@ int main(int argc, char * argv[])
     try
     {
         //create our Bot object and cache and configure the basic settings
-        Bot bot;
+        AegisBot & bot = AegisBot::CreateInstance();
  
         ABRedisCache cache(bot.io_service);
         cache.address = "127.0.0.1";
@@ -126,13 +126,13 @@ int main(int argc, char * argv[])
         }
         bot.setup_cache(&cache);
 
-#ifdef USE_REDIS
-        string token = cache.get("config:token");
-#elif USE_MEMORY
+        bot.loadConfigs();
+
+        //this is temporary
+#ifdef USE_MEMORY
         string token = "yourtokenhere";
 #endif
 
-        bot.token = token;
 
         //register some callbacks
 

@@ -32,6 +32,8 @@
 
 #include <boost/tokenizer.hpp>
 
+AegisBot * AegisBot::_instance = nullptr;
+
 AegisBot::AegisBot()
     : keepalive_timer_(io_service)
 {

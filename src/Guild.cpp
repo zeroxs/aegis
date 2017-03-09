@@ -30,8 +30,7 @@
 
 
 
-Guild::Guild(AegisBot & b)
-    : bot(b)
+Guild::Guild()
 {
 }
 
@@ -68,7 +67,7 @@ void Guild::processMessage(json obj)
         boost::shared_ptr<ABMessage> message = boost::make_shared<ABMessage>();
         message->content = content;
         message->channel = channellist[channel_id];
-        message->member = bot.globalusers[userid];
+        message->member = AegisBot::GetSingleton().globalusers[userid];
         message->guild = this->shared_from_this();
         cmdlist[cmd](message);
     }

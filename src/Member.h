@@ -38,11 +38,9 @@ using std::string;
 class Member : public Permission 
 {
 public:
-    Member(AegisBot & bot) : bot(bot) {  };
-    Member(AegisBot & bot, uint64_t id, string name, uint16_t discriminator, string avatar);
+    Member() { };
+    Member(uint64_t id, string name, uint16_t discriminator, string avatar);
     ~Member();
-
-    AegisBot & bot;
 
     std::vector<boost::shared_ptr<Guild>> guilds();
 
