@@ -61,21 +61,32 @@ public:
         }
     }
 
-    void rates2(shared_ptr<ABMessage> message)
+    void rates2(boost::shared_ptr<ABMessage> message)
     {
         uint32_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-        message->channel->sendMessage(Poco::format("Content: %s\nLimit: %u\nRemain: %u\nReset: %u\nEpoch: %u\nDiff: %u", message->content, message->channel->ratelimits.rateLimit()
-        , message->channel->ratelimits.rateRemaining(), message->channel->ratelimits.rateReset(), epoch, message->channel->ratelimits.rateReset() - epoch));
+        message->channel->sendMessage(Poco::format("Content: %s\nLimit: %u\nRemain: %u\nReset: %u\nEpoch: %u\nDiff: %u\n0x%X", message->content, message->channel->ratelimits.rateLimit()
+        , message->channel->ratelimits.rateRemaining(), message->channel->ratelimits.rateReset(), epoch, message->channel->ratelimits.rateReset() - epoch, &message->channel->ratelimits));
     }
 
-    void callback(ABMessage message)
+    void callback(boost::shared_ptr<ABMessage> message)
     {
         //if (message)
             //sendMessage("data", );
     }
 
+    void this_is_a_class_function(boost::shared_ptr<ABMessage> message)
+    {
+        message->channel->sendMessage("return from this_is_a_class_function()");
+    }
+
 
 };
+
+void this_is_a_global_function(boost::shared_ptr<ABMessage> message)
+{
+    message->channel->sendMessage("return from this_is_a_global_function()");
+}
+
 
 int main(int argc, char * argv[])
 {
@@ -136,11 +147,26 @@ int main(int argc, char * argv[])
 
         //register some callbacks
 
-        //set up a single guild with the bot (official use will have this be dynamic and loaded from a DB)
-        shared_ptr<Guild> myguild = bot.guildlist[287048029524066334LL] = boost::make_shared<Guild>(bot);
+        //we can register a callback to a lambda function, or our own class, or even global space functions
+        //note, these are global functions and will exist in all guilds the bot is connected to.
 
-        myguild->prefix = "!";
-        myguild->cmdlist["echo"] = std::bind(&Bot::echo, &bot, std::placeholders::_1);
+        //create our class that contains some functions (optional)
+        Bot ourfunctionclass;
+
+#define MAKE_CALLBACK(a) ABCallbackPair(ABCallbackOptions(), a)
+        bot.defaultcmdlist["this_is_a_global_command"] = ABCallbackPair(ABCallbackOptions(), std::bind(&this_is_a_global_function, std::placeholders::_1));
+        bot.defaultcmdlist["this_is_a_class_command"] = ABCallbackPair(ABCallbackOptions(), std::bind(&Bot::this_is_a_class_function, &ourfunctionclass, std::placeholders::_1));
+        bot.defaultcmdlist["this_is_a_lambda_command"] = ABCallbackPair(ABCallbackOptions(), [](shared_ptr<ABMessage> message)
+        {
+            message->channel->sendMessage("return from this_is_a_lambda_function()");
+        });
+
+        //set up a single guild with the bot (official use will have this be dynamic and loaded from a DB)
+        auto myguild = AegisBot::CreateGuild(287048029524066334LL);
+
+        //this allows the addition of extra commands specific to a single guild and not accessible by other guilds
+        myguild->prefix = "?";
+        myguild->cmdlist["echo"] = ABCallbackPair(ABCallbackOptions(), std::bind(&Bot::echo, &ourfunctionclass, std::placeholders::_1));
 
         myguild->addCommand("timer", [&bot](shared_ptr<ABMessage> message)
         {
@@ -175,9 +201,10 @@ int main(int argc, char * argv[])
                 });
             });
         });
-        myguild->cmdlist["rates2"] = std::bind(&Bot::rates2, &bot, std::placeholders::_1);
+        //myguild->cmdlist["rates2"] = std::bind(&Bot::rates2, &bot, std::placeholders::_1);
         myguild->addCommand("rates", [&bot](shared_ptr<ABMessage> message)
         {
+            std::cout << "Rates Command()" << std::endl;
             uint32_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
             message->channel->sendMessage(Poco::format("Content: %s\nLimit: %u\nRemain: %u\nReset: %u\nEpoch: %u\nDiff: %u", message->content, message->channel->ratelimits.rateLimit()
                 , message->channel->ratelimits.rateRemaining(), message->channel->ratelimits.rateReset(), epoch, message->channel->ratelimits.rateReset() - epoch));
@@ -208,7 +235,7 @@ int main(int argc, char * argv[])
         myguild->addCommand("info", [&bot](shared_ptr<ABMessage> message)
         {
             string stats;
-            stats = Poco::format("```Memory usage: %[#2]fMB\nMax Memory: %[#2]fMB```", double(getCurrentRSS()) / (1024 * 1024), double(getPeakRSS()) / (1024 * 1024));
+            stats = Poco::format("```Memory usage: %.2fMB\nMax Memory: %.2fMB```", double(getCurrentRSS()) / (1024 * 1024), double(getPeakRSS()) / (1024 * 1024));
             message->channel->sendMessage(stats);
         });
 

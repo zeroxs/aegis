@@ -50,8 +50,10 @@ public:
 
     void processMessage(json obj);
     void addCommand(string command, ABMessageCallback callback);
+    void addCommand(string command, ABCallbackPair callback);
 
-    std::map<uint64_t, shared_ptr<Member>> clientlist;
+    //id, <object, accesslevel>
+    std::map<uint64_t, std::pair<shared_ptr<Member>, uint16_t>> clientlist;
     std::map<uint64_t, shared_ptr<Channel>> channellist;
     std::map<uint64_t, shared_ptr<Role>> rolelist;
 
@@ -78,8 +80,11 @@ public:
     uint32_t member_count = 0;
     //string voice_states;//this is really an array
 
-    //extendable command list. this list allows you to place c++ functions into matching to a command
+    bool silenterrors = false;
+    bool silentperms = false;
+
+    //extendable command list. this list allows you to place c++ functions in matching to a command
     //for more than just simple responses
-    std::map<std::string, std::function<void(boost::shared_ptr<ABMessage>)>> cmdlist = {};
+    std::map<std::string, ABCallbackPair> cmdlist = {};
 };
 

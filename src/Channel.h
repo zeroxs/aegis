@@ -41,8 +41,14 @@ class AegisBot;
 using boost::shared_ptr;
 using std::string;
 struct ABMessage;
+struct ABCallbackOptions
+{
+    bool enabled = true;
+    uint16_t level = 1;
+};
 
 typedef std::function<void(boost::shared_ptr<ABMessage>)> ABMessageCallback;
+typedef std::pair<ABCallbackOptions, std::function<void(boost::shared_ptr<ABMessage>)>> ABCallbackPair;
 
 struct ABMessage
 {

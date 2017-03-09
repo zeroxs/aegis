@@ -98,6 +98,7 @@ public:
     static AegisBot & CreateInstance() { _instance = new AegisBot(); return *_instance; }
     static AegisBot & GetSingleton() { return *_instance; }
     static void DestroyInstance() { delete _instance; }
+    static boost::shared_ptr<Guild> CreateGuild(uint64_t id);
 private:
     AegisBot();
     static AegisBot * _instance;
@@ -174,6 +175,10 @@ public:
     shared_ptr<Member> loadMemberFromCache(json & obj);
 
     void run();
+
+    //default commands for guilds
+    std::map<std::string, ABCallbackPair> defaultcmdlist = {};
+
 
     //debug
     std::vector<string> tempmessages;

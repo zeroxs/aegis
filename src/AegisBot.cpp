@@ -67,6 +67,18 @@ AegisBot::~AegisBot()
     pFC->close();
 }
 
+boost::shared_ptr<Guild> AegisBot::CreateGuild(uint64_t id)
+{
+    if (_instance == nullptr)
+        throw std::runtime_error("Cannot create a guild when no bot instance exists.");
+    if (AegisBot::GetSingleton().guildlist.count(id))
+        return AegisBot::GetSingleton().guildlist[id];
+    boost::shared_ptr<Guild> guild = boost::make_shared<Guild>();
+    AegisBot::GetSingleton().guildlist[id] = guild;
+    guild->id = id;
+    return guild;
+}
+
 void AegisBot::setup_cache(ABCache * in)
 {
     cache = in;
@@ -171,7 +183,7 @@ void AegisBot::processReady(json & d)
         
         if (guild == nullptr)
         {
-            guildlist[id] = boost::make_shared<Guild>(*this);
+            guildlist[id] = boost::make_shared<Guild>();
             poco_trace_f1(*log, "Guild created: %Lu", id);
         }
         guildlist[id]->unavailable = unavailable;
@@ -215,7 +227,7 @@ void AegisBot::processReady(json & d)
                 if (rec == nullptr)
                 {
                     //new entry entirely
-                    globalusers[recipientId] = privateChat->recipients[recipientId] = rec = boost::make_shared<Member>(*this);
+                    globalusers[recipientId] = privateChat->recipients[recipientId] = rec = boost::make_shared<Member>();
                     poco_trace_f1(*log, "User created: %Lu", recipientId);
                 }
                 else
@@ -270,6 +282,8 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                 else if (cmd == "GUILD_CREATE")
                 {
                     loadGuild(result["d"]);
+
+                    //load things like database commands and permissions here
                 }
             }
             if (!result["s"].is_null())
@@ -342,13 +356,7 @@ void AegisBot::userMessage(json & obj)
         return;
     }
 
-    size_t len = guild->prefix.length();
-        
-    if (content.substr(0, len) == guild->prefix)
-    {
-        //match, process whole message
-        guild->processMessage(obj);
-    }
+    guild->processMessage(obj);
 
     boost::tokenizer<boost::char_separator<char>> tok{ content, boost::char_separator<char>(" ") };
 
@@ -486,7 +494,7 @@ string AegisBot::call(string url, string obj, RateLimits * endpoint, string meth
                 poco_trace_f1(*log, "epoch:          %Lu", epoch);
                 poco_trace_f1(*log, "content:        %s", obj);
 #endif
-                log->information(Poco::format("Rates: %u:%u resets in: %Lums", endpoint->rateLimit(), endpoint->rateRemaining(), (endpoint->rateReset() > 0) ? (endpoint->rateReset() - epoch) : 0));
+                log->information(Poco::format("Rates: %u:%u resets in: %Lus", endpoint->rateLimit(), endpoint->rateRemaining(), (endpoint->rateReset() > 0) ? (endpoint->rateReset() - epoch) : 0));
             }
         }
 
@@ -515,7 +523,7 @@ void AegisBot::run()
                         uint32_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
                         auto message = channel.second->ratelimits.getMessage();
                         poco_trace_f2(*log, "Message sent: [%s] [%s]", message->endpoint, message->content);
-                        message->content = call(message->endpoint, message->content, (RateLimits *)&message->channel->ratelimits, message->method, message->query);
+                        message->content = call(message->endpoint, message->content, &message->channel->ratelimits, message->method, message->query);
 #ifdef DEBUG_OUTPUT
                         poco_trace_f1(*log, "rate_limit:     %u", message->channel->ratelimits.rateLimit());
                         poco_trace_f1(*log, "rate_remaining: %u", message->channel->ratelimits.rateRemaining());
@@ -560,10 +568,12 @@ shared_ptr<Guild> AegisBot::loadGuild(json & obj)
         if (guild == nullptr)
         {
             //not cached - create
-            guildlist[id] = guild = boost::make_shared<Guild>(*this);
+            guildlist[id] = guild = boost::make_shared<Guild>();
             guild->id = id;
             poco_trace_f1(*log, "Guild created: %Lu", id);
         }
+        else
+            guild->id = id;
 
 #define GET_NULL(x,y) (x[y].is_null())?"":x[y]
         guild->name = GET_NULL(obj, "name");
@@ -604,7 +614,7 @@ shared_ptr<Guild> AegisBot::loadGuild(json & obj)
                 if (checkchannel == nullptr)
                 {
                     //not cached - create
-                    channellist[channel_id] = checkchannel = boost::make_shared<Channel>(*this, guild);
+                    channellist[channel_id] = checkchannel = boost::make_shared<Channel>(guild);
                     checkchannel->id = channel_id;
                     checkchannel->belongs_to(guild);
                     poco_trace_f2(*log, "Channel[%Lu] created for guild[%Lu]", channel_id, id);
@@ -658,10 +668,11 @@ shared_ptr<Guild> AegisBot::loadGuild(json & obj)
                 if (checkmember == nullptr)
                 {
                     //not cached - create
-                    globalusers[member_id] = checkmember = boost::make_shared<Member>(*this);
+                    globalusers[member_id] = checkmember = boost::make_shared<Member>();
                     checkmember->id = member_id;
                     poco_trace_f2(*log, "Member[%Lu] created for guild[%Lu]", member_id, id);
                 }
+                guild->clientlist[member_id] = std::pair<shared_ptr<Member>, uint16_t>(checkmember, 0);
 
                 checkmember->avatar = GET_NULL(user, "avatar");
                 checkmember->discriminator = std::stoll(user["discriminator"].get<string>());
