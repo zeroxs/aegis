@@ -89,6 +89,7 @@ void AegisBot::loadConfigs()
     //TODO: might need to add a mutex here to prevent actions from running while configs reload
 #ifdef USE_REDIS
     int32_t level = boost::lexical_cast<int32_t>(cache->get("config:loglevel"));
+    token = cache->get("config:token");
     logf->setLevel(level);
     log->setLevel(level);
 #endif
@@ -512,28 +513,31 @@ void AegisBot::run()
 {
     while (isrunning)
     {
-        for (auto & guild : guildlist)
         {
-            for (auto & channel : guild.second->channellist)
+            std::lock_guard<std::mutex> lock(m);
+            for (auto & guild : guildlist)
             {
-                if (channel.second->ratelimits.outqueue.size() > 0)
+                for (auto & channel : guild.second->channellist)
                 {
-                    if (channel.second->ratelimits.rateRemaining())
+                    if (channel.second->ratelimits.outqueue.size() > 0)
                     {
-                        uint32_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-                        auto message = channel.second->ratelimits.getMessage();
-                        poco_trace_f2(*log, "Message sent: [%s] [%s]", message->endpoint, message->content);
-                        message->content = call(message->endpoint, message->content, &message->channel->ratelimits, message->method, message->query);
-#ifdef DEBUG_OUTPUT
-                        poco_trace_f1(*log, "rate_limit:     %u", message->channel->ratelimits.rateLimit());
-                        poco_trace_f1(*log, "rate_remaining: %u", message->channel->ratelimits.rateRemaining());
-                        poco_trace_f1(*log, "rate_reset:     %u", message->channel->ratelimits.rateReset());
-                        poco_trace_f1(*log, "epoch:          %u", epoch);
-                        poco_trace_f1(*log, "content:        %s", message->content);
-#endif
-                        if (message->callback)
+                        if (channel.second->ratelimits.rateRemaining())
                         {
-                            message->callback(message);
+                            uint32_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+                            auto message = channel.second->ratelimits.getMessage();
+                            poco_trace_f2(*log, "Message sent: [%s] [%s]", message->endpoint, message->content);
+                            message->content = call(message->endpoint, message->content, &message->channel->ratelimits, message->method, message->query);
+#ifdef DEBUG_OUTPUT
+                            poco_trace_f1(*log, "rate_limit:     %u", message->channel->ratelimits.rateLimit());
+                            poco_trace_f1(*log, "rate_remaining: %u", message->channel->ratelimits.rateRemaining());
+                            poco_trace_f1(*log, "rate_reset:     %u", message->channel->ratelimits.rateReset());
+                            poco_trace_f1(*log, "epoch:          %u", epoch);
+                            poco_trace_f1(*log, "content:        %s", message->content);
+#endif
+                            if (message->callback)
+                            {
+                                message->callback(message);
+                            }
                         }
                     }
                 }
@@ -557,6 +561,8 @@ void AegisBot::createTimer(uint64_t t, shared_ptr<boost::asio::steady_timer> tim
 
 shared_ptr<Guild> AegisBot::loadGuild(json & obj)
 {
+    std::lock_guard<std::mutex> lock(m);
+
     shared_ptr<Guild> guild;
 
     //uint64_t application_id = obj->get("application_id").convert<uint64_t>();
