@@ -32,6 +32,9 @@
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/optional.hpp>
 #include <iostream>
+#include <json.hpp>
+
+using json = nlohmann::json;
 
 class ABMessage;
 class Guild;
@@ -52,6 +55,7 @@ typedef std::pair<ABCallbackOptions, std::function<void(boost::shared_ptr<ABMess
 
 struct ABMessage
 {
+    uint64_t message_id = 0;
     string content;
     string cmd;
     shared_ptr<Guild> guild;
@@ -80,6 +84,7 @@ public:
 
     void getMessages(uint64_t messageid, ABMessageCallback callback = ABMessageCallback());
     void sendMessage(string content, ABMessageCallback callback = ABMessageCallback());
+    void sendMessageEmbed(json content, json embed, ABMessageCallback callback = ABMessageCallback());
     void bulkDelete(std::vector<string> messages, ABMessageCallback callback = ABMessageCallback());
 
 
@@ -94,6 +99,11 @@ public:
     uint32_t user_limit = 0;
 
     RateLimits ratelimits;
+
+    Permission overrides;
+
+    //TODO: track all the overrides. not just our own. possible use-case?
+    //std::pair<Role, Permission> overrides
 
 private:
     shared_ptr<Guild> guild;

@@ -82,6 +82,7 @@ public:
 
     bool silenterrors = false;
     bool silentperms = false;
+    bool preventbotparse = false;
 
     //extendable command list. this list allows you to place c++ functions in matching to a command
     //for more than just simple responses

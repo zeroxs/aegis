@@ -136,6 +136,7 @@ void Guild::processMessage(json obj)
         message->channel = channellist[channel_id];
         message->member = AegisBot::GetSingleton().globalusers[userid];
         message->guild = this->shared_from_this();
+        message->message_id = id;
         message->cmd = cmd;
         cmdlist[cmd].second(message);
     }
