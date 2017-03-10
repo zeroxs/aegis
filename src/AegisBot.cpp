@@ -25,6 +25,7 @@
 
 #include "AegisBot.h"
 #include "Guild.h"
+#include "rss.h"
 
 #ifdef USE_REDIS
 #include "ABRedisCache.h"
