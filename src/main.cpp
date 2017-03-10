@@ -29,7 +29,6 @@
 #include <json.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
-#include "rss.h"
 #include "ExampleBot.h"
 #include "AuctionBot.h"
 
@@ -90,9 +89,10 @@ int main(int argc, char * argv[])
         auctionbot.initialize();
 
 
+        bot.addCommand("this_is_a_global_command", std::bind(&this_is_a_global_function, std::placeholders::_1));
+        bot.addCommand("this_is_a_class_command", std::bind(&ExampleBot::this_is_a_class_function, &ourfunctionclass, std::placeholders::_1));
+
         //you can also set the command directly instead of calling addCommand()
-        bot.defaultcmdlist["this_is_a_global_command"] = ABCallbackPair(ABCallbackOptions(), std::bind(&this_is_a_global_function, std::placeholders::_1));
-        bot.defaultcmdlist["this_is_a_class_command"] = ABCallbackPair(ABCallbackOptions(), std::bind(&ExampleBot::this_is_a_class_function, &ourfunctionclass, std::placeholders::_1));
         bot.defaultcmdlist["this_is_a_lambda_command"] = ABCallbackPair(ABCallbackOptions(), [](shared_ptr<ABMessage> message)
         {
             message->channel->sendMessage("return from this_is_a_lambda_function()");
@@ -179,56 +179,7 @@ int main(int argc, char * argv[])
             message->channel->sendMessage("Configs reloaded.");
         });
 
-        bot.addCommand("info", [&bot](shared_ptr<ABMessage> message)
-        {
-            uint64_t timenow = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-            uint64_t guild_count = bot.guildlist.size();
-            uint64_t member_count = bot.globalusers.size();
-            uint64_t channel_count = bot.channellist.size();
-            uint64_t channel_text_count = 0;
-            uint64_t channel_voice_count = 0;
-            {
-                std::lock_guard<std::mutex> lock(bot.m);
-                for (auto & channel : bot.channellist)
-                {
-                    if (channel.second->type == ChannelType::TEXT)
-                        channel_text_count++;
-                    else
-                        channel_voice_count++;
-                }
-            }
-            std::stringstream members;
-            members << member_count << "\n0 Online\n0 Offline\nstuff";
-
-            std::stringstream channels;
-            channels << channel_count << " total\n" << channel_text_count << " text\n" << channel_voice_count << " voice";
-
-            std::stringstream guilds;
-            guilds << guild_count;
-
-            message->content = "";
-            string uptime = bot.uptime();
-            string stats;
-            stats = Poco::format("Memory usage: %.2fMB\nMax Memory: %.2fMB", double(getCurrentRSS()) / (1024 * 1024), double(getPeakRSS()) / (1024 * 1024));
-            json t = {
-                {"title", "AegisBot"},
-                {"description", "[Latest bot source](https://github.com/zeroxs/aegisbot)\n[Official Bot Server](https://discord.gg/w7Y3Bb8)"},
-                {"color", 10599460},
-                {"fields", 
-                    json::array(
-                        {
-                            { { "name", "Members" },{ "value", members.str() }, { "inline", true } },
-                            { { "name", "Channels" },{ "value", channels.str() },{ "inline", true } },
-                            { { "name", "Uptime test" },{ "value", uptime },{ "inline", true } },
-                            { { "name", "Guilds" },{ "value", guilds.str() },{ "inline", true } }
-                        }
-                    )
-                },
-                {"footer", {{"icon_url", "https://cdn.discordapp.com/attachments/288707540844412928/289572000391888906/cpp.png"},{"text", "Made in c++ running aegisbot library"}}}
-            };
-            t["description"] = stats;
-            message->channel->sendMessageEmbed(json(), t);
-        });
+        bot.addCommand("info", std::bind(&AegisBot::info_command, &bot, std::placeholders::_1));
 
 
 

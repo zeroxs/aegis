@@ -77,7 +77,7 @@ public:
             uint64_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
             if (_lastfailure + 30000 < epoch)
             {
-                return false;
+                return true;
             }
         }
         if (failures > 3)
@@ -85,10 +85,10 @@ public:
             uint64_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
             if (_lastfailure + 5000 < epoch)
             {
-                return false;
+                return true;
             }
         }
-        return true;
+        return false;
     }
 
     void setRates(uint32_t limit, uint32_t remaining, uint32_t reset, uint32_t retry)
