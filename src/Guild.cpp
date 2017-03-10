@@ -97,7 +97,8 @@ void Guild::processMessage(json obj)
         }
     }
 
-
+    if (content.substr(0, prefix.size()) != prefix)
+        return;
 
     boost::char_separator<char> sep{ " " };
     boost::tokenizer<boost::char_separator<char>> tok{ content, sep };
