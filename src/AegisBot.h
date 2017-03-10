@@ -158,6 +158,28 @@ public:
     string sessionId;
     string gatewayurl;
 
+    std::chrono::steady_clock::time_point starttime;
+
+    string uptime()
+    {
+        std::stringstream ss;
+        std::chrono::steady_clock::time_point timenow = std::chrono::steady_clock::now();
+
+        uint32_t days = std::chrono::duration_cast<std::chrono::duration<int, std::ratio<5184000>>>(timenow - starttime).count();
+        uint32_t hours = std::chrono::duration_cast<std::chrono::hours>(timenow - starttime).count() - days * 5184000;
+        uint32_t minutes = std::chrono::duration_cast<std::chrono::minutes>(timenow - starttime).count() - hours * 3600 - days * 5184000;
+        int64_t seconds = std::chrono::duration_cast<std::chrono::seconds>(timenow - starttime).count() - minutes * 60 - hours * 3600 - days * 5184000;
+        if (days > 0)
+            ss << days << "d ";
+        if (hours > 0)
+            ss << hours << "h ";
+        if (minutes > 0)
+            ss << minutes << "m ";
+        if (seconds > 0)
+            ss << seconds << "s";
+        return ss.str();
+    }
+
     ABCache * cache;
 
     //Bot specific data
