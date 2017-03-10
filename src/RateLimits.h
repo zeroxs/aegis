@@ -75,7 +75,7 @@ public:
         if (failures > 10)
         {
             uint64_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-            if (_lastfailure + 30000 < epoch)
+            if (_lastfailure + 30 < epoch)
             {
                 return true;
             }
@@ -83,7 +83,7 @@ public:
         if (failures > 3)
         {
             uint64_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-            if (_lastfailure + 5000 < epoch)
+            if (_lastfailure + 5 < epoch)
             {
                 return true;
             }
@@ -108,6 +108,7 @@ public:
             outqueue.pop();
             return t;
         }
+        return nullptr;
     }
 
     void putMessage(boost::shared_ptr<ABMessage> message)
