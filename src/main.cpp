@@ -295,7 +295,9 @@ int main(int argc, char * argv[])
         //find a better way to do this
         //ultimately, a master application would spin these bots up passing params
         //as the shard ids.
-        json ret = json::parse(bot.call("/gateway/bot"));
+        string res;
+        bot.call("/gateway/bot", &res, nullptr, "GET", "");
+        json ret = json::parse(res);
         bot.gatewayurl = ret["url"];
 
         std::cout << "Recommended shard count: " << ret["shards"] << std::endl;
