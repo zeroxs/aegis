@@ -31,6 +31,8 @@
 
 void Channel::getMessages(uint64_t messageid, ABMessageCallback callback)
 {
+    //if (!canReadHistory())
+    //    return;
     poco_trace(*(AegisBot::GetSingleton().log), "getMessages() goes through");
 
     boost::shared_ptr<ABMessage> message = boost::make_shared<ABMessage>();
@@ -47,6 +49,8 @@ void Channel::getMessages(uint64_t messageid, ABMessageCallback callback)
 
 void Channel::sendMessage(string content, ABMessageCallback callback)
 {
+    //if (!canSendMessages())
+    //    return;
     poco_trace(*(AegisBot::GetSingleton().log), "sendMessage() goes through");
     json obj;
     if (belongs_to()->preventbotparse)
@@ -92,6 +96,8 @@ void Channel::sendMessageEmbed(json content, json embed, ABMessageCallback callb
 
 void Channel::bulkDelete(std::vector<string> messages, ABMessageCallback callback)
 {
+    //if (!canManageMessages())
+    //    return;
     poco_trace(*(AegisBot::GetSingleton().log), "bulkDelete() goes through");
     json arr(messages);
     json obj;

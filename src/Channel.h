@@ -47,7 +47,7 @@ struct ABMessage;
 struct ABCallbackOptions
 {
     bool enabled = true;
-    uint16_t level = 1;
+    uint16_t level = 0;//TODO CHANGE BACK TO 1
 };
 
 typedef std::function<void(boost::shared_ptr<ABMessage>)> ABMessageCallback;

@@ -63,7 +63,7 @@ void Guild::processMessage(json obj)
     if (AegisBot::GetSingleton().globalusers[userid]->isbot == true)
         return;
 
-    if (userid == owner_id)
+    //if (userid == owner_id)
     {
         //guild owner is talking, do a check if this is the prefix set up command
         //as that needs to be set up first before the bot will function

@@ -775,6 +775,18 @@ shared_ptr<Guild> AegisBot::loadGuild(json & obj)
                 _role->name = GET_NULL(role, "name");
                 _role->color = role["color"];
                 guild->rolelist.insert(std::pair<uint64_t, shared_ptr<Role>>(role_id, std::move(_role)));
+
+
+//                 for (auto & member : guild->clientlist)
+//                 {
+//                     for (auto & role : member.second.first->roles)
+//                     {
+//                         if (role == role_id)
+//                         {
+//                             //matches
+//                         }
+//                     }
+//                 }
             }
             catch (std::exception&e)
             {
@@ -797,6 +809,9 @@ shared_ptr<Guild> AegisBot::loadGuild(json & obj)
         for (auto & voicestate : voice_states)
         {
         }
+
+
+
     }
     catch(std::exception&e)
     {
