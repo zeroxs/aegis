@@ -30,43 +30,12 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
 #include "rss.h"
+#include "ExampleBot.h"
+#include "AuctionBot.h"
 
 uint64_t maxshard = 0;
 uint64_t shardid = 0;
 
-//Example usage
-class Bot
-{
-public:
-    Bot() {}
-    ~Bot() {}
-
-    void echo(boost::shared_ptr<ABMessage> message)
-    {
-        std::cout << "Message callback triggered on channel[" << message->channel->name << "] from [" << message->member->name << "]" << std::endl;
-        message->channel->sendMessage(message->content.substr(message->cmd.size() + message->guild->prefix.size()));
-    }
-
-    void rates2(boost::shared_ptr<ABMessage> message)
-    {
-        uint32_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-        message->channel->sendMessage(Poco::format("Content: %s\nLimit: %u\nRemain: %u\nReset: %u\nEpoch: %u\nDiff: %u\n0x%X", message->content, message->channel->ratelimits.rateLimit()
-        , message->channel->ratelimits.rateRemaining(), message->channel->ratelimits.rateReset(), epoch, message->channel->ratelimits.rateReset() - epoch, &message->channel->ratelimits));
-    }
-
-    void callback(boost::shared_ptr<ABMessage> message)
-    {
-        //if (message)
-            //sendMessage("data", );
-    }
-
-    void this_is_a_class_function(boost::shared_ptr<ABMessage> message)
-    {
-        message->channel->sendMessage("return from this_is_a_class_function()");
-    }
-
-
-};
 bool parsecli(int argc, char * argv[]);
 
 void this_is_a_global_function(boost::shared_ptr<ABMessage> message)
@@ -111,22 +80,32 @@ int main(int argc, char * argv[])
         //note, these are global functions and will exist in all guilds the bot is connected to.
 
         //create our class that contains some functions (optional)
-        Bot ourfunctionclass;
+        ExampleBot ourfunctionclass;
 
-#define MAKE_CALLBACK(a) ABCallbackPair(ABCallbackOptions(), a)
+        //can also load multiple classes worth of functions as callbacks
+        //this is an example of an auctioneer bot I wrote to test some of the functionality and flexibility of the library
+        AuctionBot auctionbot;
+
+        //initialize defaults and add all the functions to a specific guild
+        auctionbot.initialize();
+
+
+        //you can also set the command directly instead of calling addCommand()
         bot.defaultcmdlist["this_is_a_global_command"] = ABCallbackPair(ABCallbackOptions(), std::bind(&this_is_a_global_function, std::placeholders::_1));
-        bot.defaultcmdlist["this_is_a_class_command"] = ABCallbackPair(ABCallbackOptions(), std::bind(&Bot::this_is_a_class_function, &ourfunctionclass, std::placeholders::_1));
+        bot.defaultcmdlist["this_is_a_class_command"] = ABCallbackPair(ABCallbackOptions(), std::bind(&ExampleBot::this_is_a_class_function, &ourfunctionclass, std::placeholders::_1));
         bot.defaultcmdlist["this_is_a_lambda_command"] = ABCallbackPair(ABCallbackOptions(), [](shared_ptr<ABMessage> message)
         {
             message->channel->sendMessage("return from this_is_a_lambda_function()");
         });
+        bot.defaultcmdlist["echo"] = ABCallbackPair(ABCallbackOptions(), std::bind(&ExampleBot::echo, &ourfunctionclass, std::placeholders::_1));
 
-        //set up a single guild with the bot (official use will have this be dynamic and loaded from a DB)
+
+        //add unique commands to a specific guild. no other guilds can access these
         auto myguild = AegisBot::CreateGuild(287048029524066334LL);
-
-        //this allows the addition of extra commands specific to a single guild and not accessible by other guilds
-        myguild->prefix = "?";
-        bot.defaultcmdlist["echo"] = ABCallbackPair(ABCallbackOptions(), std::bind(&Bot::echo, &ourfunctionclass, std::placeholders::_1));
+        myguild->addCommand("custom_command", [&bot](shared_ptr<ABMessage> message)
+        {
+            message->channel->sendMessage("unique command for this guild.");
+        });
 
 
         //example usage of callbacks within a callback
@@ -151,6 +130,7 @@ int main(int argc, char * argv[])
         });
 
 
+/*
         bot.addCommand("timer", [&bot](shared_ptr<ABMessage> message)
         {
             uint64_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -183,31 +163,14 @@ int main(int argc, char * argv[])
                     message->channel->sendMessage(Poco::format("Response to `%s`", message->content));
                 });
             });
-        });
+        });*/
+
         bot.addCommand("rates", [&bot](shared_ptr<ABMessage> message)
         {
             std::cout << "Rates Command()" << std::endl;
             uint32_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-            message->channel->sendMessage(Poco::format("Content: %s\nLimit: %u\nRemain: %u\nReset: %u\nEpoch: %u\nDiff: %u", message->content, message->channel->ratelimits.rateLimit()
+            message->channel->sendMessage(Poco::format("```Previous counters:\nContent: %s\nLimit: %u\nRemain: %u\nReset: %u\nEpoch: %u\nDiff: %u```", message->content, message->channel->ratelimits.rateLimit()
                 , message->channel->ratelimits.rateRemaining(), message->channel->ratelimits.rateReset(), epoch, message->channel->ratelimits.rateReset() - epoch));
-        });
-        bot.addCommand("clean_channel", [&bot](shared_ptr<ABMessage> message)
-        {
-            message->channel->bulkDelete(bot.tempmessages);
-        });
-        bot.addCommand("get_history", [&bot](shared_ptr<ABMessage> message)
-        {
-            message->channel->getMessages(message->channel->id, [&bot](shared_ptr<ABMessage> message)
-            {
-                json arr = json::parse(message->content);
-
-                for (auto & m : arr)
-                {
-                    string entry = m["id"];
-                    poco_trace_f1(*(bot.log), "Message entry: %s", entry);
-                    bot.tempmessages.push_back(entry);
-                }
-            });
         });
 
         bot.addCommand("reload", [&bot](shared_ptr<ABMessage> message)

@@ -46,7 +46,9 @@
     <ClCompile Include="..\src\ABMemoryCache.cpp" />
     <ClCompile Include="..\src\ABRedisCache.cpp" />
     <ClCompile Include="..\src\AegisBot.cpp" />
+    <ClCompile Include="..\src\AuctionBot.cpp" />
     <ClCompile Include="..\src\Channel.cpp" />
+    <ClCompile Include="..\src\ExampleBot.cpp" />
     <ClCompile Include="..\src\Guild.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\Member.cpp" />
@@ -56,7 +58,9 @@
     <ClInclude Include="..\src\ABMemoryCache.h" />
     <ClInclude Include="..\src\ABRedisCache.h" />
     <ClInclude Include="..\src\AegisBot.h" />
+    <ClInclude Include="..\src\AuctionBot.h" />
     <ClInclude Include="..\src\Channel.h" />
+    <ClInclude Include="..\src\ExampleBot.h" />
     <ClInclude Include="..\src\Guild.h" />
     <ClInclude Include="..\src\Member.h" />
     <ClInclude Include="..\src\Permission.h" />
