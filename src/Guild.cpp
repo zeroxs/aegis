@@ -152,6 +152,37 @@ void Guild::addCommand(string command, ABCallbackPair callback)
     cmdlist[command] = callback;
 }
 
+void Guild::modifyMember(json content, uint64_t guildid, uint64_t memberid, ABMessageCallback callback)
+{
+    //if (!canSendMessages())
+    //    return;
+    poco_trace(*(AegisBot::GetSingleton().log), "modifyMember() goes through");
 
+    boost::shared_ptr<ABMessage> message = boost::make_shared<ABMessage>();
+    message->content = content.dump();
+    message->guild = shared_from_this();
+    message->endpoint = Poco::format("/guilds/%Lu/members/%Lu", guildid, memberid);
+    message->method = "PATCH";
+    if (callback)
+        message->callback = callback;
 
+    ratelimits.putMessage(message);
+}
+
+void Guild::createVoice(json content, uint64_t guildid, ABMessageCallback callback)
+{
+    //if (!canSendMessages())
+    //    return;
+    poco_trace(*(AegisBot::GetSingleton().log), "createVoice() goes through");
+
+    boost::shared_ptr<ABMessage> message = boost::make_shared<ABMessage>();
+    message->content = content.dump();
+    message->guild = shared_from_this();
+    message->endpoint = Poco::format("/guilds/%Lu/channels", guildid);
+    message->method = "POST";
+    if (callback)
+        message->callback = callback;
+
+    ratelimits.putMessage(message);
+}
 

@@ -51,6 +51,8 @@ public:
     void processMessage(json obj);
     void addCommand(string command, ABMessageCallback callback);
     void addCommand(string command, ABCallbackPair callback);
+    void modifyMember(json content, uint64_t guildid, uint64_t memberid, ABMessageCallback callback = ABMessageCallback());
+    void createVoice(json content, uint64_t guildid, ABMessageCallback callback = ABMessageCallback());
 
     //id, <object, accesslevel>
     std::map<uint64_t, std::pair<shared_ptr<Member>, uint16_t>> clientlist;

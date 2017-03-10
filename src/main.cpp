@@ -31,6 +31,7 @@
 #include <boost/tokenizer.hpp>
 #include "ExampleBot.h"
 #include "AuctionBot.h"
+#include "AegisOfficial.h"
 
 uint64_t maxshard = 0;
 uint64_t shardid = 0;
@@ -87,6 +88,13 @@ int main(int argc, char * argv[])
 
         //initialize defaults and add all the functions to a specific guild
         auctionbot.initialize();
+
+
+
+        //This extends the bot and provides official commands
+        AegisOfficial official;
+        official.initialize();
+
 
 
         bot.addCommand("this_is_a_global_command", std::bind(&this_is_a_global_function, std::placeholders::_1));

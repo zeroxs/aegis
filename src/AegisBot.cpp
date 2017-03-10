@@ -438,7 +438,7 @@ bool AegisBot::call(string url, string * obj /*= nullptr*/, RateLimits * endpoin
 
         if (obj && obj->length() > 0)
         {
-            request.setMethod("POST");
+            request.setMethod(method);
             request.setContentLength(obj->length());
 
             std::cout << "Sent JSON: " << *obj << "\n";
@@ -451,7 +451,7 @@ bool AegisBot::call(string url, string * obj /*= nullptr*/, RateLimits * endpoin
 #endif
             std::ostream & endp = session.sendRequest(request);
 
-            endp << obj;
+            endp << *obj;
         }
         else
         {
