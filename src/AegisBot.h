@@ -69,6 +69,7 @@
 #include "Member.h"
 #include "Channel.h"
 #include "RateLimits.h"
+#include "rss.h"
 
 using json = nlohmann::json;
 using namespace Poco::Net;
@@ -205,6 +206,8 @@ public:
     shared_ptr<Guild> loadGuildFromCache(json & obj);
     shared_ptr<Member> loadMember(json & obj);
     shared_ptr<Member> loadMemberFromCache(json & obj);
+
+    void info_command(shared_ptr<ABMessage> message);
 
     void run();
 
