@@ -69,6 +69,7 @@ AegisBot::~AegisBot()
 
 boost::shared_ptr<Guild> AegisBot::CreateGuild(uint64_t id)
 {
+    std::lock_guard<std::mutex> lock(AegisBot::GetSingleton().m);
     if (_instance == nullptr)
         throw std::runtime_error("Cannot create a guild when no bot instance exists.");
     if (AegisBot::GetSingleton().guildlist.count(id))
@@ -174,6 +175,7 @@ void AegisBot::onClose(websocketpp::connection_hdl hdl)
 
 void AegisBot::processReady(json & d)
 {
+    std::lock_guard<std::mutex> lock(m);
     json guilds = d["guilds"];
     for (auto & guildobj : guilds)
     {
