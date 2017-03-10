@@ -31,6 +31,8 @@
 #include <boost/tokenizer.hpp>
 #include "rss.h"
 
+uint64_t maxshard = 0;
+uint64_t shardid = 0;
 
 //Example usage
 class Bot
@@ -65,6 +67,7 @@ public:
 
 
 };
+bool parsecli(int argc, char * argv[]);
 
 void this_is_a_global_function(boost::shared_ptr<ABMessage> message)
 {
@@ -73,46 +76,20 @@ void this_is_a_global_function(boost::shared_ptr<ABMessage> message)
 
 int main(int argc, char * argv[])
 {
-    uint64_t shardid = 0;
-
-    if (argc == 1)
-    {
-        //error
-        std::cout << "No shard id min/max passed (pass 0 for single instance)" << std::endl;
+    if (!parsecli(argc, argv))
         return -1;
-    }
-
-    shardid = std::atoll(argv[1]);
-
-    if (shardid != 0)
-    {
-        if (argc <= 2)
-        {
-            //error
-            std::cout << "No shard id max passed." << std::endl;
-            return -1;
-        }
-    }
-
-    uint64_t maxshard;
-    maxshard = std::atoll(argv[2]);
-
-    if (maxshard <= shardid)
-    {
-        //error
-        std::cout << "Shard id must be less than the max." << std::endl;
-        return -1;
-    }
 
     try
     {
         //create our Bot object and cache and configure the basic settings
         AegisBot & bot = AegisBot::CreateInstance();
- 
+
+#ifdef USE_REDIS
         ABRedisCache cache(bot.io_service);
         cache.address = "127.0.0.1";
         cache.port = 6379;
         cache.password = "";
+#endif
         if (!cache.initialize())
         {
             //error with cache
@@ -153,6 +130,7 @@ int main(int argc, char * argv[])
 
 
         //example usage of callbacks within a callback
+        //this deletes the last 100 messages in the channel this is called from
         bot.addCommand("delete_history", [&bot](shared_ptr<ABMessage> message)
         {
             message->channel->getMessages(message->message_id, [&bot](shared_ptr<ABMessage> message)
@@ -206,7 +184,6 @@ int main(int argc, char * argv[])
                 });
             });
         });
-        //myguild->cmdlist["rates2"] = std::bind(&Bot::rates2, &bot, std::placeholders::_1);
         bot.addCommand("rates", [&bot](shared_ptr<ABMessage> message)
         {
             std::cout << "Rates Command()" << std::endl;
@@ -238,6 +215,7 @@ int main(int argc, char * argv[])
             bot.loadConfigs();
             message->channel->sendMessage("Configs reloaded.");
         });
+
         bot.addCommand("info", [&bot](shared_ptr<ABMessage> message)
         {
             uint64_t timenow = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -246,7 +224,6 @@ int main(int argc, char * argv[])
             uint64_t channel_count = bot.channellist.size();
             uint64_t channel_text_count = 0;
             uint64_t channel_voice_count = 0;
-            //uint64_t;
             {
                 std::lock_guard<std::mutex> lock(bot.m);
                 for (auto & channel : bot.channellist)
@@ -292,9 +269,13 @@ int main(int argc, char * argv[])
 
 
 
+
+
+        //////////////////////////////////////////////////////////////////////////
         //find a better way to do this
         //ultimately, a master application would spin these bots up passing params
-        //as the shard ids.
+        //as the shard ids. alternatively, could make this bot do some calls to
+        //load more bot instances at this point and have those ignore this part
         string res;
         bot.call("/gateway/bot", &res, nullptr, "GET", "");
         json ret = json::parse(res);
@@ -305,28 +286,9 @@ int main(int argc, char * argv[])
         std::cout << "My shard id: " << shardid << std::endl;
 
         bot.initialize(shardid, maxshard);
-
-
-        boost::asio::io_service::work work(bot.io_service);
-
-        boost::asio::signal_set signals(bot.io_service, SIGINT, SIGTERM);
-        signals.async_wait([&](const boost::system::error_code &error, int signal_number)
-        {
-            if (!error)
-            {
-                std::cerr << (signal_number==SIGINT?"SIGINT":"SIGTERM") << "received. Shutting down.\n";
-                bot.io_service.stop();
-                bot.isrunning = false;
-            }
-        });
-
-        std::vector<std::thread> threadPool;
-        for (size_t t = 0; t < std::thread::hardware_concurrency() * 2; t++)
-        {
-            threadPool.push_back(std::thread([&bot]() { bot.io_service.run(); }));
-        }
         bot.run();
-        for (std::thread& t : threadPool)
+
+        for (std::thread& t : bot.threadPool)
         {
             t.join();
         }
@@ -337,4 +299,36 @@ int main(int argc, char * argv[])
         return -1;
     }
     return 0;
+}
+
+bool parsecli(int argc, char * argv[])
+{
+    if (argc == 1)
+    {
+        //error
+        std::cout << "No shard id min/max passed (pass 0 for single instance)" << std::endl;
+        return false;
+    }
+
+    shardid = std::atoll(argv[1]);
+
+    if (shardid != 0)
+    {
+        if (argc <= 2)
+        {
+            //error
+            std::cout << "No shard id max passed." << std::endl;
+            return false;
+        }
+    }
+
+    maxshard = std::atoll(argv[2]);
+
+    if (maxshard <= shardid)
+    {
+        //error
+        std::cout << "Shard id must be less than the max." << std::endl;
+        return false;
+    }
+    return true;
 }

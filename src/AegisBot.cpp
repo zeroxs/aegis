@@ -532,6 +532,26 @@ bool AegisBot::call(string url, string * obj /*= nullptr*/, RateLimits * endpoin
 
 void AegisBot::run()
 {
+    //some more init stuff
+    boost::asio::io_service::work work(io_service);
+
+    boost::asio::signal_set signals(io_service, SIGINT, SIGTERM);
+    signals.async_wait([&](const boost::system::error_code &error, int signal_number)
+    {
+        if (!error)
+        {
+            std::cerr << (signal_number == SIGINT ? "SIGINT" : "SIGTERM") << "received. Shutting down.\n";
+            io_service.stop();
+            isrunning = false;
+        }
+    });
+
+    for (size_t t = 0; t < std::thread::hardware_concurrency() * 2; t++)
+    {
+        threadPool.push_back(std::thread([&]() { io_service.run(); }));
+    }
+
+
     while (isrunning)
     {
         {

@@ -213,6 +213,8 @@ public:
 
     std::mutex m;
 
+    std::vector<std::thread> threadPool;
+
     /*TODO:
     * Add sharding support. Have bot start a new process per shard and enable
     * * synchronizing between them to overcome the DM issue where only shard0
