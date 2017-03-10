@@ -117,7 +117,7 @@ public:
     void processReady(json & d);
     void connectWS();
 
-    string call(string url, string obj = "", RateLimits * endpoint = nullptr, string method = "GET", string query = "");
+    bool call(string url, string * obj = nullptr, RateLimits * endpoint = nullptr, string method = "GET", string query = "");
 
     template <typename T, typename... _BoundArgs>
     void createTimer(uint64_t t, shared_ptr<boost::asio::steady_timer> timer, T f, _BoundArgs&&... __args);
