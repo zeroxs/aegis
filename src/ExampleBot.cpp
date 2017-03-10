@@ -1,5 +1,5 @@
 //
-// Member.cpp
+// ExampleBot.h
 // aegisbot
 //
 // Copyright (c) 2017 Zero (zero at xandium dot net)
@@ -23,38 +23,36 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+#include "ExampleBot.h"
+#include "Channel.h"
 #include "Member.h"
 #include "Guild.h"
-#include "AegisBot.h"
 
 
-
-Member::Member(uint64_t id, string name, uint16_t discriminator, string avatar)
-    : id(id)
-    , name(name)
-    , discriminator(discriminator)
-    , avatar(avatar)
+ExampleBot::ExampleBot()
 {
 }
 
 
-Member::~Member()
+ExampleBot::~ExampleBot()
 {
 }
 
-std::vector<boost::shared_ptr<Guild>> Member::guilds()
+void ExampleBot::echo(boost::shared_ptr<ABMessage> message)
 {
-    //TODO: Performance test this some time
-    //should we keep a cache local to each user of what guilds we can see them on?
-    //or just check the lists for results
-    std::vector<boost::shared_ptr<Guild>> result;
-    std::lock_guard<std::mutex> lock(AegisBot::GetSingleton().m);
-    for (auto & guild : AegisBot::GetSingleton().guildlist)
-    {
-        if (guild.second->clientlist.count(id) > 0)
-        {
-            result.push_back(guild.second);
-        }
-    }
-    return result;
+    std::cout << "Message callback triggered on channel[" << message->channel->name << "] from [" << message->member->name << "]" << std::endl;
+    message->channel->sendMessage(message->content.substr(message->cmd.size() + message->guild->prefix.size()));
 }
+
+void ExampleBot::rates2(boost::shared_ptr<ABMessage> message)
+{
+    uint32_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    message->channel->sendMessage(Poco::format("Content: %s\nLimit: %u\nRemain: %u\nReset: %u\nEpoch: %u\nDiff: %u\n0x%X", message->content, message->channel->ratelimits.rateLimit()
+                                               , message->channel->ratelimits.rateRemaining(), message->channel->ratelimits.rateReset(), epoch, message->channel->ratelimits.rateReset() - epoch, &message->channel->ratelimits));
+}
+
+void ExampleBot::this_is_a_class_function(boost::shared_ptr<ABMessage> message)
+{
+    message->channel->sendMessage("return from this_is_a_class_function()");
+}
+

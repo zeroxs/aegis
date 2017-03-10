@@ -56,6 +56,12 @@
     <ClCompile Include="..\src\AegisBot.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\AuctionBot.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ExampleBot.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\Channel.h">
@@ -89,6 +95,12 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="..\src\rss.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\ExampleBot.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\AuctionBot.h">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>

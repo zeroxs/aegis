@@ -24,6 +24,7 @@ Libraries used:
 - [Websocketpp](https://github.com/zaphoyd/websocketpp)
 - [PocoProject](https://github.com/pocoproject/poco)
 - [RedisClient](https://github.com/nekipelov/redisclient)
+- [JSON for Modern C++](https://github.com/nlohmann/json)
 
 
 Inspiration drawn from [discordpp](https://github.com/Aidoboy/discordpp)

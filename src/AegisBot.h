@@ -95,7 +95,14 @@ class Guild;
 class AegisBot
 {
 public:
+    static AegisBot & CreateInstance() { _instance = new AegisBot(); return *_instance; }
+    static AegisBot & GetSingleton() { return *_instance; }
+    static void DestroyInstance() { delete _instance; }
+    static boost::shared_ptr<Guild> CreateGuild(uint64_t id);
+private:
     AegisBot();
+    static AegisBot * _instance;
+public:
     ~AegisBot();
 
     void setup_cache(ABCache * in);
@@ -110,10 +117,20 @@ public:
     void processReady(json & d);
     void connectWS();
 
-    string call(string url, string obj = "", RateLimits * endpoint = nullptr, string method = "GET", string query = "");
+    bool call(string url, string * obj = nullptr, RateLimits * endpoint = nullptr, string method = "GET", string query = "");
 
     template <typename T, typename... _BoundArgs>
     void createTimer(uint64_t t, shared_ptr<boost::asio::steady_timer> timer, T f, _BoundArgs&&... __args);
+
+    void addCommand(string command, ABMessageCallback callback)
+    {
+        defaultcmdlist[command] = ABCallbackPair(ABCallbackOptions(), callback);
+    }
+
+    void addCommand(string command, ABCallbackPair callback)
+    {
+        defaultcmdlist[command] = callback;
+    }
 
     FormattingChannel * pFC;
     FormattingChannel * pFCf;
@@ -151,6 +168,28 @@ public:
     string sessionId;
     string gatewayurl;
 
+    std::chrono::steady_clock::time_point starttime;
+
+    string uptime()
+    {
+        std::stringstream ss;
+        std::chrono::steady_clock::time_point timenow = std::chrono::steady_clock::now();
+
+        uint32_t days = std::chrono::duration_cast<std::chrono::duration<int, std::ratio<5184000>>>(timenow - starttime).count();
+        uint32_t hours = std::chrono::duration_cast<std::chrono::hours>(timenow - starttime).count() - days * 5184000;
+        uint32_t minutes = std::chrono::duration_cast<std::chrono::minutes>(timenow - starttime).count() - hours * 3600 - days * 5184000;
+        int64_t seconds = std::chrono::duration_cast<std::chrono::seconds>(timenow - starttime).count() - minutes * 60 - hours * 3600 - days * 5184000;
+        if (days > 0)
+            ss << days << "d ";
+        if (hours > 0)
+            ss << hours << "h ";
+        if (minutes > 0)
+            ss << minutes << "m ";
+        if (seconds > 0)
+            ss << seconds << "s";
+        return ss.str();
+    }
+
     ABCache * cache;
 
     //Bot specific data
@@ -167,10 +206,16 @@ public:
     shared_ptr<Member> loadMember(json & obj);
     shared_ptr<Member> loadMemberFromCache(json & obj);
 
+    void info_command(shared_ptr<ABMessage> message);
+
     void run();
 
-    //debug
-    std::vector<string> tempmessages;
+    //default commands for guilds
+    std::map<std::string, ABCallbackPair> defaultcmdlist = {};
+
+    std::mutex m;
+
+    std::vector<std::thread> threadPool;
 
     /*TODO:
     * Add sharding support. Have bot start a new process per shard and enable

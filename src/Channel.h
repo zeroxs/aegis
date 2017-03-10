@@ -31,6 +31,10 @@
 #include "RateLimits.h"
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/optional.hpp>
+#include <iostream>
+#include <json.hpp>
+
+using json = nlohmann::json;
 
 class ABMessage;
 class Guild;
@@ -40,16 +44,23 @@ class AegisBot;
 using boost::shared_ptr;
 using std::string;
 struct ABMessage;
+struct ABCallbackOptions
+{
+    bool enabled = true;
+    uint16_t level = 0;//TODO CHANGE BACK TO 1
+};
 
 typedef std::function<void(boost::shared_ptr<ABMessage>)> ABMessageCallback;
+typedef std::pair<ABCallbackOptions, std::function<void(boost::shared_ptr<ABMessage>)>> ABCallbackPair;
 
 struct ABMessage
 {
+    uint64_t message_id = 0;
     string content;
     string cmd;
-    boost::shared_ptr<Guild> guild = nullptr;
-    boost::shared_ptr<Channel> channel = nullptr;
-    boost::shared_ptr<Member> member = nullptr;
+    shared_ptr<Guild> guild;
+    shared_ptr<Channel> channel;
+    shared_ptr<Member> member;
     string method;
     string endpoint;
     string query;
@@ -65,21 +76,15 @@ enum class ChannelType
 class Channel : public Permission, public boost::enable_shared_from_this<Channel>
 {
 public:
-    Channel(AegisBot & bot, shared_ptr<Guild> guild)
-        : bot(bot)
-        , guild(guild)
-    {
-
-    };
+    Channel(shared_ptr<Guild> guild) : guild(guild) {}
     ~Channel() {};
-
-    AegisBot & bot;
 
     void belongs_to(shared_ptr<Guild> g) { guild = g; }
     shared_ptr<Guild> belongs_to() { return guild; }
 
     void getMessages(uint64_t messageid, ABMessageCallback callback = ABMessageCallback());
     void sendMessage(string content, ABMessageCallback callback = ABMessageCallback());
+    void sendMessageEmbed(json content, json embed, ABMessageCallback callback = ABMessageCallback());
     void bulkDelete(std::vector<string> messages, ABMessageCallback callback = ABMessageCallback());
 
 
@@ -94,6 +99,11 @@ public:
     uint32_t user_limit = 0;
 
     RateLimits ratelimits;
+
+    Permission overrides;
+
+    //TODO: track all the overrides. not just our own. possible use-case?
+    //std::pair<Role, Permission> overrides
 
 private:
     shared_ptr<Guild> guild;

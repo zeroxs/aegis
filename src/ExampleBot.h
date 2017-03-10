@@ -1,5 +1,5 @@
 //
-// Member.cpp
+// ExampleBot.h
 // aegisbot
 //
 // Copyright (c) 2017 Zero (zero at xandium dot net)
@@ -23,38 +23,26 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#include "Member.h"
-#include "Guild.h"
-#include "AegisBot.h"
+#pragma once
+
+#include <boost/shared_ptr.hpp>
+#include <iostream>
+#include <chrono>
+#include <Poco/Format.h>
+
+class ABMessage;
 
 
-
-Member::Member(uint64_t id, string name, uint16_t discriminator, string avatar)
-    : id(id)
-    , name(name)
-    , discriminator(discriminator)
-    , avatar(avatar)
+class ExampleBot
 {
-}
+public:
+    ExampleBot();
+    ~ExampleBot();
+
+    void echo(boost::shared_ptr<ABMessage> message);
+    void rates2(boost::shared_ptr<ABMessage> message);
+    void this_is_a_class_function(boost::shared_ptr<ABMessage> message);
 
 
-Member::~Member()
-{
-}
+};
 
-std::vector<boost::shared_ptr<Guild>> Member::guilds()
-{
-    //TODO: Performance test this some time
-    //should we keep a cache local to each user of what guilds we can see them on?
-    //or just check the lists for results
-    std::vector<boost::shared_ptr<Guild>> result;
-    std::lock_guard<std::mutex> lock(AegisBot::GetSingleton().m);
-    for (auto & guild : AegisBot::GetSingleton().guildlist)
-    {
-        if (guild.second->clientlist.count(id) > 0)
-        {
-            result.push_back(guild.second);
-        }
-    }
-    return result;
-}

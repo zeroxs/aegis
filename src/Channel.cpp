@@ -24,7 +24,6 @@
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "Channel.h"
-#include <json.hpp>
 #include "Guild.h"
 #include "AegisBot.h"
 #include "Member.h"
@@ -32,7 +31,9 @@
 
 void Channel::getMessages(uint64_t messageid, ABMessageCallback callback)
 {
-    poco_trace(*(bot.log), "getMessages() goes through");
+    //if (!canReadHistory())
+    //    return;
+    poco_trace(*(AegisBot::GetSingleton().log), "getMessages() goes through");
 
     boost::shared_ptr<ABMessage> message = boost::make_shared<ABMessage>();
     message->guild = belongs_to();
@@ -48,9 +49,38 @@ void Channel::getMessages(uint64_t messageid, ABMessageCallback callback)
 
 void Channel::sendMessage(string content, ABMessageCallback callback)
 {
-    poco_trace(*(bot.log), "sendMessage() goes through");
+    //if (!canSendMessages())
+    //    return;
+    poco_trace(*(AegisBot::GetSingleton().log), "sendMessage() goes through");
     json obj;
-    obj["content"] = content;
+    if (belongs_to()->preventbotparse)
+        obj["content"] = "\u200B" + content;
+    else
+        obj["content"] = content;
+
+    boost::shared_ptr<ABMessage> message = boost::make_shared<ABMessage>();
+    message->content = obj.dump();
+    message->guild = belongs_to();
+    message->channel = shared_from_this();
+    message->endpoint = Poco::format("/channels/%Lu/messages", id);
+    message->method = "POST";
+    if (callback)
+        message->callback = callback;
+
+    ratelimits.putMessage(message);
+}
+
+void Channel::sendMessageEmbed(json content, json embed, ABMessageCallback callback /*= ABMessageCallback()*/)
+{
+    //if (!canSendMessages() || !canEmbed())
+    //    return;
+    poco_trace(*(AegisBot::GetSingleton().log), "sendMessageEmbed() goes through");
+    json obj;
+    if (!content.empty())
+        obj["content"] = content;
+    obj["embed"] = embed;
+
+    poco_trace(*(AegisBot::GetSingleton().log), obj.dump());
 
     boost::shared_ptr<ABMessage> message = boost::make_shared<ABMessage>();
     message->content = obj.dump();
@@ -66,7 +96,9 @@ void Channel::sendMessage(string content, ABMessageCallback callback)
 
 void Channel::bulkDelete(std::vector<string> messages, ABMessageCallback callback)
 {
-    poco_trace(*(bot.log), "bulkDelete() goes through");
+    //if (!canManageMessages())
+    //    return;
+    poco_trace(*(AegisBot::GetSingleton().log), "bulkDelete() goes through");
     json arr(messages);
     json obj;
     obj["messages"] = arr;
@@ -81,5 +113,4 @@ void Channel::bulkDelete(std::vector<string> messages, ABMessageCallback callbac
         message->callback = callback;
 
     ratelimits.putMessage(message);
-    bot.tempmessages.clear();
 }
