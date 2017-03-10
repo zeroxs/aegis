@@ -833,7 +833,6 @@ void AegisBot::info_command(shared_ptr<ABMessage> message)
     guilds << guild_count;
 
     message->content = "";
-    string uptime = uptime();
     string stats;
     stats = Poco::format("Memory usage: %.2fMB\nMax Memory: %.2fMB", double(getCurrentRSS()) / (1024 * 1024), double(getPeakRSS()) / (1024 * 1024));
     json t = {
@@ -845,7 +844,7 @@ void AegisBot::info_command(shared_ptr<ABMessage> message)
     {
         { { "name", "Members" },{ "value", members.str() },{ "inline", true } },
         { { "name", "Channels" },{ "value", channels.str() },{ "inline", true } },
-        { { "name", "Uptime test" },{ "value", uptime },{ "inline", true } },
+        { { "name", "Uptime test" },{ "value", uptime() },{ "inline", true } },
         { { "name", "Guilds" },{ "value", guilds.str() },{ "inline", true } }
     }
             )
