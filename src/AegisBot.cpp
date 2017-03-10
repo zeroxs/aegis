@@ -596,6 +596,41 @@ void AegisBot::run()
                         }
                     }
                 }
+
+                if (guild.second->ratelimits.outqueue.size() > 0)
+                {
+                    if (guild.second->ratelimits.rateRemaining())
+                    {
+                        if (guild.second->ratelimits.isFailureTime())
+                        {
+                            continue;
+                        }
+
+                        uint32_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+                        auto message = guild.second->ratelimits.getMessage();
+                        if (!call(message->endpoint, &message->content, &message->guild->ratelimits, message->method, message->query))
+                        {
+                            //rate limit hit, requeue message
+                            message->channel->ratelimits.putMessage(message);
+#ifdef DEBUG_OUTPUT
+                            poco_trace_f4(*log, "Rate Limit hit or connection error - requeuing message [%s] [%Lu] [%s] [%Lu]", message->guild->name, message->guild->id, message->channel->name, message->channel->id);
+#endif
+                            continue;
+                        }
+                        poco_trace_f2(*log, "Message sent: [%s] [%s]", message->endpoint, message->content);
+#ifdef DEBUG_OUTPUT
+                        poco_trace_f1(*log, "rate_limit:     %u", message->guild->ratelimits.rateLimit());
+                        poco_trace_f1(*log, "rate_remaining: %u", message->guild->ratelimits.rateRemaining());
+                        poco_trace_f1(*log, "rate_reset:     %u", message->guild->ratelimits.rateReset());
+                        poco_trace_f1(*log, "epoch:          %u", epoch);
+                        poco_trace_f1(*log, "content:        %s", message->content);
+#endif
+                        if (message->callback)
+                        {
+                            message->callback(message);
+                        }
+                    }
+                }
             }
         }
         std::this_thread::sleep_for(std::chrono::microseconds(1));
