@@ -122,6 +122,16 @@ public:
     template <typename T, typename... _BoundArgs>
     void createTimer(uint64_t t, shared_ptr<boost::asio::steady_timer> timer, T f, _BoundArgs&&... __args);
 
+    void addCommand(string command, ABMessageCallback callback)
+    {
+        defaultcmdlist[command] = ABCallbackPair(ABCallbackOptions(), callback);
+    }
+
+    void addCommand(string command, ABCallbackPair callback)
+    {
+        defaultcmdlist[command] = callback;
+    }
+
     FormattingChannel * pFC;
     FormattingChannel * pFCf;
     Logger * log;

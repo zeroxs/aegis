@@ -41,24 +41,8 @@ public:
 
     void echo(boost::shared_ptr<ABMessage> message)
     {
-        if ((message->guild) && (message->channel) && (message->member))
-        {
-            //all 3 are set, so this is a channel message
-            if (message->guild->id == 287048029524066334LL)
-            {
-                //control channel
-                if (message->member->id == 171000788183678976LL)
-                {
-                    //me
-                    std::cout << "Message callback triggered on channel[" << message->channel->name << "] from [" << message->member->name << "]" << std::endl;
-                    message->channel->sendMessage(message->content.substr(message->cmd.size()+message->guild->prefix.size()));
-                }
-            }
-        }
-        else if (message->member)
-        {
-
-        }
+        std::cout << "Message callback triggered on channel[" << message->channel->name << "] from [" << message->member->name << "]" << std::endl;
+        message->channel->sendMessage(message->content.substr(message->cmd.size() + message->guild->prefix.size()));
     }
 
     void rates2(boost::shared_ptr<ABMessage> message)
@@ -86,7 +70,6 @@ void this_is_a_global_function(boost::shared_ptr<ABMessage> message)
 {
     message->channel->sendMessage("return from this_is_a_global_function()");
 }
-
 
 int main(int argc, char * argv[])
 {
@@ -166,9 +149,31 @@ int main(int argc, char * argv[])
 
         //this allows the addition of extra commands specific to a single guild and not accessible by other guilds
         myguild->prefix = "?";
-        myguild->cmdlist["echo"] = ABCallbackPair(ABCallbackOptions(), std::bind(&Bot::echo, &ourfunctionclass, std::placeholders::_1));
+        bot.defaultcmdlist["echo"] = ABCallbackPair(ABCallbackOptions(), std::bind(&Bot::echo, &ourfunctionclass, std::placeholders::_1));
 
-        myguild->addCommand("timer", [&bot](shared_ptr<ABMessage> message)
+
+        //example usage of callbacks within a callback
+        bot.addCommand("delete_history", [&bot](shared_ptr<ABMessage> message)
+        {
+            message->channel->getMessages(message->message_id, [&bot](shared_ptr<ABMessage> message)
+            {
+                json arr = json::parse(message->content);
+
+                std::vector<string> tempmessages;
+
+                for (auto & m : arr)
+                {
+                    string entry = m["id"];
+                    poco_trace_f1(*(bot.log), "Message entry: %s", entry);
+                    tempmessages.push_back(entry);
+                }
+
+                message->channel->bulkDelete(tempmessages);
+            });
+        });
+
+
+        bot.addCommand("timer", [&bot](shared_ptr<ABMessage> message)
         {
             uint64_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
@@ -202,18 +207,18 @@ int main(int argc, char * argv[])
             });
         });
         //myguild->cmdlist["rates2"] = std::bind(&Bot::rates2, &bot, std::placeholders::_1);
-        myguild->addCommand("rates", [&bot](shared_ptr<ABMessage> message)
+        bot.addCommand("rates", [&bot](shared_ptr<ABMessage> message)
         {
             std::cout << "Rates Command()" << std::endl;
             uint32_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
             message->channel->sendMessage(Poco::format("Content: %s\nLimit: %u\nRemain: %u\nReset: %u\nEpoch: %u\nDiff: %u", message->content, message->channel->ratelimits.rateLimit()
                 , message->channel->ratelimits.rateRemaining(), message->channel->ratelimits.rateReset(), epoch, message->channel->ratelimits.rateReset() - epoch));
         });
-        myguild->addCommand("clean_channel", [&bot](shared_ptr<ABMessage> message)
+        bot.addCommand("clean_channel", [&bot](shared_ptr<ABMessage> message)
         {
             message->channel->bulkDelete(bot.tempmessages);
         });
-        myguild->addCommand("get_history", [&bot](shared_ptr<ABMessage> message)
+        bot.addCommand("get_history", [&bot](shared_ptr<ABMessage> message)
         {
             message->channel->getMessages(message->channel->id, [&bot](shared_ptr<ABMessage> message)
             {
@@ -227,7 +232,8 @@ int main(int argc, char * argv[])
                 }
             });
         });
-        myguild->addCommand("reload", [&bot](shared_ptr<ABMessage> message)
+
+        bot.addCommand("reload", [&bot](shared_ptr<ABMessage> message)
         {
             bot.loadConfigs();
             message->channel->sendMessage("Configs reloaded.");
