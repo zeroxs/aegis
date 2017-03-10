@@ -440,7 +440,7 @@ bool AegisBot::call(string url, string * obj /*= nullptr*/, RateLimits * endpoin
             request.setMethod("POST");
             request.setContentLength(obj->length());
 
-            std::cout << "Sent JSON: " << obj << "\n";
+            std::cout << "Sent JSON: " << *obj << "\n";
 
 #ifdef DEBUG_OUTPUT
             std::ostringstream debugoutput;
@@ -482,6 +482,7 @@ bool AegisBot::call(string url, string * obj /*= nullptr*/, RateLimits * endpoin
 
         if (endpoint)
         {
+            endpoint->resetFailure();
             if (response.has("X-RateLimit-Global"))
             {
                 rate_global = true;
@@ -522,10 +523,11 @@ bool AegisBot::call(string url, string * obj /*= nullptr*/, RateLimits * endpoin
     }
     catch (std::exception&e)
     {
-        log->error(Poco::format("Unhandled error in Bot::call(): %s", e.what()));
+        log->error(Poco::format("Unhandled error in Bot::call(): %s", (string)e.what()));
+        endpoint->addFailure();
     }
 
-    return "";
+    return false;
 }
 
 void AegisBot::run()
@@ -542,6 +544,11 @@ void AegisBot::run()
                     {
                         if (channel.second->ratelimits.rateRemaining())
                         {
+                            if (channel.second->ratelimits.isFailureTime())
+                            {
+                                continue;
+                            }
+
                             uint32_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
                             auto message = channel.second->ratelimits.getMessage();
                             if (!call(message->endpoint, &message->content, &message->channel->ratelimits, message->method, message->query))
@@ -549,7 +556,7 @@ void AegisBot::run()
                                 //rate limit hit, requeue message
                                 message->channel->ratelimits.putMessage(message);
 #ifdef DEBUG_OUTPUT
-                                poco_trace_f4(*log, "Rate Limit hit - requeuing message [%s] [%Lu] [%s] [%Lu]", message->guild->name, message->guild->id, message->channel->name, message->channel->id);
+                                poco_trace_f4(*log, "Rate Limit hit or connection error - requeuing message [%s] [%Lu] [%s] [%Lu]", message->guild->name, message->guild->id, message->channel->name, message->channel->id);
 #endif
                                 continue;
                             }

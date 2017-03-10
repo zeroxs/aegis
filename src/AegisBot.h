@@ -211,10 +211,6 @@ public:
     //default commands for guilds
     std::map<std::string, ABCallbackPair> defaultcmdlist = {};
 
-
-    //debug
-    std::vector<string> tempmessages;
-
     std::mutex m;
 
     /*TODO:
