@@ -583,6 +583,8 @@ shared_ptr<Guild> AegisBot::loadGuild(json & obj)
         else
             guild->id = id;
 
+        guild->cmdlist = defaultcmdlist;
+
 #define GET_NULL(x,y) (x[y].is_null())?"":x[y]
         guild->name = GET_NULL(obj, "name");
         guild->icon = GET_NULL(obj, "icon");
