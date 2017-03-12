@@ -63,6 +63,12 @@ void Guild::processMessage(json obj)
     if (!AegisBot::GetSingleton().globalusers.count(userid) || AegisBot::GetSingleton().globalusers[userid]->isbot == true)
         return;
 
+
+
+#ifdef SELFBOT
+    if (userid != 171000788183678976LL)
+        return;
+#endif
     //if (userid == owner_id)
     {
         //guild owner is talking, do a check if this is the prefix set up command

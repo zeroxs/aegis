@@ -38,6 +38,12 @@ uint64_t shardid = 0;
 
 bool parsecli(int argc, char * argv[]);
 
+
+
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 void this_is_a_global_function(boost::shared_ptr<ABMessage> message)
 {
     message->channel->sendMessage("return from this_is_a_global_function()");
@@ -73,11 +79,12 @@ int main(int argc, char * argv[])
         string token = "yourtokenhere";
 #endif
 
+#ifdef SELFBOT
+        string token = "yourtokenhere";
+#endif
 
         //register some callbacks
 
-        //we can register a callback to a lambda function, or our own class, or even global space functions
-        //note, these are global functions and will exist in all guilds the bot is connected to.
 
         //create our class that contains some functions (optional)
         ExampleBot ourfunctionclass;
@@ -97,6 +104,8 @@ int main(int argc, char * argv[])
 
 
 
+        //we can register a callback to a lambda function, or our own class, or even global space functions
+        //note, these are global functions and will exist in all guilds the bot is connected to.
         bot.addCommand("this_is_a_global_command", std::bind(&this_is_a_global_function, std::placeholders::_1));
         bot.addCommand("this_is_a_class_command", std::bind(&ExampleBot::this_is_a_class_function, &ourfunctionclass, std::placeholders::_1));
 

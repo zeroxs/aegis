@@ -200,6 +200,7 @@ public:
     uint64_t userId;
     bool mfa_enabled = false;
     bool isrunning = true;
+    bool active = false;
 
     shared_ptr<Guild> loadGuild(json & obj);
     shared_ptr<Guild> loadGuildFromCache(json & obj);

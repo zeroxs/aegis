@@ -92,7 +92,11 @@ void AegisBot::loadConfigs()
     //TODO: might need to add a mutex here to prevent actions from running while configs reload
 #ifdef USE_REDIS
     int32_t level = boost::lexical_cast<int32_t>(cache->get("config:loglevel"));
+#ifdef SELFBOT
+    token = cache->get("config:token2");
+#else
     token = cache->get("config:token");
+#endif
     logf->setLevel(level);
     log->setLevel(level);
 #endif
@@ -188,7 +192,10 @@ void AegisBot::processReady(json & d)
     for (auto & guildobj : guilds)
     {
         uint64_t id = std::stoll(guildobj["id"].get<string>());
-        bool unavailable = guildobj["unavailable"];
+
+        bool unavailable = false;
+        if (guildobj.count("unavailable"))
+            unavailable = guildobj["unavailable"];
 
         auto guild = guildlist[id];
         
@@ -198,6 +205,10 @@ void AegisBot::processReady(json & d)
             poco_trace_f1(*log, "Guild created: %Lu", id);
         }
         guildlist[id]->unavailable = unavailable;
+        if (!unavailable)
+        {
+            loadGuild(guildobj);
+        }
     }
 
     json presences = d["presences"];
@@ -266,6 +277,7 @@ void AegisBot::processReady(json & d)
     userId = std::stoll(userdata["id"].get<string>());
     username = userdata["username"];
     mfa_enabled = userdata["mfa_enabled"];
+    active = true;
 }
 
 void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg)
@@ -288,6 +300,8 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                 }
                 else if (cmd == "MESSAGE_CREATE")
                 {
+                    while (!active && isrunning)
+                        std::this_thread::sleep_for(std::chrono::milliseconds(1));
                     userMessage(result["d"]);
                 }
                 else if (cmd == "GUILD_CREATE")
@@ -434,7 +448,11 @@ bool AegisBot::call(string url, string * obj /*= nullptr*/, RateLimits * endpoin
 
         HTTPSClientSession session(uri.getHost(), uri.getPort());
         HTTPRequest request(HTTPRequest::HTTP_GET, path, HTTPMessage::HTTP_1_1);
+#ifdef SELFBOT
+        request.set("Authorization", token);
+#else
         request.set("Authorization", string("Bot ") + token);
+#endif
         request.set("User-Agent", "DiscordBot (https://github.com/zeroxs/aegisbot 0.1)");
         request.set("Content-Type", "application/json");
 
