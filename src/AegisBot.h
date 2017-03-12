@@ -213,7 +213,7 @@ public:
     //default commands for guilds
     std::map<std::string, ABCallbackPair> defaultcmdlist = {};
 
-    std::mutex m;
+    std::recursive_mutex m;
 
     std::vector<std::thread> threadPool;
 

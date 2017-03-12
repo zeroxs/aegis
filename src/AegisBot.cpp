@@ -26,6 +26,7 @@
 #include "AegisBot.h"
 #include "Guild.h"
 #include "rss.h"
+#include <mutex>
 
 #ifdef USE_REDIS
 #include "ABRedisCache.h"
@@ -70,7 +71,7 @@ AegisBot::~AegisBot()
 
 boost::shared_ptr<Guild> AegisBot::CreateGuild(uint64_t id)
 {
-    std::lock_guard<std::mutex> lock(AegisBot::GetSingleton().m);
+    std::lock_guard<std::recursive_mutex> lock(AegisBot::GetSingleton().m);
     if (_instance == nullptr)
         throw std::runtime_error("Cannot create a guild when no bot instance exists.");
     if (AegisBot::GetSingleton().guildlist.count(id))
@@ -160,6 +161,8 @@ void AegisBot::connectWS()
         {
             log->warning("Websocket lock held. Waiting to reconnect.");
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            if (!isrunning)
+                return;
         }
     }
 
@@ -180,7 +183,7 @@ void AegisBot::onClose(websocketpp::connection_hdl hdl)
 
 void AegisBot::processReady(json & d)
 {
-    std::lock_guard<std::mutex> lock(m);
+    std::lock_guard<std::recursive_mutex> lock(m);
     json guilds = d["guilds"];
     for (auto & guildobj : guilds)
     {
@@ -343,7 +346,7 @@ void AegisBot::userMessage(json & obj)
     auto channel = channellist[channel_id];
     if (channel == nullptr)
     {
-        poco_error_f2(*log, "Chat message [%Lu] on has no channel entry [%Lu]", id, channel_id);
+        poco_error_f2(*log, "Chat message [%Lu] has no channel entry [%Lu]", id, channel_id);
         return;
     }
     auto guild = channel->belongs_to();
@@ -556,7 +559,7 @@ void AegisBot::run()
     while (isrunning)
     {
         {
-            std::lock_guard<std::mutex> lock(m);
+            std::lock_guard<std::recursive_mutex> lock(m);
             for (auto & guild : guildlist)
             {
                 for (auto & channel : guild.second->channellist)
@@ -651,7 +654,7 @@ void AegisBot::createTimer(uint64_t t, shared_ptr<boost::asio::steady_timer> tim
 
 shared_ptr<Guild> AegisBot::loadGuild(json & obj)
 {
-    std::lock_guard<std::mutex> lock(m);
+    std::lock_guard<std::recursive_mutex> lock(m);
 
     shared_ptr<Guild> guild;
 
@@ -865,7 +868,7 @@ void AegisBot::info_command(shared_ptr<ABMessage> message)
     uint64_t channel_text_count = 0;
     uint64_t channel_voice_count = 0;
     {
-        std::lock_guard<std::mutex> lock(m);
+        std::lock_guard<std::recursive_mutex> lock(m);
         for (auto & channel : channellist)
         {
             if (channel.second->type == ChannelType::TEXT)
