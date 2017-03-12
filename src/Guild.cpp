@@ -139,6 +139,42 @@ void Guild::processMessage(json obj)
         message->message_id = id;
         message->cmd = cmd;
         cmdlist[cmd].second(message);
+        return;
+    }
+
+    if (AegisBot::GetSingleton().defaultcmdlist.count(cmd))
+    {
+        //guild owners bypass all restrictions
+        if (userid != owner_id)
+        {
+            //command exists - construct callback object and perform callback
+            //but first check if it's enabled
+            if (!AegisBot::GetSingleton().defaultcmdlist[cmd].first.enabled)
+                return;
+
+            //now check access levels
+            //a user that does not exist in the access list has a default permission level of 0
+            //commands have a default setting of 1 preventing anyone but guild owner from initially
+            //running any commands until permissions are set
+            if (clientlist[userid].second < AegisBot::GetSingleton().defaultcmdlist[cmd].first.level)
+            {
+                if (!silentperms)
+                {
+                    channellist[channel_id]->sendMessage("You do not have access to that command.");
+                    return;
+                }
+            }
+        }
+
+
+        boost::shared_ptr<ABMessage> message = boost::make_shared<ABMessage>();
+        message->content = content;
+        message->channel = channellist[channel_id];
+        message->member = AegisBot::GetSingleton().globalusers[userid];
+        message->guild = this->shared_from_this();
+        message->message_id = id;
+        message->cmd = cmd;
+        AegisBot::GetSingleton().defaultcmdlist[cmd].second(message);
     }
 }
 
