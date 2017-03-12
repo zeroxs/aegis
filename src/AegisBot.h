@@ -175,10 +175,18 @@ public:
         std::stringstream ss;
         std::chrono::steady_clock::time_point timenow = std::chrono::steady_clock::now();
 
-        uint32_t days = std::chrono::duration_cast<std::chrono::duration<int, std::ratio<5184000>>>(timenow - starttime).count();
-        uint32_t hours = std::chrono::duration_cast<std::chrono::hours>(timenow - starttime).count() - days * 5184000;
-        uint32_t minutes = std::chrono::duration_cast<std::chrono::minutes>(timenow - starttime).count() - hours * 3600 - days * 5184000;
-        int64_t seconds = std::chrono::duration_cast<std::chrono::seconds>(timenow - starttime).count() - minutes * 60 - hours * 3600 - days * 5184000;
+        int64_t ms = std::chrono::duration_cast<std::chrono::milliseconds>(timenow - starttime).count();
+
+        uint32_t seconds = (ms / 1000) % 60;
+        uint32_t minutes = (((ms / 1000) - seconds) / 60) % 60;
+        uint32_t hours = (((((ms / 1000) - seconds) / 60)- minutes) / 60) % 60;
+        uint32_t days = (((((((ms / 1000) - seconds) / 60) - minutes) / 60) - hours) / 24);
+
+
+//         uint32_t days = std::chrono::duration_cast<std::chrono::duration<int, std::ratio<5184000>>>(timenow - starttime).count();
+//         uint32_t hours = ((std::chrono::duration_cast<std::chrono::hours>(timenow - starttime).count() % 5184000) / 3600) / 60;
+//         uint32_t minutes = (std::chrono::duration_cast<std::chrono::minutes>(timenow - starttime).count() % 3600) / 60;
+//         int64_t seconds = std::chrono::duration_cast<std::chrono::seconds>(timenow - starttime).count() % 60;
         if (days > 0)
             ss << days << "d ";
         if (hours > 0)
