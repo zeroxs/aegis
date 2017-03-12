@@ -47,20 +47,20 @@ void Guild::processMessage(json obj)
     if (userid == AegisBot::GetSingleton().userId)
         return;
 
-    string avatar = author["avatar"];
+    string avatar = author["avatar"].is_string()?author["avatar"]:"";
     string username = author["username"];
     uint16_t discriminator = std::stoll(author["discriminator"].get<string>());
 
     uint64_t channel_id = std::stoll(obj["channel_id"].get<string>());
     uint64_t id = std::stoll(obj["id"].get<string>());
-    uint64_t nonce = std::stoll(obj["nonce"].get<string>());
+    uint64_t nonce = obj["nonce"].is_null()?0:std::stoll(obj["nonce"].get<string>());
 
     string content = obj["content"];
     bool tts = obj["tts"];
     bool pinned = obj["pinned"];
 
     //if message came from a bot, ignore
-    if (AegisBot::GetSingleton().globalusers[userid]->isbot == true)
+    if (!AegisBot::GetSingleton().globalusers.count(userid) || AegisBot::GetSingleton().globalusers[userid]->isbot == true)
         return;
 
     //if (userid == owner_id)

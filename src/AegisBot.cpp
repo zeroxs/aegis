@@ -208,7 +208,7 @@ void AegisBot::processReady(json & d)
     for (auto & channel : pchannels)
     {
         uint64_t channel_id = std::stoll(channel["id"].get<string>());
-        uint64_t last_message_id = std::stoll(channel["last_message_id"].get<string>());
+        uint64_t last_message_id = channel["last_message_id"].is_null()?0:std::stoll(channel["last_message_id"].get<string>());
         int32_t channelType = channel["type"];
         json recipients = channel["recipients"];
       
@@ -222,7 +222,7 @@ void AegisBot::processReady(json & d)
         
         for (auto & recipient : recipients)
         {
-            string recipientAvatar = recipient["avatar"];
+            string recipientAvatar = recipient["avatar"].is_null()?"":recipient["avatar"];
             uint16_t recipientDiscriminator = std::stoll(recipient["discriminator"].get<string>());
             string recipientName = recipient["username"];
             uint64_t recipientId = std::stoll(recipient["id"].get<string>());
@@ -681,14 +681,14 @@ shared_ptr<Guild> AegisBot::loadGuild(json & obj)
         guild->region = obj["region"];
         guild->afk_channel_id = obj["afk_channel_id"].is_null() ? 0 : std::stoll(obj["afk_channel_id"].get<string>());
         guild->afk_timeout = obj["afk_timeout"];//in seconds
-        //guild->embed_enabled = obj->get("embed_enabled").convert<bool>();
+        guild->embed_enabled = obj.count("embed_enabled") ? obj["embed_enabled"].get<bool>() : false;
         //guild->embed_channel_id = obj->get("embed_channel_id").convert<uint64_t>();
         guild->verification_level = obj["verification_level"];
         guild->default_message_notifications = obj["default_message_notifications"];
         guild->mfa_level = obj["mfa_level"];
         guild->joined_at = obj["joined_at"];
         guild->large = obj["large"];
-        guild->unavailable = obj["unavailable"];
+        guild->unavailable = obj.count("unavailable")?obj["unavailable"].get<bool>():true;
         guild->member_count = obj["member_count"];
         json voice_states = obj["voice_states"];
         json members = obj["members"];
@@ -850,7 +850,7 @@ shared_ptr<Guild> AegisBot::loadGuild(json & obj)
     }
     catch(std::exception&e)
     {
-        poco_error_f2(*log, "Error processing guild[%Lu] %s", id, e.what());
+        poco_error_f2(*log, "Error processing guild[%Lu] %s", id, (string)e.what());
     }
 
     return guild;
