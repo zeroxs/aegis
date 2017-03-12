@@ -58,6 +58,7 @@ void AuctionBot::initialize()
     guild->addCommand("start", std::bind(&AuctionBot::Start, this, std::placeholders::_1));
     guild->addCommand("playerlist", std::bind(&AuctionBot::Playerlist, this, std::placeholders::_1));
     guild->addCommand("nom", std::bind(&AuctionBot::Nom, this, std::placeholders::_1));
+    guild->addCommand("nominate", std::bind(&AuctionBot::Nom, this, std::placeholders::_1));
     guild->addCommand("defaultfunds", std::bind(&AuctionBot::Defaultfunds, this, std::placeholders::_1));
     guild->addCommand("pause", std::bind(&AuctionBot::Pause, this, std::placeholders::_1));
     guild->addCommand("resume", std::bind(&AuctionBot::Resume, this, std::placeholders::_1));
@@ -100,6 +101,7 @@ void AuctionBot::Reset(shared_ptr<ABMessage> message)
     currentteam = 0;
     players.clear();
     bids.clear();
+    message->channel->sendMessage("Data Reset.");
 }
 
 bool AuctionBot::isadmin(const uint64_t id)
@@ -192,9 +194,16 @@ void AuctionBot::timercontinuation(shared_ptr<Channel> channel)
                 { "fields", jteams },
                 { "footer",{ { "icon_url", "https://cdn.discordapp.com/attachments/288707540844412928/289572000391888906/cpp.png" },{ "text", "Auction bot" } } }
             };
-            channel->sendMessageEmbed(Poco::format("Auction of player **%s** completed for [%d] awarded to **%s**\n<@%Lu> type `%snom player name` to nominate another player.", players[res.first].first, res.second, teams[bids.back().first].teamname, teams[currentteam].owner_id, channel->belongs_to()->prefix), t);
+            channel->sendMessageEmbed(Poco::format("Auction of player **%s** completed for [%d] awarded to **%s**\n<@%Lu> type `%snom player name` to nominate another player.", currentnom, res.second, teams[bids.back().first].teamname, teams[currentteam].owner_id, channel->belongs_to()->prefix), t);
 
-            players[res.first].second = false;
+
+            for (int i = 0; i < players.size(); ++i)
+            {
+                if (players[i].first == currentnom)
+                {
+                    players[i].second = false;
+                }
+            }
 
             return;
         }
@@ -271,7 +280,7 @@ void AuctionBot::Playerlist(shared_ptr<ABMessage> message)
     }
     for (int i = 0; i < outputs.size(); ++i)
     {
-        jteams.push_back(json({ { "name", "Players" },{ "value", outputs[i].str() },{ "inline", true } }));
+        jteams.push_back(json({ { "name", "Players" },{ "value", outputs[i].str().size()>0? outputs[i].str():"No Players" },{ "inline", true } }));
     }
     json t = {
         { "title", "Current Players" },
@@ -576,17 +585,19 @@ void AuctionBot::Skip(shared_ptr<ABMessage> message)
         message->channel->sendMessage(Poco::format("[<@%Lu>] No auction going on.", message->member->id));
         return;
     }
-
+    int failurecheck = 0;
+    string oldteam = teams[currentteam].teamname;
     do
     {
         lastteam = currentteam;
 
         currentteam += direction;
 
-        if (currentteam > teams.size() - 1)
-            currentteam = teams.size() - 1;
         if (currentteam < 0)
             currentteam = 0;
+        if (currentteam > teams.size() - 1)
+            currentteam = teams.size() - 1;
+
 
         if (currentteam == lastteam)
         {
@@ -596,9 +607,10 @@ void AuctionBot::Skip(shared_ptr<ABMessage> message)
 
         if (!teams[currentteam].withdrawn)
             break;
-    } while (1);
+        failurecheck++;
+    } while (failurecheck < 15);
 
-    message->channel->sendMessage(Poco::format("[<@%Lu>] You are not registered yet. Register for the auction with `%sregister`", message->member->id, message->guild->prefix));
+    message->channel->sendMessage(Poco::format("[%s]'s turn skipped\n[%s] <@%Lu> type `%snom player name` to nominate another player.", oldteam, teams[currentteam].teamname, teams[currentteam].owner_id, message->channel->belongs_to()->prefix));
 }
 
 void AuctionBot::Setfunds(shared_ptr<ABMessage> message)
@@ -686,8 +698,8 @@ void AuctionBot::Bidtime(shared_ptr<ABMessage> message)
 
 void AuctionBot::Help(shared_ptr<ABMessage> message)
 {
-    json admincommands = json({ { "name", "Admin only" },{ "value", "start, end, defaultfunds, pause, resume, setfunds, bidtime, fsetname, retain, skip" },{ "inline", true } });
-    json usercommands = json({ { "name", "Manager" },{ "value", "register, playerlist, nom, b, bid, setname, standings, undobid" },{ "inline", true } });
+    json admincommands = json({ { "name", "Admin only" },{ "value", "start, end, defaultfunds, pause, resume, setfunds, bidtime, fsetname, retain, skip, undobid, reset" },{ "inline", true } });
+    json usercommands = json({ { "name", "Manager" },{ "value", "register, playerlist, nom, b, bid, setname, standings" },{ "inline", true } });
     json t = {
         { "title", "Commands" },
         { "color", 10599460 },
@@ -919,8 +931,8 @@ void AuctionBot::Enable(shared_ptr<ABMessage> message)
     {
         c.second.first.enabled = true;
         c.second.first.level = 0;
-        message->channel->sendMessage("Auction commands enabled");
     }
+    message->channel->sendMessage("Auction commands enabled");
 }
 
 void AuctionBot::Disable(shared_ptr<ABMessage> message)
@@ -931,8 +943,8 @@ void AuctionBot::Disable(shared_ptr<ABMessage> message)
         {
             c.second.first.enabled = false;
             c.second.first.level = 1;
-            message->channel->sendMessage("Auction commands disabled");
         }
     }
+    message->channel->sendMessage("Auction commands disabled");
 
 }
