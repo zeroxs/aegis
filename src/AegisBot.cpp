@@ -106,10 +106,8 @@ bool AegisBot::initialize(uint64_t shardid, uint64_t maxshard)
 {
     this->shardid = shardid;
     this->shardidmax = maxshard;
-    //obtain data from cache (redis)
     
     starttime = std::chrono::steady_clock::now();
-
 
     if (token == "")
     {

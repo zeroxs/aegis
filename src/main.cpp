@@ -77,10 +77,11 @@ int main(int argc, char * argv[])
         //this is temporary
 #ifdef USE_MEMORY
         string token = "yourtokenhere";
-#endif
 
 #ifdef SELFBOT
         string token = "yourtokenhere";
+#endif
+
 #endif
 
         //register some callbacks
@@ -141,7 +142,10 @@ int main(int argc, char * argv[])
                     poco_trace_f1(*(bot.log), "Message entry: %s", entry);
                     tempmessages.push_back(entry);
                 }
+                uint32_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
+                //bulk delete limitation
+                // ((epoch - 14 * 24 * 60 * 60) - 1420070400000) << 22
                 message->channel->bulkDelete(tempmessages);
             });
         });
@@ -208,7 +212,11 @@ int main(int argc, char * argv[])
         //as the shard ids. alternatively, could make this bot do some calls to
         //load more bot instances at this point and have those ignore this part
         string res;
+#ifdef SELFBOT
+        bot.call("/gateway", &res, nullptr, "GET", "");
+#else
         bot.call("/gateway/bot", &res, nullptr, "GET", "");
+#endif
         json ret = json::parse(res);
         bot.gatewayurl = ret["url"];
 
