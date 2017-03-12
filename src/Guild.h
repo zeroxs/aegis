@@ -51,6 +51,8 @@ public:
     void processMessage(json obj);
     void addCommand(string command, ABMessageCallback callback);
     void addCommand(string command, ABCallbackPair callback);
+    void attachmentHandler(ABMessageCallback callback);
+    void attachmentHandler(ABCallbackPair callback);
     void modifyMember(json content, uint64_t guildid, uint64_t memberid, ABMessageCallback callback = ABMessageCallback());
     void createVoice(json content, uint64_t guildid, ABMessageCallback callback = ABMessageCallback());
 
@@ -89,5 +91,6 @@ public:
     //extendable command list. this list allows you to place c++ functions in matching to a command
     //for more than just simple responses
     std::map<std::string, ABCallbackPair> cmdlist = {};
+    ABCallbackPair attachmenthandler;
 };
 

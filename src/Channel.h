@@ -65,6 +65,7 @@ struct ABMessage
     string endpoint;
     string query;
     ABMessageCallback callback;
+    json obj;
 };
 
 enum class ChannelType

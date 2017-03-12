@@ -110,7 +110,25 @@ void Guild::processMessage(json obj)
     boost::tokenizer<boost::char_separator<char>> tok{ content, sep };
 
     string cmd = (*tok.begin()).substr(prefix.size());
-
+   
+    //check if attachment exists
+    if (obj.count("attachments") > 0)
+    {
+        for (auto & attach : obj["attachments"])
+        {
+            if (attachmenthandler.second && attachmenthandler.first.enabled)
+            {
+                boost::shared_ptr<ABMessage> message = boost::make_shared<ABMessage>();
+                message->channel = channellist[channel_id];
+                message->member = AegisBot::GetSingleton().globalusers[userid];
+                message->guild = this->shared_from_this();
+                message->message_id = id;
+                message->obj = obj;
+                attachmenthandler.second(message);
+                return;
+            }
+        }
+    }
 
     if (cmdlist.count(cmd))
     {
@@ -192,6 +210,16 @@ void Guild::addCommand(string command, ABMessageCallback callback)
 void Guild::addCommand(string command, ABCallbackPair callback)
 {
     cmdlist[command] = callback;
+}
+
+void Guild::attachmentHandler(ABMessageCallback callback)
+{
+    attachmenthandler = ABCallbackPair(ABCallbackOptions(), callback);
+}
+
+void Guild::attachmentHandler(ABCallbackPair callback)
+{
+    attachmenthandler = callback;
 }
 
 void Guild::modifyMember(json content, uint64_t guildid, uint64_t memberid, ABMessageCallback callback)
