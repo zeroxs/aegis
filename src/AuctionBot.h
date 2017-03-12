@@ -45,26 +45,35 @@ public:
 
     struct Team
     {
+        int id;
         string owner;
         uint64_t owner_id;
+        std::vector<uint64_t> bidders;
         string teamname;
         std::vector<std::pair<string, int>> players;
         int funds = 0;
+        bool withdrawn = false;
     };
 
-    std::vector<string> players;
+    std::vector<std::pair<string,bool>> players;
     std::vector<Team> teams;
     int defaultfunds = 0;
-    int direction = 1;//1 incr, 2 decr
+    int direction = 1;
+    int lastteam = 0;
     int currentteam = 0;
     bool auctioninprogress = false;
     string currentnom;
-    int currentbid = 0;
+    std::vector<std::pair<int, int>> bids;//team id, bid amount
     bool paused = false;
     uint64_t timeuntilstop = 0;
 
+    uint64_t currentstandingsid = 0;
+
     std::vector<uint64_t> admins;
-    shared_ptr<boost::asio::steady_timer> timer;
+    boost::asio::steady_timer timer;
+    uint64_t pausetimeleft = 0;
+
+    uint32_t bidtime = 30000;
 
 
     void initialize();
@@ -72,6 +81,7 @@ public:
     string getparams(const shared_ptr<ABMessage> message);
     string gen_random(const int len);
     void timercontinuation(shared_ptr<Channel> channel);
+    Team & getteam(const uint64_t id);
 
     void Register(shared_ptr<ABMessage> message);
     void Start(shared_ptr<ABMessage> message);
@@ -84,5 +94,22 @@ public:
     void Bid(shared_ptr<ABMessage> message);
     void Setname(shared_ptr<ABMessage> message);
     void Standings(shared_ptr<ABMessage> message);
+    void Retain(shared_ptr<ABMessage> message);
+    void Skip(shared_ptr<ABMessage> message);
+    void Setfunds(shared_ptr<ABMessage> message);
+    void Undobid(shared_ptr<ABMessage> message);
+    void Bidtime(shared_ptr<ABMessage> message);
+    void Adminsetname(shared_ptr<ABMessage> message);
+    void Help(shared_ptr<ABMessage> message);
+    void Withdraw(shared_ptr<ABMessage> message);
+    void Addfunds(shared_ptr<ABMessage> message);
+    void Removefunds(shared_ptr<ABMessage> message);
+    void Addbidder(shared_ptr<ABMessage> message);
+    void Removebidder(shared_ptr<ABMessage> message);
+    void Reset(shared_ptr<ABMessage> message);
+    void Enable(shared_ptr<ABMessage> message);
+    void Disable(shared_ptr<ABMessage> message);
+    void Attachments(shared_ptr<ABMessage> message);
+
 };
 
