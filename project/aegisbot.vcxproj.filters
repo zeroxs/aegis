@@ -65,7 +65,9 @@
     <ClCompile Include="..\src\AegisOfficial.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\AegisAdmin.cpp" />
+    <ClCompile Include="..\src\AegisAdmin.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\Channel.h">
@@ -113,6 +115,8 @@
     <ClInclude Include="..\src\AegisModule.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\AegisAdmin.h" />
+    <ClInclude Include="..\src\AegisAdmin.h">
+      <Filter>src</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
