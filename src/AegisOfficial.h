@@ -28,25 +28,33 @@
 #include <string>
 #include <stdint.h>
 #include <vector>
-#include <boost/shared_ptr.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include "AegisModule.h"
 
 class ABMessage;
 class Channel;
+class AegisBot;
 
 using std::string;
-using boost::shared_ptr;
+using std::shared_ptr;
 
-class AegisOfficial
+class AegisOfficial : public AegisModule
 {
 public:
-    AegisOfficial();
-    ~AegisOfficial();
+    AegisOfficial(AegisBot & bot, shared_ptr<Guild> guild);
+    ~AegisOfficial() {};
 
     void initialize();
+    void remove();
+
+    string uptime();
+
     void createVoice(shared_ptr<ABMessage> message);
     string getparams(shared_ptr<ABMessage> message);
     void moveAfterCreate(shared_ptr<ABMessage> message, uint64_t member_id);
+    void info(shared_ptr<ABMessage> message);
+    void deleteHistory(shared_ptr<ABMessage> message);
+    void clean(shared_ptr<ABMessage> message);
 
 };
 

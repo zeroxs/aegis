@@ -1,5 +1,5 @@
 //
-// Member.cpp
+// AegisAdmin.cpp
 // aegisbot
 //
 // Copyright (c) 2017 Zero (zero at xandium dot net)
@@ -23,55 +23,47 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+#include "AegisAdmin.h"
+#include "Channel.h"
 #include "Member.h"
 #include "Guild.h"
 #include "AegisBot.h"
+#include <json.hpp>
+#include <chrono>
+#include "AegisBot.h"
 
 
-
-Member::Member(uint64_t id, string name, uint16_t discriminator, string avatar)
-    : id(id)
-    , name(name)
-    , discriminator(discriminator)
-    , avatar(avatar)
+AegisAdmin::AegisAdmin(AegisBot & bot, shared_ptr<Guild> guild)
+    : AegisModule(bot, guild)
 {
+    name = "default";
 }
 
-
-Member::~Member()
+void AegisAdmin::initialize()
 {
+    auto g = guild.lock();
+    if (!g)
+        return;
+    g->addCommand("reload", std::bind(&AegisAdmin::reload, this, std::placeholders::_1));
 }
 
-std::vector<shared_ptr<Guild>> Member::getGuilds()
+void AegisAdmin::remove()
 {
-    //TODO: Performance test this some time
-    std::vector<shared_ptr<Guild>> result;
-    std::lock_guard<std::recursive_mutex> lock(AegisBot::m);
-    for (auto & guild : AegisBot::guildlist)
+    auto g = guild.lock();
+    if (!g)
+        return;
+    g->removeCommand("reload");
+}
+
+void AegisAdmin::reload(shared_ptr<ABMessage> message)
+{
+    if (message->member->id)
     {
-        if (guild.second->clientlist.count(id) > 0)
-        {
-            result.push_back(guild.second);
-        }
+        bot.loadConfigs();
+        message->channel->sendMessage("Configs reloaded.");
     }
-    return result;
-}
-
-boost::optional<string> Member::getName(uint64_t guildid)
-{
-    if (guilds[guildid].nickname.length() > 0)
+    else
     {
-        return guilds[guildid].nickname;
+        message->channel->sendMessage("Not authorized.");
     }
-    return boost::none;
 }
-
-string Member::getFullName()
-{
-    std::stringstream fullname;
-    fullname << name;
-    fullname << "#";
-    fullname << this->discriminator;
-    return fullname.str();
-}
-

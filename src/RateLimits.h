@@ -31,11 +31,13 @@
 #include <string>
 #include <functional>
 #include <chrono>
-#include <boost/shared_ptr.hpp>
 #include <mutex>
 #include <iostream>
+#include <memory>
 
 class ABMessage;
+
+using std::shared_ptr;
 
 class RateLimits
 {
@@ -99,25 +101,25 @@ public:
         _retry_after = retry;
     }
 
-    boost::shared_ptr<ABMessage> getMessage()
+    shared_ptr<ABMessage> getMessage()
     {
         std::lock_guard<std::mutex> lock(m);
         if (outqueue.size() > 0)
         {
-            boost::shared_ptr<ABMessage> t = outqueue.front();
+            shared_ptr<ABMessage> t = outqueue.front();
             outqueue.pop();
             return t;
         }
         return nullptr;
     }
 
-    void putMessage(boost::shared_ptr<ABMessage> message)
+    void putMessage(shared_ptr<ABMessage> message)
     {
         std::lock_guard<std::mutex> lock(m);
         outqueue.push(message);
     }
 
-    std::queue<boost::shared_ptr<ABMessage>> outqueue;
+    std::queue<shared_ptr<ABMessage>> outqueue;
 
     static bool rate_global;
 

@@ -31,64 +31,180 @@
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
 
-AuctionBot::AuctionBot()
-    : timer(AegisBot::GetSingleton().io_service)
+AuctionBot::AuctionBot(AegisBot & bot, shared_ptr<Guild> guild)
+    : AegisModule(bot, guild)
+    , timer(AegisBot::io_service)
 {
-
-}
-
-
-AuctionBot::~AuctionBot()
-{
+    name = "auction";
 }
 
 void AuctionBot::initialize()
 {
+    auto g = guild.lock();
+    if (!g)
+        return;
+
     admins.push_back(159046292633419776LL);//Disaster
     admins.push_back(171000788183678976LL);//Rensia
 
-    for (int i = 0; i < 120; ++i)
-        players.push_back({ Poco::format("Player %d", i), true });
+//     for (int i = 0; i < 120; ++i)
+//         players.push_back({ Poco::format("Player %d", i), true });
 
-    AegisBot & bot = AegisBot::GetSingleton();
+    players.push_back({ "Golden Gyarados", true });
+    players.push_back({ "Peasounay", true });
+    players.push_back({ "Diegolh", true });
+    players.push_back({ "thelinekioubeur", true });
+    players.push_back({ "Ugly Duckling", true });
+    players.push_back({ "ROMARIO", true });
+    players.push_back({ "Ron", true });
+    players.push_back({ "Cowboy Dan", true });
+    players.push_back({ "Fener", true });
+    players.push_back({ "SunnyR", true });
+    players.push_back({ "Leru", true });
+    players.push_back({ "Oltan", true });
+    players.push_back({ "Real FV13", true });
+    players.push_back({ "deluks917", true });
+    players.push_back({ "PlihosopherKing", true });
+    players.push_back({ "Kingler12345", true });
+    players.push_back({ "Bedschibaer", true });
+    players.push_back({ "TSR", true });
+    players.push_back({ "CZ", true });
+    players.push_back({ "george182", true });
+    players.push_back({ "Atli", true });
+    players.push_back({ "Linkin Karp", true });
+    players.push_back({ "Ibidem", true });
+    players.push_back({ "Melle2402", true });
+    players.push_back({ "Marcop9923", true });
+    players.push_back({ "Arifeen", true });
+    players.push_back({ "Ariel Rebel", true });
+    players.push_back({ "partys over", true });
+    players.push_back({ "NightFox", true });
+    players.push_back({ "lighthouses", true });
+    players.push_back({ "Conflict", true });
+    players.push_back({ "Finchinator", true });
+    players.push_back({ "hero", true });
+    players.push_back({ "Azzbo", true });
+    players.push_back({ "Ch01W0n5h1n", true });
+    players.push_back({ "thelinearcurve", true });
+    players.push_back({ "Deadboots", true });
+    players.push_back({ "Asim", true });
+    players.push_back({ "Bill Shatner", true });
+    players.push_back({ "slurm", true });
+    players.push_back({ "DumbJokes", true });
+    players.push_back({ "pinktidal", true });
+    players.push_back({ "Fezant", true });
+    players.push_back({ "GGFan", true });
+    players.push_back({ "hclat", true });
+    players.push_back({ "Roostur", true });
+    players.push_back({ "Texas Cloverleaf", true });
+    players.push_back({ "terpnation", true });
+    players.push_back({ "Marcoasd", true });
+    players.push_back({ "SamuelBest", true });
+    players.push_back({ "Sans", true });
+    players.push_back({ "ReshiRampage", true });
+    players.push_back({ "drud", true });
+    players.push_back({ "Miere", true });
+    players.push_back({ "Klefkwi", true });
+    players.push_back({ "moonraker", true });
+    players.push_back({ "hellpowna", true });
+    players.push_back({ "Bomber", true });
+    players.push_back({ "Haxel", true });
+    players.push_back({ "Oibaf", true });
+    players.push_back({ "Kerts", true });
+    players.push_back({ "tjdaas", true });
+    players.push_back({ "j2dahop", true });
+    players.push_back({ "thecrystalonix", true });
+    players.push_back({ "k3nan", true });
+    players.push_back({ "Analytic", true });
+    players.push_back({ "Paraplegic", true });
+    players.push_back({ "DMA", true });
+    players.push_back({ "gorgie", true });
+    players.push_back({ "During Summe", true });
+    players.push_back({ "WSUWSU", true });
+    players.push_back({ "Steinitz", true });
+    players.push_back({ "bluri", true });
+    players.push_back({ "Magellan", true });
+    players.push_back({ "Tunc42", true });
+    players.push_back({ "DeepBlueC", true });
+    players.push_back({ "MetalGro$$", true });
+    players.push_back({ "sulcata", true });
+    players.push_back({ "p2", true });
+    players.push_back({ "Flares", true });
 
-    auto guild = bot.CreateGuild(289234114580840448LL);
+    g->addCommand("register", std::bind(&AuctionBot::Register, this, std::placeholders::_1));
+    g->addCommand("start", std::bind(&AuctionBot::Start, this, std::placeholders::_1));
+    g->addCommand("playerlist", std::bind(&AuctionBot::Playerlist, this, std::placeholders::_1));
+    g->addCommand("nom", std::bind(&AuctionBot::Nom, this, std::placeholders::_1));
+    g->addCommand("nominate", std::bind(&AuctionBot::Nom, this, std::placeholders::_1));
+    g->addCommand("defaultfunds", std::bind(&AuctionBot::Defaultfunds, this, std::placeholders::_1));
+    g->addCommand("pause", std::bind(&AuctionBot::Pause, this, std::placeholders::_1));
+    g->addCommand("resume", std::bind(&AuctionBot::Resume, this, std::placeholders::_1));
+    g->addCommand("bid", std::bind(&AuctionBot::Bid, this, std::placeholders::_1));
+    g->addCommand("b", std::bind(&AuctionBot::Bid, this, std::placeholders::_1));
+    g->addCommand("end", std::bind(&AuctionBot::End, this, std::placeholders::_1));
+    g->addCommand("setname", std::bind(&AuctionBot::Setname, this, std::placeholders::_1));
+    g->addCommand("standings", std::bind(&AuctionBot::Standings, this, std::placeholders::_1));
+    g->addCommand("retain", std::bind(&AuctionBot::Retain, this, std::placeholders::_1));
+    g->addCommand("skip", std::bind(&AuctionBot::Skip, this, std::placeholders::_1));
+    g->addCommand("setfunds", std::bind(&AuctionBot::Setfunds, this, std::placeholders::_1));
+    g->addCommand("undobid", std::bind(&AuctionBot::Undobid, this, std::placeholders::_1));
+    g->addCommand("bidtime", std::bind(&AuctionBot::Bidtime, this, std::placeholders::_1));
+    g->addCommand("fsetname", std::bind(&AuctionBot::Adminsetname, this, std::placeholders::_1));
+    g->addCommand("help", std::bind(&AuctionBot::Help, this, std::placeholders::_1));
+    g->addCommand("withdraw", std::bind(&AuctionBot::Withdraw, this, std::placeholders::_1));
+    g->addCommand("addfunds", std::bind(&AuctionBot::Addfunds, this, std::placeholders::_1));
+    g->addCommand("removefunds", std::bind(&AuctionBot::Removefunds, this, std::placeholders::_1));
+    g->addCommand("addbidder", std::bind(&AuctionBot::Addbidder, this, std::placeholders::_1));
+    g->addCommand("removebidder", std::bind(&AuctionBot::Removebidder, this, std::placeholders::_1));
+    g->addCommand("reset", std::bind(&AuctionBot::Reset, this, std::placeholders::_1));
+    g->addCommand("enable", std::bind(&AuctionBot::Enable, this, std::placeholders::_1));
+    g->addCommand("disable", std::bind(&AuctionBot::Disable, this, std::placeholders::_1));
 
-    guild->addCommand("register", std::bind(&AuctionBot::Register, this, std::placeholders::_1));
-    guild->addCommand("start", std::bind(&AuctionBot::Start, this, std::placeholders::_1));
-    guild->addCommand("playerlist", std::bind(&AuctionBot::Playerlist, this, std::placeholders::_1));
-    guild->addCommand("nom", std::bind(&AuctionBot::Nom, this, std::placeholders::_1));
-    guild->addCommand("nominate", std::bind(&AuctionBot::Nom, this, std::placeholders::_1));
-    guild->addCommand("defaultfunds", std::bind(&AuctionBot::Defaultfunds, this, std::placeholders::_1));
-    guild->addCommand("pause", std::bind(&AuctionBot::Pause, this, std::placeholders::_1));
-    guild->addCommand("resume", std::bind(&AuctionBot::Resume, this, std::placeholders::_1));
-    guild->addCommand("bid", std::bind(&AuctionBot::Bid, this, std::placeholders::_1));
-    guild->addCommand("b", std::bind(&AuctionBot::Bid, this, std::placeholders::_1));
-    guild->addCommand("end", std::bind(&AuctionBot::End, this, std::placeholders::_1));
-    guild->addCommand("setname", std::bind(&AuctionBot::Setname, this, std::placeholders::_1));
-    guild->addCommand("standings", std::bind(&AuctionBot::Standings, this, std::placeholders::_1));
-    guild->addCommand("retain", std::bind(&AuctionBot::Retain, this, std::placeholders::_1));
-    guild->addCommand("skip", std::bind(&AuctionBot::Skip, this, std::placeholders::_1));
-    guild->addCommand("setfunds", std::bind(&AuctionBot::Setfunds, this, std::placeholders::_1));
-    guild->addCommand("undobid", std::bind(&AuctionBot::Undobid, this, std::placeholders::_1));
-    guild->addCommand("bidtime", std::bind(&AuctionBot::Bidtime, this, std::placeholders::_1));
-    guild->addCommand("fsetname", std::bind(&AuctionBot::Adminsetname, this, std::placeholders::_1));
-    guild->addCommand("help", std::bind(&AuctionBot::Help, this, std::placeholders::_1));
-    guild->addCommand("withdraw", std::bind(&AuctionBot::Withdraw, this, std::placeholders::_1));
-    guild->addCommand("addfunds", std::bind(&AuctionBot::Addfunds, this, std::placeholders::_1));
-    guild->addCommand("removefunds", std::bind(&AuctionBot::Removefunds, this, std::placeholders::_1));
-    guild->addCommand("addbidder", std::bind(&AuctionBot::Addbidder, this, std::placeholders::_1));
-    guild->addCommand("removebidder", std::bind(&AuctionBot::Removebidder, this, std::placeholders::_1));
-    guild->addCommand("reset", std::bind(&AuctionBot::Reset, this, std::placeholders::_1));
-    guild->addCommand("enable", std::bind(&AuctionBot::Enable, this, std::placeholders::_1));
-    guild->addCommand("disable", std::bind(&AuctionBot::Disable, this, std::placeholders::_1));
+    g->addAttachmentHandler(std::bind(&AuctionBot::Attachments, this, std::placeholders::_1));
+}
 
-    guild->attachmentHandler(std::bind(&AuctionBot::Attachments, this, std::placeholders::_1));
+void AuctionBot::remove()
+{
+    auto g = guild.lock();
+    if (!g)
+        return;
+    g->removeCommand("register");
+    g->removeCommand("start");
+    g->removeCommand("playerlist");
+    g->removeCommand("nom");
+    g->removeCommand("nominate");
+    g->removeCommand("defaultfunds");
+    g->removeCommand("pause");
+    g->removeCommand("resume");
+    g->removeCommand("bid");
+    g->removeCommand("b");
+    g->removeCommand("end");
+    g->removeCommand("setname");
+    g->removeCommand("standings");
+    g->removeCommand("retain");
+    g->removeCommand("skip");
+    g->removeCommand("setfunds");
+    g->removeCommand("undobid");
+    g->removeCommand("bidtime");
+    g->removeCommand("fsetname");
+    g->removeCommand("help");
+    g->removeCommand("withdraw");
+    g->removeCommand("addfunds");
+    g->removeCommand("removefunds");
+    g->removeCommand("addbidder");
+    g->removeCommand("removebidder");
+    g->removeCommand("reset");
+    g->removeCommand("enable");
+    g->removeCommand("disable");
+
+    g->removeAttachmentHandler();
 }
 
 void AuctionBot::Attachments(shared_ptr<ABMessage> message)
 {
-    json url = message->obj["attachments"];
+    json attachment = message->obj["attachments"];
+
+    std::cout << "Attachment: " << attachment["url"] << " @ " << attachment["filename"] << std::endl;
 }
 
 void AuctionBot::Reset(shared_ptr<ABMessage> message)
@@ -208,7 +324,7 @@ void AuctionBot::timercontinuation(shared_ptr<Channel> channel)
             return;
         }
         timer.expires_from_now(std::chrono::milliseconds(5000));
-        timer.async_wait(std::bind(&AuctionBot::timercontinuation, this, AegisBot::GetSingleton().channellist[289234114580840448LL]));
+        timer.async_wait(std::bind(&AuctionBot::timercontinuation, this, AegisBot::channellist[289234114580840448LL]));
     }
 }
 
@@ -337,7 +453,7 @@ void AuctionBot::Nom(shared_ptr<ABMessage> message)
                         message->channel->sendMessage(Poco::format("Auction started for player **%s** Current bid at [%d] To bid, type `%sbid value` Only increments of 500 allowed.", p.first, bids.back().second, message->guild->prefix));
                         timeuntilstop = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() + bidtime;
                         timer.expires_from_now(std::chrono::milliseconds(5000));
-                        timer.async_wait(std::bind(&AuctionBot::timercontinuation, this, AegisBot::GetSingleton().channellist[289234114580840448LL]));
+                        timer.async_wait(std::bind(&AuctionBot::timercontinuation, this, AegisBot::channellist[289234114580840448LL]));
                         return;
                     }
                 }
@@ -927,7 +1043,7 @@ void AuctionBot::Removebidder(shared_ptr<ABMessage> message)
 
 void AuctionBot::Enable(shared_ptr<ABMessage> message)
 {
-    for (std::pair<const string, ABCallbackPair> & c : AegisBot::GetSingleton().guildlist[289234114580840448LL]->cmdlist)
+    for (std::pair<const string, ABCallbackPair> & c : AegisBot::guildlist[289234114580840448LL]->cmdlist)
     {
         c.second.first.enabled = true;
         c.second.first.level = 0;
@@ -937,7 +1053,7 @@ void AuctionBot::Enable(shared_ptr<ABMessage> message)
 
 void AuctionBot::Disable(shared_ptr<ABMessage> message)
 {
-    for (std::pair<const string, ABCallbackPair> & c : AegisBot::GetSingleton().guildlist[289234114580840448LL]->cmdlist)
+    for (std::pair<const string, ABCallbackPair> & c : AegisBot::guildlist[289234114580840448LL]->cmdlist)
     {
         if (c.first != "enable")
         {

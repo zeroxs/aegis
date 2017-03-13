@@ -1,5 +1,5 @@
 //
-// Bot.cpp
+// AegisBot.cpp
 // aegisbot
 //
 // Copyright (c) 2017 Zero (zero at xandium dot net)
@@ -25,64 +25,63 @@
 
 #include "AegisBot.h"
 #include "Guild.h"
-#include "rss.h"
 #include <mutex>
 
 #ifdef USE_REDIS
 #include "ABRedisCache.h"
 #endif
 
-#include <boost/tokenizer.hpp>
-
-AegisBot * AegisBot::_instance = nullptr;
+FormattingChannel * AegisBot::pFC;
+FormattingChannel * AegisBot::pFCf;
+Logger * AegisBot::log;
+Logger * AegisBot::logf;
+string AegisBot::gatewayurl;
+std::vector<shared_ptr<AegisBot>> AegisBot::bots;
+bool AegisBot::isrunning;
+bool AegisBot::active;
+std::recursive_mutex AegisBot::m;
+std::vector<std::thread> AegisBot::threadPool;
+std::thread AegisBot::workthread;
+string AegisBot::token;
+std::chrono::steady_clock::time_point AegisBot::starttime;
+ABCache * AegisBot::cache;
+string AegisBot::username;
+bool AegisBot::rate_global;
+uint16_t AegisBot::discriminator;
+string AegisBot::avatar;
+uint64_t AegisBot::userId;
+bool AegisBot::mfa_enabled;
+std::map<uint64_t, shared_ptr<AegisBot::PrivateChat>> AegisBot::private_channels;
+std::map<uint64_t, shared_ptr<Channel>> AegisBot::channellist;
+std::map<uint64_t, shared_ptr<Member>> AegisBot::globalusers;
+std::map<uint64_t, shared_ptr<Guild>> AegisBot::guildlist;
+std::vector<shared_ptr<AegisBot>> AegisBot::shards;
+boost::asio::io_service AegisBot::io_service;
+uint16_t AegisBot::shardidmax;
 
 AegisBot::AegisBot()
     : keepalive_timer_(io_service)
 {
-    pFC = new FormattingChannel(new PatternFormatter("%p:%T %t"));
-    pFC->setChannel(new ConsoleChannel);
-    pFC->open();
 
-    File f("log/");
-    if (!f.exists())
-    {
-        f.createDirectory();
-    }
-    else if (f.isFile())
-    {
-        throw std::runtime_error("Error creating log directory!");
-    }
-
-    pFCf = new FormattingChannel(new PatternFormatter("%Y-%m-%d %H:%M:%S.%c | %s:%q:%t"));
-    pFCf->setChannel(new FileChannel("log/console.log"));
-    pFCf->setProperty("rotation", "daily");
-    pFCf->setProperty("times", "local");
-    pFCf->open();
-    logf = &Poco::Logger::create("fileLogger", pFCf, Message::PRIO_TRACE);
-    log = &Poco::Logger::create("consoleLogger", pFC, Message::PRIO_TRACE);
 }
 
 AegisBot::~AegisBot()
 {
-    Poco::Logger::shutdown();
-    pFCf->close();
-    pFC->close();
+
 }
 
-boost::shared_ptr<Guild> AegisBot::CreateGuild(uint64_t id)
+shared_ptr<Guild> AegisBot::CreateGuild(uint64_t id)
 {
-    std::lock_guard<std::recursive_mutex> lock(AegisBot::GetSingleton().m);
-    if (_instance == nullptr)
-        throw std::runtime_error("Cannot create a guild when no bot instance exists.");
-    if (AegisBot::GetSingleton().guildlist.count(id))
-        return AegisBot::GetSingleton().guildlist[id];
-    boost::shared_ptr<Guild> guild = boost::make_shared<Guild>();
-    AegisBot::GetSingleton().guildlist[id] = guild;
+    std::lock_guard<std::recursive_mutex> lock(AegisBot::m);
+    if (AegisBot::guildlist.count(id))
+        return AegisBot::guildlist[id];
+    shared_ptr<Guild> guild = make_shared<Guild>(*this);
+    AegisBot::guildlist[id] = guild;
     guild->id = id;
     return guild;
 }
 
-void AegisBot::setup_cache(ABCache * in)
+void AegisBot::setupCache(ABCache * in)
 {
     cache = in;
 }
@@ -102,12 +101,10 @@ void AegisBot::loadConfigs()
 #endif
 }
 
-bool AegisBot::initialize(uint64_t shardid, uint64_t maxshard)
+bool AegisBot::initialize(uint64_t shardid)
 {
     this->shardid = shardid;
-    this->shardidmax = maxshard;
     
-    starttime = std::chrono::steady_clock::now();
 
     if (token == "")
     {
@@ -131,10 +128,6 @@ bool AegisBot::initialize(uint64_t shardid, uint64_t maxshard)
     ws.set_close_handler(std::bind(&AegisBot::onClose, this, std::placeholders::_1));
 
     websocketpp::lib::error_code ec;
-    string res;
-    call("/gateway", &res, nullptr, "GET", "");
-    json ret = json::parse(res);
-    gatewayurl = ret["url"];
     std::cout << "Connecting to gateway at " << gatewayurl << "\n";
     connection = ws.get_connection(gatewayurl + "/?encoding=json&v=6", ec);
     if (ec)
@@ -149,6 +142,63 @@ bool AegisBot::initialize(uint64_t shardid, uint64_t maxshard)
     }
 }
 
+void AegisBot::startShards()
+{
+    starttime = std::chrono::steady_clock::now();
+    shardidmax = 0;
+    isrunning = true;
+    active = false;
+    mfa_enabled = false;
+    rate_global = false;
+    string res;
+    bool success;
+
+    boost::asio::signal_set signals(io_service, SIGINT, SIGTERM);
+    signals.async_wait([&](const boost::system::error_code &error, int signal_number)
+    {
+        if (!error)
+        {
+            std::cerr << (signal_number == SIGINT ? "SIGINT" : "SIGTERM") << "received. Shutting down.\n";
+            io_service.stop();
+            isrunning = false;
+        }
+    });
+
+#ifdef SELFBOT
+    boost::tie(success, res) = call("/gateway");
+#else
+    boost::tie(success, res) = call("/gateway/bot");
+#endif
+    json ret = json::parse(res);
+    gatewayurl = ret["url"];
+
+#ifndef SELFBOT
+    std::cout << "Shard count: " << ret["shards"] << std::endl;
+    shardidmax = ret["shards"];
+#endif
+
+    for (int i = 0; i < AegisBot::shardidmax; ++i)
+    {
+        auto b = make_shared<AegisBot>();
+        AegisBot::bots.push_back(b);
+        b->shardid = i;
+        std::cout << "Shard id: " << b->shardid << std::endl;
+
+        b->initialize(b->shardid);
+        AegisBot::threadPool.push_back(std::thread([&]() { b->run(); }));
+    }
+}
+
+void AegisBot::threads()
+{
+    for (size_t t = 0; t < std::thread::hardware_concurrency() * 2; t++)
+        threadPool.push_back(std::thread([&]() { io_service.run(); }));
+    for (std::thread& t : AegisBot::threadPool)
+        t.join();
+    for (auto & b : AegisBot::bots)
+        AegisBot::threadPool.push_back(std::thread([&]() { b->run(); }));
+}
+
 void AegisBot::connectWS()
 {
     //make a portable way to do this even though I like the atomic-ness of redis scripts for obtaining inter-process locks
@@ -156,7 +206,7 @@ void AegisBot::connectWS()
     while (true)
     {
         uint64_t epoch = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-        string obtainlock = Poco::format("\"local time = redis.call('get', KEYS[1]) if (time == nil) then redis.call('set', KEYS[1], ARGV[1]) return 1 end if (time < ARGV[1]) then return 0 else redis.call('set', KEYS[1], ARGV[1]) return 1 end\" 1 config:wslock %Lu", epoch);
+        string obtainlock = Poco::format("\"local time = redis.call('get', KEYS[1]) if (not time) then redis.call('set', KEYS[1], ARGV[1]) return 1 end if (time < ARGV[1]) then return 1 else redis.call('set', KEYS[1], ARGV[1]) return 0 end\" 1 config:wslock %Lu", epoch);
         if (static_cast<ABRedisCache*>(cache)->eval(obtainlock) == "1")
             break;
         else
@@ -199,7 +249,7 @@ void AegisBot::processReady(json & d)
         
         if (guild == nullptr)
         {
-            guildlist[id] = boost::make_shared<Guild>();
+            guildlist[id] = make_shared<Guild>(*this);
             poco_trace_f1(*log, "Guild created: %Lu", id);
         }
         guildlist[id]->unavailable = unavailable;
@@ -227,7 +277,7 @@ void AegisBot::processReady(json & d)
         auto privateChat = private_channels[channel_id];
         if (privateChat == nullptr)
         {
-            privateChat = boost::make_shared<PrivateChat>();
+            privateChat = make_shared<PrivateChat>();
             private_channels[channel_id] = privateChat;
             poco_trace_f1(*log, "Private Channel created: %Lu", channel_id);
         }
@@ -247,7 +297,7 @@ void AegisBot::processReady(json & d)
                 if (rec == nullptr)
                 {
                     //new entry entirely
-                    globalusers[recipientId] = privateChat->recipients[recipientId] = rec = boost::make_shared<Member>();
+                    globalusers[recipientId] = privateChat->recipients[recipientId] = rec = make_shared<Member>();
                     poco_trace_f1(*log, "User created: %Lu", recipientId);
                 }
                 else
@@ -435,7 +485,7 @@ void AegisBot::onConnect(websocketpp::connection_hdl hdl)
     ws.send(hdl, obj.dump(), websocketpp::frame::opcode::text);
 }
 
-bool AegisBot::call(string url, string * obj /*= nullptr*/, RateLimits * endpoint /*= nullptr*/, string method /*= "GET"*/, string query /*= ""*/)
+std::pair<bool,string> AegisBot::call(string url, string obj, RateLimits * endpoint /*= nullptr*/, string method /*= "GET"*/, string query /*= ""*/)
 {
     uint64_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
@@ -455,12 +505,12 @@ bool AegisBot::call(string url, string * obj /*= nullptr*/, RateLimits * endpoin
         request.set("Content-Type", "application/json");
 
 
-        if (obj && obj->length() > 0)
+        if (obj.length() > 0)
         {
             request.setMethod(method);
-            request.setContentLength(obj->length());
+            request.setContentLength(obj.length());
 
-            std::cout << "Sent JSON: " << *obj << "\n";
+            std::cout << "Sent JSON: " << obj << "\n";
 
 #ifdef DEBUG_OUTPUT
             std::ostringstream debugoutput;
@@ -470,7 +520,7 @@ bool AegisBot::call(string url, string * obj /*= nullptr*/, RateLimits * endpoin
 #endif
             std::ostream & endp = session.sendRequest(request);
 
-            endp << *obj;
+            endp << obj;
         }
         else
         {
@@ -490,15 +540,12 @@ bool AegisBot::call(string url, string * obj /*= nullptr*/, RateLimits * endpoin
         response.write(std::cout);
         std::cout << std::endl;
 #endif
+        string result;
 
-        if (obj)
-        {
-            *obj = "";
-            Poco::StreamCopier::copyToString(rs, *obj);
+        Poco::StreamCopier::copyToString(rs, result);
 #ifdef DEBUG_OUTPUT
-            std::cout << "Result: " << *obj << "\n";
+        std::cout << "Result: " << result << "\n";
 #endif
-        }
 
         if (endpoint)
         {
@@ -512,7 +559,7 @@ bool AegisBot::call(string url, string * obj /*= nullptr*/, RateLimits * endpoin
                 rate_global = false;
                 if (status == 429)
                 {
-                    return false;
+                    return { false, "" };
                 }
             }
             else
@@ -526,7 +573,7 @@ bool AegisBot::call(string url, string * obj /*= nullptr*/, RateLimits * endpoin
 
                 if (status == 429)
                 {
-                    return false;
+                    return { false, "" };
                 }
 #ifdef DEBUG_OUTPUT
                 poco_trace_f1(*log, "rate_limit:     %u", endpoint->rateLimit());
@@ -539,7 +586,7 @@ bool AegisBot::call(string url, string * obj /*= nullptr*/, RateLimits * endpoin
             }
         }
 
-        return true;
+        return { true, result };
     }
     catch (std::exception&e)
     {
@@ -547,31 +594,11 @@ bool AegisBot::call(string url, string * obj /*= nullptr*/, RateLimits * endpoin
         endpoint->addFailure();
     }
 
-    return false;
+    return { false, "" };
 }
 
 void AegisBot::run()
 {
-    //some more init stuff
-    boost::asio::io_service::work work(io_service);
-
-    boost::asio::signal_set signals(io_service, SIGINT, SIGTERM);
-    signals.async_wait([&](const boost::system::error_code &error, int signal_number)
-    {
-        if (!error)
-        {
-            std::cerr << (signal_number == SIGINT ? "SIGINT" : "SIGTERM") << "received. Shutting down.\n";
-            io_service.stop();
-            isrunning = false;
-        }
-    });
-
-    for (size_t t = 0; t < std::thread::hardware_concurrency() * 2; t++)
-    {
-        threadPool.push_back(std::thread([&]() { io_service.run(); }));
-    }
-
-
     while (isrunning)
     {
         {
@@ -591,7 +618,9 @@ void AegisBot::run()
 
                             uint32_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
                             auto message = channel.second->ratelimits.getMessage();
-                            if (!call(message->endpoint, &message->content, &message->channel->ratelimits, message->method, message->query))
+                            bool success = false;
+                            boost::tie(success, message->content) = call(message->endpoint, message->content, &message->channel->ratelimits, message->method, message->query);
+                            if (!success)
                             {
                                 //rate limit hit, requeue message
                                 message->channel->ratelimits.putMessage(message);
@@ -627,7 +656,9 @@ void AegisBot::run()
 
                         uint32_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
                         auto message = guild.second->ratelimits.getMessage();
-                        if (!call(message->endpoint, &message->content, &message->guild->ratelimits, message->method, message->query))
+                        bool success = false;
+                        boost::tie(success, message->content) = call(message->endpoint, message->content, &message->channel->ratelimits, message->method, message->query);
+                        if (!success)
                         {
                             //rate limit hit, requeue message
                             message->channel->ratelimits.putMessage(message);
@@ -661,7 +692,7 @@ void AegisBot::createTimer(uint64_t t, shared_ptr<boost::asio::steady_timer> tim
 {
     //new timer
     if (timer == nullptr)
-        timer = boost::make_shared<shared_ptr<boost::asio::steady_timer>::element_type>(io_service);
+        timer = make_shared<shared_ptr<boost::asio::steady_timer>::element_type>(io_service);
 
     timer->expires_from_now(std::chrono::milliseconds(t));
     timer->async_wait(std::bind(f, this, __args...));
@@ -683,7 +714,7 @@ shared_ptr<Guild> AegisBot::loadGuild(json & obj)
         if (guild == nullptr)
         {
             //not cached - create
-            guildlist[id] = guild = boost::make_shared<Guild>();
+            guildlist[id] = guild = make_shared<Guild>(*this);
             guild->id = id;
             poco_trace_f1(*log, "Guild created: %Lu", id);
         }
@@ -731,7 +762,7 @@ shared_ptr<Guild> AegisBot::loadGuild(json & obj)
                 if (checkchannel == nullptr)
                 {
                     //not cached - create
-                    channellist[channel_id] = checkchannel = boost::make_shared<Channel>(guild);
+                    channellist[channel_id] = checkchannel = make_shared<Channel>(guild);
                     checkchannel->id = channel_id;
                     checkchannel->belongs_to(guild);
                     poco_trace_f2(*log, "Channel[%Lu] created for guild[%Lu]", channel_id, id);
@@ -785,7 +816,7 @@ shared_ptr<Guild> AegisBot::loadGuild(json & obj)
                 if (checkmember == nullptr)
                 {
                     //not cached - create
-                    globalusers[member_id] = checkmember = boost::make_shared<Member>();
+                    globalusers[member_id] = checkmember = make_shared<Member>();
                     checkmember->id = member_id;
                     poco_trace_f2(*log, "Member[%Lu] created for guild[%Lu]", member_id, id);
                 }
@@ -799,15 +830,13 @@ shared_ptr<Guild> AegisBot::loadGuild(json & obj)
                 checkmember->joined_at = member["joined_at"];
                 checkmember->mute = member["mute"];
                 checkmember->isbot = member["bot"].is_null()?false:true;
-                checkmember->nick = GET_NULL(member, "nick");
+                checkmember->guilds[id].nickname = GET_NULL(member, "nick");
 
                 json roles = member["roles"];
                 for (auto & r : roles)
-                    checkmember->roles.push_back(std::stoll(r.get<string>()));
+                    checkmember->guilds[id].roles.push_back(std::stoll(r.get<string>()));
 
-
-
-
+                checkmember->guilds[id].guild = guild;
             }
             catch (std::exception&e)
             {
@@ -817,7 +846,7 @@ shared_ptr<Guild> AegisBot::loadGuild(json & obj)
 
         for (auto  &role : roles)
         {
-            shared_ptr<Role> _role = boost::make_shared<Role>();
+            shared_ptr<Role> _role = make_shared<Role>();
             uint64_t role_id = std::stoll(role["id"].get<string>());
             try
             {
@@ -875,52 +904,3 @@ shared_ptr<Guild> AegisBot::loadGuild(json & obj)
     return guild;
 }
 
-void AegisBot::info_command(shared_ptr<ABMessage> message)
-{
-    uint64_t timenow = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    uint64_t guild_count = guildlist.size();
-    uint64_t member_count = globalusers.size();
-    uint64_t channel_count = channellist.size();
-    uint64_t channel_text_count = 0;
-    uint64_t channel_voice_count = 0;
-    {
-        std::lock_guard<std::recursive_mutex> lock(m);
-        for (auto & channel : channellist)
-        {
-            if (channel.second->type == ChannelType::TEXT)
-                channel_text_count++;
-            else
-                channel_voice_count++;
-        }
-    }
-    std::stringstream members;
-    members << member_count << "\n0 Online\n0 Offline\nstuff";
-
-    std::stringstream channels;
-    channels << channel_count << " total\n" << channel_text_count << " text\n" << channel_voice_count << " voice";
-
-    std::stringstream guilds;
-    guilds << guild_count;
-
-    message->content = "";
-    string stats;
-    stats = Poco::format("Memory usage: %.2fMB\nMax Memory: %.2fMB", double(getCurrentRSS()) / (1024 * 1024), double(getPeakRSS()) / (1024 * 1024));
-    json t = {
-        { "title", "AegisBot" },
-        { "description", "[Latest bot source](https://github.com/zeroxs/aegisbot)\n[Official Bot Server](https://discord.gg/w7Y3Bb8)" },
-        { "color", 10599460 },
-        { "fields",
-        json::array(
-    {
-        { { "name", "Members" },{ "value", members.str() },{ "inline", true } },
-        { { "name", "Channels" },{ "value", channels.str() },{ "inline", true } },
-        { { "name", "Uptime test" },{ "value", uptime() },{ "inline", true } },
-        { { "name", "Guilds" },{ "value", guilds.str() },{ "inline", true } }
-    }
-            )
-        },
-        { "footer",{ { "icon_url", "https://cdn.discordapp.com/attachments/288707540844412928/289572000391888906/cpp.png" },{ "text", "Made in c++ running aegisbot library" } } }
-    };
-    t["description"] = stats;
-    message->channel->sendMessageEmbed(json(), t);
-}

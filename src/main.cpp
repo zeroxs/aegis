@@ -29,38 +29,48 @@
 #include <json.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
+#include <boost/tuple/tuple.hpp>
 #include "ExampleBot.h"
 #include "AuctionBot.h"
 #include "AegisOfficial.h"
 
-uint64_t maxshard = 0;
-uint64_t shardid = 0;
-
-bool parsecli(int argc, char * argv[]);
-
-
-
-
-
 //////////////////////////////////////////////////////////////////////////
 //
-void this_is_a_global_function(boost::shared_ptr<ABMessage> message)
+void this_is_a_global_function(shared_ptr<ABMessage> message)
 {
     message->channel->sendMessage("return from this_is_a_global_function()");
 }
 
 int main(int argc, char * argv[])
 {
-    if (!parsecli(argc, argv))
-        return -1;
-
     try
     {
-        //create our Bot object and cache and configure the basic settings
-        AegisBot & bot = AegisBot::CreateInstance();
+        boost::asio::io_service::work work(AegisBot::io_service);
+        AegisBot::pFC = new FormattingChannel(new PatternFormatter("%p:%T %t"));
+        AegisBot::pFC->setChannel(new ConsoleChannel);
+        AegisBot::pFC->open();
+
+        File f("log/");
+        if (!f.exists())
+        {
+            f.createDirectory();
+        }
+        else if (f.isFile())
+        {
+            throw std::runtime_error("Error creating log directory!");
+        }
+
+        AegisBot::pFCf = new FormattingChannel(new PatternFormatter("%Y-%m-%d %H:%M:%S.%c | %s:%q:%t"));
+        AegisBot::pFCf->setChannel(new FileChannel("log/console.log"));
+        AegisBot::pFCf->setProperty("rotation", "daily");
+        AegisBot::pFCf->setProperty("times", "local");
+        AegisBot::pFCf->open();
+        AegisBot::logf = &Poco::Logger::create("fileLogger", AegisBot::pFCf, Message::PRIO_TRACE);
+        AegisBot::log = &Poco::Logger::create("consoleLogger", AegisBot::pFC, Message::PRIO_TRACE);
+
 
 #ifdef USE_REDIS
-        ABRedisCache cache(bot.io_service);
+        ABRedisCache cache(AegisBot::io_service);
         cache.address = "127.0.0.1";
         cache.port = 6379;
         cache.password = "";
@@ -70,85 +80,37 @@ int main(int argc, char * argv[])
             //error with cache
             return -1;
         }
-        bot.setup_cache(&cache);
+        AegisBot::setupCache(&cache);
 
-        bot.loadConfigs();
+        AegisBot::loadConfigs();
+
+        //create our Bot object and cache and configure the basic settings
+        AegisBot::startShards();
+
+        AegisBot & bot = *AegisBot::bots[0];
+
 
         //this is temporary
 #ifdef USE_MEMORY
         string token = "yourtokenhere";
-
+#endif
 #ifdef SELFBOT
         string token = "yourtokenhere";
 #endif
 
-#endif
-
-        //register some callbacks
-
-
-        //create our class that contains some functions (optional)
-        ExampleBot ourfunctionclass;
-
-        //can also load multiple classes worth of functions as callbacks
-        //this is an example of an auctioneer bot I wrote to test some of the functionality and flexibility of the library
-        AuctionBot auctionbot;
-
-        //initialize defaults and add all the functions to a specific guild
-        auctionbot.initialize();
-
-
-
-        //This extends the bot and provides official commands
-        AegisOfficial official;
-        official.initialize();
-
-
-
-        //we can register a callback to a lambda function, or our own class, or even global space functions
-        //note, these are global functions and will exist in all guilds the bot is connected to.
-        bot.addCommand("this_is_a_global_command", std::bind(&this_is_a_global_function, std::placeholders::_1));
-        bot.addCommand("this_is_a_class_command", std::bind(&ExampleBot::this_is_a_class_function, &ourfunctionclass, std::placeholders::_1));
-
-        //you can also set the command directly instead of calling addCommand()
-        bot.defaultcmdlist["this_is_a_lambda_command"] = ABCallbackPair(ABCallbackOptions(), [](shared_ptr<ABMessage> message)
-        {
-            message->channel->sendMessage("return from this_is_a_lambda_function()");
-        });
-        bot.defaultcmdlist["echo"] = ABCallbackPair(ABCallbackOptions(), std::bind(&ExampleBot::echo, &ourfunctionclass, std::placeholders::_1));
-
 
         //add unique commands to a specific guild. no other guilds can access these
-        auto myguild = AegisBot::CreateGuild(287048029524066334LL);
+        auto myguild = bot.CreateGuild(287048029524066334LL);
         myguild->addCommand("custom_command", [&bot](shared_ptr<ABMessage> message)
         {
             message->channel->sendMessage("unique command for this guild.");
         });
 
+        //Add the default module along with all the default commands
+        myguild->addModule("default");
 
-        //example usage of callbacks within a callback
-        //this deletes the last 100 messages in the channel this is called from
-        bot.addCommand("delete_history", [&bot](shared_ptr<ABMessage> message)
-        {
-            message->channel->getMessages(message->message_id, [&bot](shared_ptr<ABMessage> message)
-            {
-                json arr = json::parse(message->content);
 
-                std::vector<string> tempmessages;
 
-                for (auto & m : arr)
-                {
-                    string entry = m["id"];
-                    poco_trace_f1(*(bot.log), "Message entry: %s", entry);
-                    tempmessages.push_back(entry);
-                }
-                uint32_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-
-                //bulk delete limitation
-                // ((epoch - 14 * 24 * 60 * 60) - 1420070400000) << 22
-                message->channel->bulkDelete(tempmessages);
-            });
-        });
 
 
 /*
@@ -186,51 +148,12 @@ int main(int argc, char * argv[])
             });
         });*/
 
-        bot.addCommand("rates", [&bot](shared_ptr<ABMessage> message)
-        {
-            std::cout << "Rates Command()" << std::endl;
-            uint32_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-            message->channel->sendMessage(Poco::format("```Previous counters:\nContent: %s\nLimit: %u\nRemain: %u\nReset: %u\nEpoch: %u\nDiff: %u```", message->content, message->channel->ratelimits.rateLimit()
-                , message->channel->ratelimits.rateRemaining(), message->channel->ratelimits.rateReset(), epoch, message->channel->ratelimits.rateReset() - epoch));
-        });
 
-        bot.addCommand("reload", [&bot](shared_ptr<ABMessage> message)
-        {
-            bot.loadConfigs();
-            message->channel->sendMessage("Configs reloaded.");
-        });
-
-        bot.addCommand("info", std::bind(&AegisBot::info_command, &bot, std::placeholders::_1));
-
-
-
-
-
-        //////////////////////////////////////////////////////////////////////////
-        //find a better way to do this
-        //ultimately, a master application would spin these bots up passing params
-        //as the shard ids. alternatively, could make this bot do some calls to
-        //load more bot instances at this point and have those ignore this part
-        string res;
-#ifdef SELFBOT
-        bot.call("/gateway", &res, nullptr, "GET", "");
-#else
-        bot.call("/gateway/bot", &res, nullptr, "GET", "");
-#endif
-        json ret = json::parse(res);
-        bot.gatewayurl = ret["url"];
-
-        std::cout << "Recommended shard count: " << ret["shards"] << std::endl;
-        std::cout << "Current set shard count: " << maxshard << std::endl;
-        std::cout << "My shard id: " << shardid << std::endl;
-
-        bot.initialize(shardid, maxshard);
-        bot.run();
-
-        for (std::thread& t : bot.threadPool)
-        {
-            t.join();
-        }
+        AegisBot::threads();
+        AegisBot::workthread.join();
+        Poco::Logger::shutdown();
+        AegisBot::pFCf->close();
+        AegisBot::pFC->close();
     }
     catch (std::exception & e)
     {
@@ -238,36 +161,4 @@ int main(int argc, char * argv[])
         return -1;
     }
     return 0;
-}
-
-bool parsecli(int argc, char * argv[])
-{
-    if (argc == 1)
-    {
-        //error
-        std::cout << "No shard id min/max passed (pass 0 for single instance)" << std::endl;
-        return false;
-    }
-
-    shardid = std::atoll(argv[1]);
-
-    if (shardid != 0)
-    {
-        if (argc <= 2)
-        {
-            //error
-            std::cout << "No shard id max passed." << std::endl;
-            return false;
-        }
-    }
-
-    maxshard = std::atoll(argv[2]);
-
-    if (maxshard <= shardid)
-    {
-        //error
-        std::cout << "Shard id must be less than the max." << std::endl;
-        return false;
-    }
-    return true;
 }

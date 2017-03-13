@@ -25,23 +25,29 @@
 
 #pragma once
 
-#include <boost/shared_ptr.hpp>
 #include <iostream>
 #include <chrono>
 #include <Poco/Format.h>
+#include <memory>
+#include "AegisModule.h"
 
 class ABMessage;
+class AegisBot;
+using std::shared_ptr;
 
 
-class ExampleBot
+class ExampleBot : public AegisModule
 {
 public:
-    ExampleBot();
+    ExampleBot(AegisBot & bot, shared_ptr<Guild> guild);
     ~ExampleBot();
 
-    void echo(boost::shared_ptr<ABMessage> message);
-    void rates2(boost::shared_ptr<ABMessage> message);
-    void this_is_a_class_function(boost::shared_ptr<ABMessage> message);
+    void initialize();
+    void remove();
+
+    void echo(shared_ptr<ABMessage> message);
+    void rates2(shared_ptr<ABMessage> message);
+    void this_is_a_class_function(::shared_ptr<ABMessage> message);
 
 
 };

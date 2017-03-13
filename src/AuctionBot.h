@@ -28,20 +28,21 @@
 #include <string>
 #include <stdint.h>
 #include <vector>
-#include <boost/shared_ptr.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include "AegisModule.h"
 
 class ABMessage;
 class Channel;
+class AegisBot;
 
 using std::string;
-using boost::shared_ptr;
+using std::shared_ptr;
 
-class AuctionBot
+class AuctionBot : public AegisModule
 {
 public:
-    AuctionBot();
-    ~AuctionBot();
+    AuctionBot(AegisBot & bot, shared_ptr<Guild> guild);
+    ~AuctionBot() {};
 
     struct Team
     {
@@ -75,8 +76,9 @@ public:
 
     uint32_t bidtime = 30000;
 
-
     void initialize();
+    void remove();
+
     bool isadmin(const uint64_t id);
     string getparams(const shared_ptr<ABMessage> message);
     string gen_random(const int len);
@@ -110,6 +112,5 @@ public:
     void Enable(shared_ptr<ABMessage> message);
     void Disable(shared_ptr<ABMessage> message);
     void Attachments(shared_ptr<ABMessage> message);
-
 };
 
