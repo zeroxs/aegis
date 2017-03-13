@@ -26,10 +26,8 @@
 #pragma once
 
 #include "Permission.h"
-#include <boost/shared_ptr.hpp>
 #include <string>
 #include "RateLimits.h"
-#include <boost/enable_shared_from_this.hpp>
 #include <boost/optional.hpp>
 #include <iostream>
 #include <json.hpp>
@@ -41,17 +39,17 @@ class Guild;
 class Channel;
 class Member;
 class AegisBot;
-using boost::shared_ptr;
+using std::shared_ptr;
 using std::string;
 struct ABMessage;
 struct ABCallbackOptions
 {
-    bool enabled = true;
-    uint16_t level = 0;//TODO CHANGE BACK TO 1
+    bool enabled = true;// false;
+    uint16_t level = 0;//1;
 };
 
-typedef std::function<void(boost::shared_ptr<ABMessage>)> ABMessageCallback;
-typedef std::pair<ABCallbackOptions, std::function<void(boost::shared_ptr<ABMessage>)>> ABCallbackPair;
+typedef std::function<void(shared_ptr<ABMessage>)> ABMessageCallback;
+typedef std::pair<ABCallbackOptions, std::function<void(shared_ptr<ABMessage>)>> ABCallbackPair;
 
 struct ABMessage
 {
@@ -65,6 +63,7 @@ struct ABMessage
     string endpoint;
     string query;
     ABMessageCallback callback;
+    json obj;
 };
 
 enum class ChannelType
@@ -73,7 +72,7 @@ enum class ChannelType
     VOICE = 2
 };
 
-class Channel : public Permission, public boost::enable_shared_from_this<Channel>
+class Channel : public Permission, public std::enable_shared_from_this<Channel>
 {
 public:
     Channel(shared_ptr<Guild> guild) : guild(guild) {}

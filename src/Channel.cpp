@@ -33,9 +33,9 @@ void Channel::getMessages(uint64_t messageid, ABMessageCallback callback)
 {
     //if (!canReadHistory())
     //    return;
-    poco_trace(*(AegisBot::GetSingleton().log), "getMessages() goes through");
+    poco_trace(*(AegisBot::log), "getMessages() goes through");
 
-    boost::shared_ptr<ABMessage> message = boost::make_shared<ABMessage>();
+    shared_ptr<ABMessage> message = make_shared<ABMessage>();
     message->guild = belongs_to();
     message->channel = shared_from_this();
     message->endpoint = Poco::format("/channels/%Lu/messages", id);
@@ -51,14 +51,14 @@ void Channel::sendMessage(string content, ABMessageCallback callback)
 {
     //if (!canSendMessages())
     //    return;
-    poco_trace(*(AegisBot::GetSingleton().log), "sendMessage() goes through");
+    poco_trace(*(AegisBot::log), "sendMessage() goes through");
     json obj;
     if (belongs_to()->preventbotparse)
         obj["content"] = "\u200B" + content;
     else
         obj["content"] = content;
 
-    boost::shared_ptr<ABMessage> message = boost::make_shared<ABMessage>();
+    shared_ptr<ABMessage> message = make_shared<ABMessage>();
     message->content = obj.dump();
     message->guild = belongs_to();
     message->channel = shared_from_this();
@@ -74,15 +74,15 @@ void Channel::sendMessageEmbed(json content, json embed, ABMessageCallback callb
 {
     //if (!canSendMessages() || !canEmbed())
     //    return;
-    poco_trace(*(AegisBot::GetSingleton().log), "sendMessageEmbed() goes through");
+    poco_trace(*(AegisBot::log), "sendMessageEmbed() goes through");
     json obj;
     if (!content.empty())
         obj["content"] = content;
     obj["embed"] = embed;
 
-    poco_trace(*(AegisBot::GetSingleton().log), obj.dump());
+    poco_trace(*(AegisBot::log), obj.dump());
 
-    boost::shared_ptr<ABMessage> message = boost::make_shared<ABMessage>();
+    shared_ptr<ABMessage> message = make_shared<ABMessage>();
     message->content = obj.dump();
     message->guild = belongs_to();
     message->channel = shared_from_this();
@@ -98,12 +98,12 @@ void Channel::bulkDelete(std::vector<string> messages, ABMessageCallback callbac
 {
     //if (!canManageMessages())
     //    return;
-    poco_trace(*(AegisBot::GetSingleton().log), "bulkDelete() goes through");
+    poco_trace(*(AegisBot::log), "bulkDelete() goes through");
     json arr(messages);
     json obj;
     obj["messages"] = arr;
 
-    boost::shared_ptr<ABMessage> message = boost::make_shared<ABMessage>();
+    shared_ptr<ABMessage> message = make_shared<ABMessage>();
     message->content = obj.dump();
     message->guild = belongs_to();
     message->channel = shared_from_this();

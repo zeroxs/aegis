@@ -28,7 +28,8 @@
 #include "RateLimits.h"
 #include <string>
 #include <vector>
-#include <boost/shared_ptr.hpp>
+#include <map>
+#include <boost/optional.hpp>
 
 class AegisBot;
 class Guild;
@@ -42,18 +43,27 @@ public:
     Member(uint64_t id, string name, uint16_t discriminator, string avatar);
     ~Member();
 
-    std::vector<boost::shared_ptr<Guild>> guilds();
+    struct stGuildInfo
+    {
+        std::vector<uint64_t> roles;
+        string nickname;
+        shared_ptr<Guild> guild;
+    };
+
+    std::vector<shared_ptr<Guild>> getGuilds();
+    boost::optional<string> getName(uint64_t guildid);
+    string getFullName();
 
     uint64_t id = 0;
     string name;
-    string nick;
     uint16_t discriminator = 0;
     string avatar;
     bool isbot = false;
     bool deaf = false;
     bool mute = false;
     string joined_at;
-    std::vector<uint64_t> roles;
+    std::map<uint64_t, stGuildInfo> guilds;
+    std::vector<uint64_t> channels;
 
     RateLimits ratelimits;
 };

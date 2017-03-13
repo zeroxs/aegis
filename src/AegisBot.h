@@ -1,5 +1,5 @@
 //
-// Bot.h
+// AegisBot.h
 // aegisbot
 //
 // Copyright (c) 2017 Zero (zero at xandium dot net)
@@ -50,8 +50,6 @@
 #include <Poco/Message.h>
 #include <Poco/File.h>
 
-#include <boost/shared_ptr.hpp>
-#include <boost/make_shared.hpp>
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <boost/bind/placeholders.hpp>
@@ -60,6 +58,9 @@
 
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/ip/address.hpp>
+#include <boost/tuple/tuple.hpp>
+#include <boost/tokenizer.hpp>
+#include <boost/thread/future.hpp>
 
 #include "ABCache.h"
 
@@ -84,6 +85,8 @@ using Poco::Logger;
 using Poco::File;
 
 using std::string;
+using std::shared_ptr;
+using std::make_shared;
 
 class Guild;
 
@@ -95,57 +98,35 @@ class Guild;
 class AegisBot
 {
 public:
-    static AegisBot & CreateInstance() { _instance = new AegisBot(); return *_instance; }
-    static AegisBot & GetSingleton() { return *_instance; }
-    static void DestroyInstance() { delete _instance; }
-    static boost::shared_ptr<Guild> CreateGuild(uint64_t id);
-private:
-    AegisBot();
-    static AegisBot * _instance;
-public:
-    ~AegisBot();
+    shared_ptr<Guild> CreateGuild(uint64_t id);
+    static std::pair<bool, string> call(string url, string obj = "", RateLimits * endpoint = nullptr, string method = "GET", string query = "");
 
-    void setup_cache(ABCache * in);
-    void loadConfigs();
+    static FormattingChannel * pFC;
+    static FormattingChannel * pFCf;
+    static Logger * log;
+    static Logger * logf;
 
-    void keepalive(const boost::system::error_code& error, const uint64_t ms);
-    void onMessage(websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg);
-    void onConnect(websocketpp::connection_hdl hdl);
-    void onClose(websocketpp::connection_hdl hdl);
-    void userMessage(json & obj);
-    bool initialize(uint64_t shardid, uint64_t maxshard);
-    void processReady(json & d);
-    void connectWS();
-
-    bool call(string url, string * obj = nullptr, RateLimits * endpoint = nullptr, string method = "GET", string query = "");
-
-    template <typename T, typename... _BoundArgs>
-    void createTimer(uint64_t t, shared_ptr<boost::asio::steady_timer> timer, T f, _BoundArgs&&... __args);
-
-    void addCommand(string command, ABMessageCallback callback)
-    {
-        defaultcmdlist[command] = ABCallbackPair(ABCallbackOptions(), callback);
-    }
-
-    void addCommand(string command, ABCallbackPair callback)
-    {
-        defaultcmdlist[command] = callback;
-    }
-
-    FormattingChannel * pFC;
-    FormattingChannel * pFCf;
-    Logger * log;
-    Logger * logf;
-
-    //Websockets
-    boost::asio::io_service io_service;
-    websocketpp::client<websocketpp::config::asio_tls_client> ws;
-    websocketpp::config::asio_client::message_type::ptr message;
-    websocketpp::client<websocketpp::config::asio_tls_client>::connection_type::ptr connection;
-    boost::asio::steady_timer keepalive_timer_;
-
-    RateLimits ratelimits;
-
+    static void setupCache(ABCache * in);
+    static void loadConfigs();
+    static void startShards();
+    static void threads();
+    static string gatewayurl;
+    static std::vector<shared_ptr<AegisBot>> bots;
+    static bool isrunning;
+    static bool active;
+    //default commands for guilds
+    static std::recursive_mutex m;
+    static std::vector<std::thread> threadPool;
+    static std::thread workthread;
+    static string token;
+    static std::chrono::steady_clock::time_point starttime;
+    static ABCache * cache;
+    static string username;
+    static bool rate_global;
+    static uint16_t discriminator;
+    static string avatar;
+    static uint64_t userId;
+    static bool mfa_enabled;
     //Private chat tracking
     struct PrivateChat
     {
@@ -153,69 +134,52 @@ public:
         uint64_t last_message_id;
         std::map<uint64_t, shared_ptr<Member>> recipients;
     };
-    std::map<uint64_t, shared_ptr<PrivateChat>> private_channels;
-    std::map<uint64_t, shared_ptr<Channel>> channellist;
-    std::map<uint64_t, shared_ptr<Member>> globalusers;
+    static std::map<uint64_t, shared_ptr<PrivateChat>> private_channels;
+    static std::map<uint64_t, shared_ptr<Channel>> channellist;
+    static std::map<uint64_t, shared_ptr<Member>> globalusers;
 
     //Guild tracking (Servers)
-    std::map<uint64_t, shared_ptr<Guild>> guildlist;
+    static std::map<uint64_t, shared_ptr<Guild>> guildlist;
+
+    static std::vector<shared_ptr<AegisBot>> shards;
+    static boost::asio::io_service io_service;
+
+    static uint16_t shardidmax;
+    uint16_t shardid;
+
+    AegisBot();
+    ~AegisBot();
+
+    void keepalive(const boost::system::error_code& error, const uint64_t ms);
+    void onMessage(websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg);
+    void onConnect(websocketpp::connection_hdl hdl);
+    void onClose(websocketpp::connection_hdl hdl);
+    void userMessage(json & obj);
+    bool initialize(uint64_t shardid);
+    void processReady(json & d);
+    void connectWS();
+
+    template <typename T, typename... _BoundArgs>
+    void createTimer(uint64_t t, shared_ptr<boost::asio::steady_timer> timer, T f, _BoundArgs&&... __args);
+
+    //Websockets
+    websocketpp::client<websocketpp::config::asio_tls_client> ws;
+    websocketpp::config::asio_client::message_type::ptr message;
+    websocketpp::client<websocketpp::config::asio_tls_client>::connection_type::ptr connection;
+    boost::asio::steady_timer keepalive_timer_;
+
+    RateLimits ratelimits;
 
     //Authorization
     uint64_t sequence = 0;
-    string token;
-    uint64_t shardid = 0;
-    uint64_t shardidmax = 0;
     string sessionId;
-    string gatewayurl;
-
-    std::chrono::steady_clock::time_point starttime;
-
-    string uptime()
-    {
-        std::stringstream ss;
-        std::chrono::steady_clock::time_point timenow = std::chrono::steady_clock::now();
-
-        uint32_t days = std::chrono::duration_cast<std::chrono::duration<int, std::ratio<5184000>>>(timenow - starttime).count();
-        uint32_t hours = std::chrono::duration_cast<std::chrono::hours>(timenow - starttime).count() - days * 5184000;
-        uint32_t minutes = std::chrono::duration_cast<std::chrono::minutes>(timenow - starttime).count() - hours * 3600 - days * 5184000;
-        int64_t seconds = std::chrono::duration_cast<std::chrono::seconds>(timenow - starttime).count() - minutes * 60 - hours * 3600 - days * 5184000;
-        if (days > 0)
-            ss << days << "d ";
-        if (hours > 0)
-            ss << hours << "h ";
-        if (minutes > 0)
-            ss << minutes << "m ";
-        if (seconds > 0)
-            ss << seconds << "s";
-        return ss.str();
-    }
-
-    ABCache * cache;
-
-    //Bot specific data
-    string username;
-    bool rate_global = false;
-    uint16_t discriminator;
-    string avatar;
-    uint64_t userId;
-    bool mfa_enabled = false;
-    bool isrunning = true;
 
     shared_ptr<Guild> loadGuild(json & obj);
     shared_ptr<Guild> loadGuildFromCache(json & obj);
     shared_ptr<Member> loadMember(json & obj);
     shared_ptr<Member> loadMemberFromCache(json & obj);
 
-    void info_command(shared_ptr<ABMessage> message);
-
     void run();
-
-    //default commands for guilds
-    std::map<std::string, ABCallbackPair> defaultcmdlist = {};
-
-    std::mutex m;
-
-    std::vector<std::thread> threadPool;
 
     /*TODO:
     * Add sharding support. Have bot start a new process per shard and enable

@@ -27,10 +27,13 @@
 #include "Channel.h"
 #include "Member.h"
 #include "Guild.h"
+#include "AegisBot.h"
 
 
-ExampleBot::ExampleBot()
+ExampleBot::ExampleBot(AegisBot & bot, shared_ptr<Guild> guild)
+    : AegisModule(bot, guild)
 {
+    name = "example";
 }
 
 
@@ -38,20 +41,40 @@ ExampleBot::~ExampleBot()
 {
 }
 
-void ExampleBot::echo(boost::shared_ptr<ABMessage> message)
+void ExampleBot::initialize()
+{
+    auto g = guild.lock();
+    if (!g)
+        return;
+    g->addCommand("echo", std::bind(&ExampleBot::echo, this, std::placeholders::_1));
+    g->addCommand("rates2", std::bind(&ExampleBot::rates2, this, std::placeholders::_1));
+    g->addCommand("this_is_a_class_function", std::bind(&ExampleBot::this_is_a_class_function, this, std::placeholders::_1));
+}
+
+void ExampleBot::remove()
+{
+    auto g = guild.lock();
+    if (!g)
+        return;
+    g->removeCommand("echo");
+    g->removeCommand("rates2");
+    g->removeCommand("this_is_a_class_function");
+}
+
+void ExampleBot::echo(shared_ptr<ABMessage> message)
 {
     std::cout << "Message callback triggered on channel[" << message->channel->name << "] from [" << message->member->name << "]" << std::endl;
     message->channel->sendMessage(message->content.substr(message->cmd.size() + message->guild->prefix.size()));
 }
 
-void ExampleBot::rates2(boost::shared_ptr<ABMessage> message)
+void ExampleBot::rates2(shared_ptr<ABMessage> message)
 {
     uint32_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     message->channel->sendMessage(Poco::format("Content: %s\nLimit: %u\nRemain: %u\nReset: %u\nEpoch: %u\nDiff: %u\n0x%X", message->content, message->channel->ratelimits.rateLimit()
                                                , message->channel->ratelimits.rateRemaining(), message->channel->ratelimits.rateReset(), epoch, message->channel->ratelimits.rateReset() - epoch, &message->channel->ratelimits));
 }
 
-void ExampleBot::this_is_a_class_function(boost::shared_ptr<ABMessage> message)
+void ExampleBot::this_is_a_class_function(shared_ptr<ABMessage> message)
 {
     message->channel->sendMessage("return from this_is_a_class_function()");
 }

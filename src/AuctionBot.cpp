@@ -28,40 +28,196 @@
 #include "Member.h"
 #include "Guild.h"
 #include "AegisBot.h"
+#include <boost/tokenizer.hpp>
+#include <boost/algorithm/string.hpp>
 
-AuctionBot::AuctionBot()
+AuctionBot::AuctionBot(AegisBot & bot, shared_ptr<Guild> guild)
+    : AegisModule(bot, guild)
+    , timer(AegisBot::io_service)
 {
-
-}
-
-
-AuctionBot::~AuctionBot()
-{
+    name = "auction";
 }
 
 void AuctionBot::initialize()
 {
+    auto g = guild.lock();
+    if (!g)
+        return;
+
     admins.push_back(159046292633419776LL);//Disaster
     admins.push_back(171000788183678976LL);//Rensia
 
-    for (int i = 0; i < 60; ++i)
-        players.push_back(Poco::format("Player %d", i));
+//     for (int i = 0; i < 120; ++i)
+//         players.push_back({ Poco::format("Player %d", i), true });
 
-    AegisBot & bot = AegisBot::GetSingleton();
+    players.push_back({ "Golden Gyarados", true });
+    players.push_back({ "Peasounay", true });
+    players.push_back({ "Diegolh", true });
+    players.push_back({ "thelinekioubeur", true });
+    players.push_back({ "Ugly Duckling", true });
+    players.push_back({ "ROMARIO", true });
+    players.push_back({ "Ron", true });
+    players.push_back({ "Cowboy Dan", true });
+    players.push_back({ "Fener", true });
+    players.push_back({ "SunnyR", true });
+    players.push_back({ "Leru", true });
+    players.push_back({ "Oltan", true });
+    players.push_back({ "Real FV13", true });
+    players.push_back({ "deluks917", true });
+    players.push_back({ "PlihosopherKing", true });
+    players.push_back({ "Kingler12345", true });
+    players.push_back({ "Bedschibaer", true });
+    players.push_back({ "TSR", true });
+    players.push_back({ "CZ", true });
+    players.push_back({ "george182", true });
+    players.push_back({ "Atli", true });
+    players.push_back({ "Linkin Karp", true });
+    players.push_back({ "Ibidem", true });
+    players.push_back({ "Melle2402", true });
+    players.push_back({ "Marcop9923", true });
+    players.push_back({ "Arifeen", true });
+    players.push_back({ "Ariel Rebel", true });
+    players.push_back({ "partys over", true });
+    players.push_back({ "NightFox", true });
+    players.push_back({ "lighthouses", true });
+    players.push_back({ "Conflict", true });
+    players.push_back({ "Finchinator", true });
+    players.push_back({ "hero", true });
+    players.push_back({ "Azzbo", true });
+    players.push_back({ "Ch01W0n5h1n", true });
+    players.push_back({ "thelinearcurve", true });
+    players.push_back({ "Deadboots", true });
+    players.push_back({ "Asim", true });
+    players.push_back({ "Bill Shatner", true });
+    players.push_back({ "slurm", true });
+    players.push_back({ "DumbJokes", true });
+    players.push_back({ "pinktidal", true });
+    players.push_back({ "Fezant", true });
+    players.push_back({ "GGFan", true });
+    players.push_back({ "hclat", true });
+    players.push_back({ "Roostur", true });
+    players.push_back({ "Texas Cloverleaf", true });
+    players.push_back({ "terpnation", true });
+    players.push_back({ "Marcoasd", true });
+    players.push_back({ "SamuelBest", true });
+    players.push_back({ "Sans", true });
+    players.push_back({ "ReshiRampage", true });
+    players.push_back({ "drud", true });
+    players.push_back({ "Miere", true });
+    players.push_back({ "Klefkwi", true });
+    players.push_back({ "moonraker", true });
+    players.push_back({ "hellpowna", true });
+    players.push_back({ "Bomber", true });
+    players.push_back({ "Haxel", true });
+    players.push_back({ "Oibaf", true });
+    players.push_back({ "Kerts", true });
+    players.push_back({ "tjdaas", true });
+    players.push_back({ "j2dahop", true });
+    players.push_back({ "thecrystalonix", true });
+    players.push_back({ "k3nan", true });
+    players.push_back({ "Analytic", true });
+    players.push_back({ "Paraplegic", true });
+    players.push_back({ "DMA", true });
+    players.push_back({ "gorgie", true });
+    players.push_back({ "During Summe", true });
+    players.push_back({ "WSUWSU", true });
+    players.push_back({ "Steinitz", true });
+    players.push_back({ "bluri", true });
+    players.push_back({ "Magellan", true });
+    players.push_back({ "Tunc42", true });
+    players.push_back({ "DeepBlueC", true });
+    players.push_back({ "MetalGro$$", true });
+    players.push_back({ "sulcata", true });
+    players.push_back({ "p2", true });
+    players.push_back({ "Flares", true });
 
-    auto guild = bot.CreateGuild(289234114580840448LL);
+    g->addCommand("register", std::bind(&AuctionBot::Register, this, std::placeholders::_1));
+    g->addCommand("start", std::bind(&AuctionBot::Start, this, std::placeholders::_1));
+    g->addCommand("playerlist", std::bind(&AuctionBot::Playerlist, this, std::placeholders::_1));
+    g->addCommand("nom", std::bind(&AuctionBot::Nom, this, std::placeholders::_1));
+    g->addCommand("nominate", std::bind(&AuctionBot::Nom, this, std::placeholders::_1));
+    g->addCommand("defaultfunds", std::bind(&AuctionBot::Defaultfunds, this, std::placeholders::_1));
+    g->addCommand("pause", std::bind(&AuctionBot::Pause, this, std::placeholders::_1));
+    g->addCommand("resume", std::bind(&AuctionBot::Resume, this, std::placeholders::_1));
+    g->addCommand("bid", std::bind(&AuctionBot::Bid, this, std::placeholders::_1));
+    g->addCommand("b", std::bind(&AuctionBot::Bid, this, std::placeholders::_1));
+    g->addCommand("end", std::bind(&AuctionBot::End, this, std::placeholders::_1));
+    g->addCommand("setname", std::bind(&AuctionBot::Setname, this, std::placeholders::_1));
+    g->addCommand("standings", std::bind(&AuctionBot::Standings, this, std::placeholders::_1));
+    g->addCommand("retain", std::bind(&AuctionBot::Retain, this, std::placeholders::_1));
+    g->addCommand("skip", std::bind(&AuctionBot::Skip, this, std::placeholders::_1));
+    g->addCommand("setfunds", std::bind(&AuctionBot::Setfunds, this, std::placeholders::_1));
+    g->addCommand("undobid", std::bind(&AuctionBot::Undobid, this, std::placeholders::_1));
+    g->addCommand("bidtime", std::bind(&AuctionBot::Bidtime, this, std::placeholders::_1));
+    g->addCommand("fsetname", std::bind(&AuctionBot::Adminsetname, this, std::placeholders::_1));
+    g->addCommand("help", std::bind(&AuctionBot::Help, this, std::placeholders::_1));
+    g->addCommand("withdraw", std::bind(&AuctionBot::Withdraw, this, std::placeholders::_1));
+    g->addCommand("addfunds", std::bind(&AuctionBot::Addfunds, this, std::placeholders::_1));
+    g->addCommand("removefunds", std::bind(&AuctionBot::Removefunds, this, std::placeholders::_1));
+    g->addCommand("addbidder", std::bind(&AuctionBot::Addbidder, this, std::placeholders::_1));
+    g->addCommand("removebidder", std::bind(&AuctionBot::Removebidder, this, std::placeholders::_1));
+    g->addCommand("reset", std::bind(&AuctionBot::Reset, this, std::placeholders::_1));
+    g->addCommand("enable", std::bind(&AuctionBot::Enable, this, std::placeholders::_1));
+    g->addCommand("disable", std::bind(&AuctionBot::Disable, this, std::placeholders::_1));
 
-    guild->addCommand("register", std::bind(&AuctionBot::Register, this, std::placeholders::_1));
-    guild->addCommand("start", std::bind(&AuctionBot::Start, this, std::placeholders::_1));
-    guild->addCommand("playerlist", std::bind(&AuctionBot::Playerlist, this, std::placeholders::_1));
-    guild->addCommand("nom", std::bind(&AuctionBot::Nom, this, std::placeholders::_1));
-    guild->addCommand("defaultfunds", std::bind(&AuctionBot::Defaultfunds, this, std::placeholders::_1));
-    guild->addCommand("pause", std::bind(&AuctionBot::Pause, this, std::placeholders::_1));
-    guild->addCommand("resume", std::bind(&AuctionBot::Resume, this, std::placeholders::_1));
-    guild->addCommand("bid", std::bind(&AuctionBot::Bid, this, std::placeholders::_1));
-    guild->addCommand("end", std::bind(&AuctionBot::End, this, std::placeholders::_1));
-    guild->addCommand("setname", std::bind(&AuctionBot::Setname, this, std::placeholders::_1));
-    guild->addCommand("standings", std::bind(&AuctionBot::Standings, this, std::placeholders::_1));
+    g->addAttachmentHandler(std::bind(&AuctionBot::Attachments, this, std::placeholders::_1));
+}
+
+void AuctionBot::remove()
+{
+    auto g = guild.lock();
+    if (!g)
+        return;
+    g->removeCommand("register");
+    g->removeCommand("start");
+    g->removeCommand("playerlist");
+    g->removeCommand("nom");
+    g->removeCommand("nominate");
+    g->removeCommand("defaultfunds");
+    g->removeCommand("pause");
+    g->removeCommand("resume");
+    g->removeCommand("bid");
+    g->removeCommand("b");
+    g->removeCommand("end");
+    g->removeCommand("setname");
+    g->removeCommand("standings");
+    g->removeCommand("retain");
+    g->removeCommand("skip");
+    g->removeCommand("setfunds");
+    g->removeCommand("undobid");
+    g->removeCommand("bidtime");
+    g->removeCommand("fsetname");
+    g->removeCommand("help");
+    g->removeCommand("withdraw");
+    g->removeCommand("addfunds");
+    g->removeCommand("removefunds");
+    g->removeCommand("addbidder");
+    g->removeCommand("removebidder");
+    g->removeCommand("reset");
+    g->removeCommand("enable");
+    g->removeCommand("disable");
+
+    g->removeAttachmentHandler();
+}
+
+void AuctionBot::Attachments(shared_ptr<ABMessage> message)
+{
+    json attachment = message->obj["attachments"];
+
+    std::cout << "Attachment: " << attachment["url"] << " @ " << attachment["filename"] << std::endl;
+}
+
+void AuctionBot::Reset(shared_ptr<ABMessage> message)
+{
+    if (!isadmin(message->member->id))
+        return;
+
+    teams.clear();
+    currentnom = "";
+    currentteam = 0;
+    players.clear();
+    bids.clear();
+    message->channel->sendMessage("Data Reset.");
 }
 
 bool AuctionBot::isadmin(const uint64_t id)
@@ -70,6 +226,17 @@ bool AuctionBot::isadmin(const uint64_t id)
         if (i == id)
             return true;
     return false;
+}
+
+AuctionBot::Team & AuctionBot::getteam(const uint64_t id)
+{
+    for (auto & t : teams)
+    {
+        if (t.owner_id == id)
+        {
+            return t;
+        }
+    }
 }
 
 string AuctionBot::getparams(const shared_ptr<ABMessage> message)
@@ -94,29 +261,88 @@ string AuctionBot::gen_random(const int len)
 
 void AuctionBot::timercontinuation(shared_ptr<Channel> channel)
 {
-    if (!paused)
-        channel->sendMessage(Poco::format("Auction for player [%s]", currentnom));
     if (auctioninprogress)
     {
+        if (!paused)
+            channel->sendMessage(Poco::format("Auction for player **%s** currently at [%d] by **%s**", currentnom, bids.back().second, teams[bids.back().first].teamname));
         if (timeuntilstop <= std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count())
         {
+            auto res = bids.back();
             //award player
+
+            teams[res.first].funds -= res.second;
+            teams[res.first].players.push_back({ currentnom, res.second });
+
+
+            do 
+            {
+                lastteam = currentteam;
+
+                currentteam += direction;
+
+                if (currentteam > teams.size() - 1)
+                    currentteam = teams.size() - 1;
+                if (currentteam < 0)
+                    currentteam = 0;
+
+                if (currentteam == lastteam)
+                {
+                    if (direction == -1) direction = 1;
+                    else if (direction == 1) direction = -1;
+                }
+
+                if (!teams[currentteam].withdrawn)
+                    break;
+            } while (1);
+
+
+            json jteams;
+            for (auto & t : teams)
+            {
+                std::stringstream players;
+                for (auto & p : t.players)
+                    players << p.first << " (" << p.second << ")\n";
+                jteams.push_back(json({ { "name", Poco::format("[%d] %s (%d)", t.id, t.teamname, t.funds) },{ "value", players.str() == "" ? "No players purchased yet" : players.str() },{ "inline", true } }));
+            }
+            json t = {
+                { "title", "Current Standings" },
+                { "color", 10599460 },
+                { "fields", jteams },
+                { "footer",{ { "icon_url", "https://cdn.discordapp.com/attachments/288707540844412928/289572000391888906/cpp.png" },{ "text", "Auction bot" } } }
+            };
+            channel->sendMessageEmbed(Poco::format("Auction of player **%s** completed for [%d] awarded to **%s**\n<@%Lu> type `%snom player name` to nominate another player.", currentnom, res.second, teams[bids.back().first].teamname, teams[currentteam].owner_id, channel->belongs_to()->prefix), t);
+
+
+            for (int i = 0; i < players.size(); ++i)
+            {
+                if (players[i].first == currentnom)
+                {
+                    players[i].second = false;
+                }
+            }
+
             return;
         }
-        timer->async_wait(std::bind(&AuctionBot::timercontinuation, this, AegisBot::GetSingleton().channellist[289234114580840448LL]));
+        timer.expires_from_now(std::chrono::milliseconds(5000));
+        timer.async_wait(std::bind(&AuctionBot::timercontinuation, this, AegisBot::channellist[289234114580840448LL]));
     }
 }
 
 
 void AuctionBot::Register(shared_ptr<ABMessage> message)
 {
+    if (auctioninprogress)
+    {
+        message->channel->sendMessage(Poco::format("[<@%Lu>] Auction already in progress", message->member->id));
+        return;
+    }
     string name = getparams(message);
 
     for (auto & t : teams)
     {
         if (t.owner_id == message->member->id)
         {
-            message->channel->sendMessage(Poco::format("[%s] Command failed. You are already registered", message->member->name));
+            message->channel->sendMessage(Poco::format("[<@%Lu>] Command failed. You are already registered", message->member->id));
             return;
         }
     }
@@ -124,13 +350,15 @@ void AuctionBot::Register(shared_ptr<ABMessage> message)
     t.funds = defaultfunds;
     t.owner = message->member->name;
     t.owner_id = message->member->id;
+    t.id = teams.size();
     if (name.size() > 0)
     {
         t.teamname = name;
-        message->channel->sendMessage(Poco::format("[%s] Registered for auction successfully. Team name [%s]", message->member->name, name));
+        message->channel->sendMessage(Poco::format("[<@%Lu>] Registered for auction successfully. Team name **%s**", message->member->id, name));
+        t.bidders.push_back(message->member->id);
     }
     else
-        message->channel->sendMessage(Poco::format("[%s] Registered for auction successfully. Set your team name with `%ssetname name here`", message->member->name, message->guild->prefix));
+        message->channel->sendMessage(Poco::format("[<@%Lu>] Registered for auction successfully. Set your team name with `%ssetname name here`", message->member->id, message->guild->prefix));
     teams.push_back(t);
 }
 
@@ -144,47 +372,98 @@ void AuctionBot::Start(shared_ptr<ABMessage> message)
             return;
         }
         currentteam = 0;
-        message->channel->sendMessage(Poco::format("Auction has begun. First team to nominate [%s] type `%snom player name`", teams[currentteam].teamname, message->guild->prefix));
+        message->channel->sendMessage(Poco::format("Auction has begun. First team to nominate **%s** type `%snom player name`", teams[currentteam].teamname, message->guild->prefix));
         auctioninprogress = true;
     }
 }
 
 void AuctionBot::Playerlist(shared_ptr<ABMessage> message)
 {
-    std::stringstream ss;
-    for (auto & player : players)
+    std::vector<std::stringstream> outputs;
+    for (auto & t : {1,2,3,4,5,6})
     {
-        ss << "\n" << player;
+        outputs.push_back(std::stringstream());
     }
-    message->channel->sendMessage(Poco::format("Player list: %s", ss.str()));
+
+    json jteams;
+
+    for (int i = 0; i < players.size(); ++i)
+    {
+        if (players[i].second)//taken
+            outputs[i%6] << players[i].first << "\n";
+//         else
+//             outputs[i % 6] << "~~" << players[i].first << "~~\n";
+    }
+    for (int i = 0; i < outputs.size(); ++i)
+    {
+        jteams.push_back(json({ { "name", "Players" },{ "value", outputs[i].str().size()>0? outputs[i].str():"No Players" },{ "inline", true } }));
+    }
+    json t = {
+        { "title", "Current Players" },
+        { "color", 10599460 },
+        { "fields", jteams },
+        { "footer",{ { "icon_url", "https://cdn.discordapp.com/attachments/288707540844412928/289572000391888906/cpp.png" },{ "text", "Auction bot" } } }
+    };
+    message->channel->sendMessageEmbed("", t);
+
+
 }
 
 void AuctionBot::Nom(shared_ptr<ABMessage> message)
 {
+    if (!auctioninprogress)
+    {
+        message->channel->sendMessage(Poco::format("[<@%Lu>] No auction going on.", message->member->id));
+        return;
+    }
+
+    if (message->member->id != teams[currentteam].owner_id)
+    {
+        message->channel->sendMessage(Poco::format("[<@%Lu>] It is not your turn to nominate.", message->member->id));
+        return;
+    }
+    for (auto & b : teams[currentteam].bidders)
+    {
+        std::cout << "Allowed bidder: " << b << std::endl;
+    }
     try
     {
-        string name = getparams(message);
-        if (name.size() == 0)
+        for (auto & b : teams[currentteam].bidders)
         {
-            message->channel->sendMessage(Poco::format("[%s] Invalid command arguments.", message->member->name));
-            return;
-        }
-        for (auto & p : players)
-        {
-            if (p == name)
+            if (b == message->member->id)
             {
-                currentnom = p;
-                currentbid = 3000;
-                message->channel->sendMessage(Poco::format("Auction started for player [%s] Current bid at [%d] To bid, type `%sbid value` Only increments of 500 allowed.", p, currentbid, message->guild->prefix));
-                timeuntilstop = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() + 15000;
-                timer->expires_from_now(std::chrono::milliseconds(5000));
-                timer->async_wait(std::bind(&AuctionBot::timercontinuation, this, AegisBot::GetSingleton().channellist[289234114580840448LL]));
+                string name = getparams(message);
+                if (name.size() == 0)
+                {
+                    message->channel->sendMessage(Poco::format("[<@%Lu>] Invalid command arguments.", message->member->id));
+                    return;
+                }
+                for (auto & p : players)
+                {
+                    if (p.first == name)
+                    {
+                        if (!p.second)
+                        {
+                            message->channel->sendMessage(Poco::format("[<@%Lu>] Player [%s] already bought.", message->member->id, name));
+                            return;
+                        }
+                        currentnom = p.first;
+                        bids.clear();
+                        bids.push_back({ getteam(message->member->id).id, 3000 });
+                        message->channel->sendMessage(Poco::format("Auction started for player **%s** Current bid at [%d] To bid, type `%sbid value` Only increments of 500 allowed.", p.first, bids.back().second, message->guild->prefix));
+                        timeuntilstop = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() + bidtime;
+                        timer.expires_from_now(std::chrono::milliseconds(5000));
+                        timer.async_wait(std::bind(&AuctionBot::timercontinuation, this, AegisBot::channellist[289234114580840448LL]));
+                        return;
+                    }
+                }
+                return;
             }
         }
     }
     catch (...)
     {
-        message->channel->sendMessage(Poco::format("[%s] Invalid command arguments.", message->member->name));
+        message->channel->sendMessage(Poco::format("[<@%Lu>] Invalid command arguments.", message->member->id));
     }
 }
 
@@ -195,21 +474,28 @@ void AuctionBot::Defaultfunds(shared_ptr<ABMessage> message)
         string bid = getparams(message);
         if (bid.size() == 0)
         {
-            message->channel->sendMessage(Poco::format("[%s] Invalid command arguments.", message->member->name));
+            message->channel->sendMessage(Poco::format("[<@%Lu>] Invalid command arguments.", message->member->id));
             return;
         }
         int dbid = std::stoi(bid);;
         for (auto & t : teams)
             t.funds = dbid;
-        message->channel->sendMessage(Poco::format("[%s] Starting funds and all current teams set to [%d]", message->member->name, dbid));
+        message->channel->sendMessage(Poco::format("[<@%Lu>] Starting funds and all current teams set to [%d]", message->member->id, dbid));
         defaultfunds = std::stoi(bid);
     }
 }
 
 void AuctionBot::Pause(shared_ptr<ABMessage> message)
 {
+    if (!auctioninprogress)
+    {
+        message->channel->sendMessage(Poco::format("[<@%Lu>] No auction going on.", message->member->id));
+        return;
+    }
+
     if (isadmin(message->member->id))
     {
+        pausetimeleft = timeuntilstop - std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
         message->channel->sendMessage("Auction has been paused.");
         paused = true;
     }
@@ -217,8 +503,15 @@ void AuctionBot::Pause(shared_ptr<ABMessage> message)
 
 void AuctionBot::Resume(shared_ptr<ABMessage> message)
 {
+    if (!auctioninprogress)
+    {
+        message->channel->sendMessage(Poco::format("[<@%Lu>] No auction going on.", message->member->id));
+        return;
+    }
+
     if (isadmin(message->member->id))
     {
+        timeuntilstop += pausetimeleft;
         message->channel->sendMessage("Auction has been resumed.");
         paused = false;
     }
@@ -226,42 +519,66 @@ void AuctionBot::Resume(shared_ptr<ABMessage> message)
 
 void AuctionBot::Bid(shared_ptr<ABMessage> message)
 {
+    if (!auctioninprogress)
+    {
+        message->channel->sendMessage(Poco::format("[<@%Lu>] No auction going on.", message->member->id));
+        return;
+    }
+
     string sbid = getparams(message);
     if (sbid.size() == 0)
     {
-        message->channel->sendMessage(Poco::format("[%s] Invalid command arguments.", message->member->name));
+        message->channel->sendMessage(Poco::format("[<@%Lu>] Invalid command arguments.", message->member->id));
         return;
     }
     int bid = std::stoi(sbid);
 
     if (bid % 500 > 0)
     {
-        message->channel->sendMessage(Poco::format("DEBUG [%s] Bid not a multiple of 500 [%d].", message->member->name, bid));
+        //message->channel->sendMessage(Poco::format("DEBUG [<@%Lu>] Bid not a multiple of 500 [%d].", message->member->id, bid));
         return;
     }
 
     for (auto & t : teams)
     {
-        if (t.owner_id == message->member->id)
+        for (auto & b : t.bidders)
         {
-            if (bid > currentbid)
+            if (b == message->member->id)
             {
-                currentbid = bid;
-                message->channel->sendMessage(Poco::format("DEBUG [%s] Bid increased to [%d].", message->member->name, currentbid));
-                return;
-            }
-            else
-            {
-                message->channel->sendMessage(Poco::format("DEBUG [%s] Bid not large enough. Current price [%d].", message->member->name, currentbid));
-                return;
+                if (t.withdrawn)
+                    return;
+                if (bid > bids.back().second)
+                {
+                    if (bid > t.funds - ((10 - t.players.size()) * 3000) || bid > t.funds)
+                    {
+                        message->channel->sendMessage(Poco::format("[<@%Lu>] Bid is too high for your funds [%d].", message->member->id, t.funds));
+                        return;
+                    }
+
+                    bids.push_back({ t.id, bid });
+                    //message->channel->sendMessage(Poco::format("DEBUG [<@%Lu>] Bid increased to [%d].", message->member->id, bids.back().second));
+                    timeuntilstop = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() + bidtime;
+                    return;
+                }
+                else
+                {
+                    //message->channel->sendMessage(Poco::format("DEBUG [<@%Lu>] Bid not large enough. Current price [%d].", message->member->id, bids.back().second));
+                    return;
+                }
             }
         }
     }
-    message->channel->sendMessage(Poco::format("DEBUG [%s] You do not have a team to bid for.", message->member->name));
+    message->channel->sendMessage(Poco::format("[<@%Lu>] You do not have a team to bid for.", message->member->id));
 }
 
 void AuctionBot::End(shared_ptr<ABMessage> message)
 {
+    if (!auctioninprogress)
+    {
+        message->channel->sendMessage(Poco::format("[<@%Lu>] No auction going on.", message->member->id));
+        return;
+    }
+
     if (message->member->id == 159046292633419776LL || message->member->id == 171000788183678976LL)
     {
         currentteam = 0;
@@ -270,8 +587,8 @@ void AuctionBot::End(shared_ptr<ABMessage> message)
         {
             std::stringstream players;
             for (auto & p : t.players)
-                players << p.first << " (" << p.second << ")";
-            jteams.push_back(json({ { "name", Poco::format("%s (%d)", t.teamname, t.funds) },{ "value", players.str() == "" ? "No players won yet" : players.str() } }));
+                players << p.first << " (" << p.second << ")\n";
+            jteams.push_back(json({ { "name", Poco::format("%s (%d)", t.teamname, t.funds) },{ "value", players.str() == "" ? "No players won yet" : players.str() },{ "inline", true } }));
         }
         if (jteams.empty())
         {
@@ -290,17 +607,17 @@ void AuctionBot::End(shared_ptr<ABMessage> message)
 
 void AuctionBot::Setname(shared_ptr<ABMessage> message)
 {
-    string name = message->content.substr(message->guild->prefix.size() + message->cmd.size() + 1);
+    string name = getparams(message);
     for (auto & t : teams)
     {
         if (t.owner_id == message->member->id)
         {
             t.teamname = name;
-            message->channel->sendMessage(Poco::format("[%s] Name set successfully. [%s]", message->member->name, name));
+            message->channel->sendMessage(Poco::format("[<@%Lu>] Name set successfully. **%s**", message->member->id, name));
             return;
         }
     }
-    message->channel->sendMessage(Poco::format("[%s] You are not registered yet. Register for the auction with `%sregister`", message->member->name, message->guild->prefix));
+    message->channel->sendMessage(Poco::format("[<@%Lu>] You are not registered yet. Register for the auction with `%sregister`", message->member->id, message->guild->prefix));
 }
 
 void AuctionBot::Standings(shared_ptr<ABMessage> message)
@@ -310,8 +627,8 @@ void AuctionBot::Standings(shared_ptr<ABMessage> message)
     {
         std::stringstream players;
         for (auto & p : t.players)
-            players << p.first << " (" << p.second << ")";
-        jteams.push_back(json({ { "name", Poco::format("%s (%d)", t.teamname, t.funds) },{ "value", players.str() == "" ? "No players purchased yet" : players.str() } }));
+            players << p.first << " (" << p.second << ")\n";
+        jteams.push_back(json({ { "name", Poco::format("[%d] %s (%d)", t.id+1, t.teamname, t.funds) },{ "value", players.str() == "" ? "No players purchased yet" : players.str() }, { "inline", true } }));
     }
     json t = {
         { "title", "Current Standings" },
@@ -322,3 +639,428 @@ void AuctionBot::Standings(shared_ptr<ABMessage> message)
     message->channel->sendMessageEmbed("", t);
 }
 
+void AuctionBot::Retain(shared_ptr<ABMessage> message)
+{
+    if (!isadmin(message->member->id))
+        return;
+    try
+    {
+        std::vector<string> tokens;
+        boost::split(tokens, message->content, boost::is_any_of(" "));
+
+        int len = 0;
+
+        if (tokens.size() < 4)
+        {
+            message->channel->sendMessage(Poco::format("[<@%Lu>] Invalid command arguments.", message->member->id));
+            return;
+        }
+
+        len += tokens[0].size();//cmd
+        len += tokens[1].size();//team index
+        len += tokens[2].size();//funds
+
+        len += 3;
+
+        string playername = message->content.substr(len);
+        int teamindex = std::stoi(tokens[1])-1;
+        int funds = std::stoi(tokens[2]);
+
+        if (teamindex > teams.size())
+        {
+            message->channel->sendMessage(Poco::format("[<@%Lu>] Team does not exist.", message->member->id));
+            return;
+        }
+
+
+        for (auto & p : players)
+        {
+            if (p.first == playername)
+            {
+                p.second = false;
+                teams[teamindex].funds -= funds;
+                teams[teamindex].players.push_back({ playername, funds });
+                message->channel->sendMessage(Poco::format("[<@%Lu>] Player **%s** retained to team **%s** for [%d]", message->member->id, playername, teams[teamindex].teamname, funds));
+                return;
+            }
+        }
+
+    }
+    catch (...)
+    {
+        message->channel->sendMessage(Poco::format("[<@%Lu>] Invalid command arguments.", message->member->id));
+    }
+}
+
+void AuctionBot::Skip(shared_ptr<ABMessage> message)
+{
+    if (!isadmin(message->member->id))
+        return;
+    if (!auctioninprogress)
+    {
+        message->channel->sendMessage(Poco::format("[<@%Lu>] No auction going on.", message->member->id));
+        return;
+    }
+    int failurecheck = 0;
+    string oldteam = teams[currentteam].teamname;
+    do
+    {
+        lastteam = currentteam;
+
+        currentteam += direction;
+
+        if (currentteam < 0)
+            currentteam = 0;
+        if (currentteam > teams.size() - 1)
+            currentteam = teams.size() - 1;
+
+
+        if (currentteam == lastteam)
+        {
+            if (direction == -1) direction = 1;
+            else if (direction == 1) direction = -1;
+        }
+
+        if (!teams[currentteam].withdrawn)
+            break;
+        failurecheck++;
+    } while (failurecheck < 15);
+
+    message->channel->sendMessage(Poco::format("[%s]'s turn skipped\n[%s] <@%Lu> type `%snom player name` to nominate another player.", oldteam, teams[currentteam].teamname, teams[currentteam].owner_id, message->channel->belongs_to()->prefix));
+}
+
+void AuctionBot::Setfunds(shared_ptr<ABMessage> message)
+{
+    if (!isadmin(message->member->id))
+        return;
+    try
+    {
+        boost::char_separator<char> sep{ " " };
+        boost::tokenizer<boost::char_separator<char>> tok{ message->content, sep };
+
+        auto token = tok.begin();
+
+        token++;
+
+        string team = *token++;
+
+        if (team.size() == 0)
+        {
+            message->channel->sendMessage(Poco::format("[<@%Lu>] Invalid command arguments.", message->member->id));
+            return;
+        }
+
+        if (teams.size() < std::stoi(team)-1)
+        {
+            message->channel->sendMessage(Poco::format("[<@%Lu>] Invalid team.", message->member->id));
+            return;
+        }
+
+        string funds = *token++;
+
+        if (funds.size() == 0)
+        {
+            message->channel->sendMessage(Poco::format("[<@%Lu>] Invalid command arguments.", message->member->id));
+            return;
+        }
+
+
+        teams[std::stoi(team)-1].funds = std::stoi(funds);
+        message->channel->sendMessage(Poco::format("[<@%Lu>] Funds for **%s** set successfully. [%d]", message->member->id, teams[std::stoi(team)-1].teamname, teams[std::stoi(team)-1].funds));
+    }
+    catch (...)
+    {
+        message->channel->sendMessage(Poco::format("[<@%Lu>] Invalid command arguments.", message->member->id));
+    }
+}
+
+void AuctionBot::Undobid(shared_ptr<ABMessage> message)
+{
+    if (!isadmin(message->member->id))
+        return;
+    if (!auctioninprogress)
+    {
+        message->channel->sendMessage(Poco::format("[<@%Lu>] No auction going on.", message->member->id));
+        return;
+    }
+
+    if (bids.size() > 1)
+    {
+        bids.pop_back();
+        message->channel->sendMessage(Poco::format("[<@%Lu>] Undo bid successful. Current Bid [%d] by **%s**.", message->member->id, bids.back().second, teams[bids.back().first].teamname));
+        return;
+    }
+    else
+    {
+        message->channel->sendMessage(Poco::format("[<@%Lu>] There is no last bidder.", message->member->id));
+        return;
+    }
+}
+
+void AuctionBot::Bidtime(shared_ptr<ABMessage> message)
+{
+    if (isadmin(message->member->id))
+    {
+        string bid = getparams(message);
+        if (bid.size() == 0)
+        {
+            message->channel->sendMessage(Poco::format("[<@%Lu>] Invalid command arguments.", message->member->id));
+            return;
+        }
+        bidtime = std::stoi(bid)*1000;
+        message->channel->sendMessage(Poco::format("[<@%Lu>] Time between bids set to [%u]", message->member->id, bidtime));
+    }
+}
+
+void AuctionBot::Help(shared_ptr<ABMessage> message)
+{
+    json admincommands = json({ { "name", "Admin only" },{ "value", "start, end, defaultfunds, pause, resume, setfunds, bidtime, fsetname, retain, skip, undobid, reset" },{ "inline", true } });
+    json usercommands = json({ { "name", "Manager" },{ "value", "register, playerlist, nom, b, bid, setname, standings" },{ "inline", true } });
+    json t = {
+        { "title", "Commands" },
+        { "color", 10599460 },
+        { "fields", { admincommands, usercommands } },
+        { "footer",{ { "icon_url", "https://cdn.discordapp.com/attachments/288707540844412928/289572000391888906/cpp.png" },{ "text", "Auction bot" } } }
+    };
+    message->channel->sendMessageEmbed("", t);
+}
+
+void AuctionBot::Withdraw(shared_ptr<ABMessage> message)
+{
+    if (!auctioninprogress)
+    {
+        message->channel->sendMessage(Poco::format("[<@%Lu>] No auction going on.", message->member->id));
+        return;
+    }
+    for (auto & t : teams)
+    {
+        for (auto & b : t.bidders)
+        {
+            if (b == message->member->id)
+            {
+                if (t.players.size() < 10)
+                {
+                    message->channel->sendMessage(Poco::format("[<@%Lu>] Unable to withdraw. Need at least 10 players. Your players: **%d**.", message->member->id, t.players.size()));
+                    return;
+                }
+                message->channel->sendMessage(Poco::format("[<@%Lu>] Your team **%s** has withdrawn from the auction.", message->member->id, t.teamname));
+                t.withdrawn = true;
+                return;
+            }
+        }
+    }
+}
+
+void AuctionBot::Addfunds(shared_ptr<ABMessage> message)
+{
+    if (!isadmin(message->member->id))
+        return;
+    try
+    {
+        boost::char_separator<char> sep{ " " };
+        boost::tokenizer<boost::char_separator<char>> tok{ message->content, sep };
+
+        auto token = tok.begin();
+
+        token++;
+
+        string team = *token++;
+
+        if (team.size() == 0)
+        {
+            message->channel->sendMessage(Poco::format("[<@%Lu>] Invalid command arguments.", message->member->id));
+            return;
+        }
+
+        if (teams.size() < std::stoi(team) - 1)
+        {
+            message->channel->sendMessage(Poco::format("[<@%Lu>] Invalid team.", message->member->id));
+            return;
+        }
+
+        string funds = *token++;
+
+        if (funds.size() == 0)
+        {
+            message->channel->sendMessage(Poco::format("[<@%Lu>] Invalid command arguments.", message->member->id));
+            return;
+        }
+
+        teams[std::stoi(team) - 1].funds += std::stoi(funds);
+        message->channel->sendMessage(Poco::format("[<@%Lu>] Funds for **%s** set successfully. +%d [%d]", message->member->id, teams[std::stoi(team) - 1].teamname, std::stoi(funds), teams[std::stoi(team) - 1].funds));
+    }
+    catch (...)
+    {
+        message->channel->sendMessage(Poco::format("[<@%Lu>] Invalid command arguments.", message->member->id));
+    }
+}
+
+void AuctionBot::Removefunds(shared_ptr<ABMessage> message)
+{
+    if (!isadmin(message->member->id))
+        return;
+    try
+    {
+        boost::char_separator<char> sep{ " " };
+        boost::tokenizer<boost::char_separator<char>> tok{ message->content, sep };
+
+        auto token = tok.begin();
+
+        token++;
+
+        string team = *token++;
+
+        if (team.size() == 0)
+        {
+            message->channel->sendMessage(Poco::format("[<@%Lu>] Invalid command arguments.", message->member->id));
+            return;
+        }
+
+        if (teams.size() < std::stoi(team) - 1)
+        {
+            message->channel->sendMessage(Poco::format("[<@%Lu>] Invalid team.", message->member->id));
+            return;
+        }
+
+        string funds = *token++;
+
+        if (funds.size() == 0)
+        {
+            message->channel->sendMessage(Poco::format("[<@%Lu>] Invalid command arguments.", message->member->id));
+            return;
+        }
+
+        teams[std::stoi(team) - 1].funds -= std::stoi(funds);
+        message->channel->sendMessage(Poco::format("[<@%Lu>] Funds for **%s** set successfully. -%d [%d]", message->member->id, teams[std::stoi(team) - 1].teamname, std::stoi(funds), teams[std::stoi(team) - 1].funds));
+    }
+    catch (...)
+    {
+        message->channel->sendMessage(Poco::format("[<@%Lu>] Invalid command arguments.", message->member->id));
+    }
+}
+
+void AuctionBot::Adminsetname(shared_ptr<ABMessage> message)
+{
+    if (!isadmin(message->member->id))
+        return;
+    try
+    {
+        boost::char_separator<char> sep{ " " };
+        boost::tokenizer<boost::char_separator<char>> tok{ message->content, sep };
+
+        int length = 0;
+
+        auto token = tok.begin();
+        length += (*token).size();
+        token++;
+
+        string team = *token++;
+
+        if (team.size() == 0)
+        {
+            message->channel->sendMessage(Poco::format("[<@%Lu>] Invalid command arguments.", message->member->id));
+            return;
+        }
+
+        if (teams.size() < std::stoi(team)-1)
+        {
+            message->channel->sendMessage(Poco::format("[<@%Lu>] Invalid team.", message->member->id));
+            return;
+        }
+
+        string name = message->content.substr(length + 2);
+        //string name = *token++;
+
+        if (name.size() == 0)
+        {
+            message->channel->sendMessage(Poco::format("[<@%Lu>] Invalid command arguments.", message->member->id));
+            return;
+        }
+
+        string oldname = teams[std::stoi(team) - 1].teamname;
+        teams[std::stoi(team)-1].teamname = name;
+        message->channel->sendMessage(Poco::format("[<@%Lu>] Name successfully changed from **%s** to **%s**", message->member->id, oldname, teams[std::stoi(team)-1].teamname));
+    }
+    catch (...)
+    {
+        message->channel->sendMessage(Poco::format("[<@%Lu>] Invalid command arguments.", message->member->id));
+    }
+}
+
+void AuctionBot::Addbidder(shared_ptr<ABMessage> message)
+{
+    string bidder = getparams(message);
+    if (bidder.size() == 0)
+    {
+        message->channel->sendMessage(Poco::format("[<@%Lu>] Invalid command arguments.", message->member->id));
+        return;
+    }
+    uint64_t addbidder = std::stoull(bidder.substr(2, bidder.size()-3));
+
+    for (auto & t : teams)
+    {
+        if (t.owner_id == message->member->id)
+        {
+            if (t.withdrawn)
+                return;
+            t.bidders.push_back(addbidder);
+            message->channel->sendMessage(Poco::format("[<@%Lu>] Added [<@%Lu>] to **%s**'s list of bidders.", message->member->id, addbidder, t.teamname));
+            return;
+        }
+    }
+    message->channel->sendMessage(Poco::format("[<@%Lu>] You are not the manager of a team.", message->member->id));
+}
+
+void AuctionBot::Removebidder(shared_ptr<ABMessage> message)
+{
+    string bidder = getparams(message);
+    if (bidder.size() == 0)
+    {
+        message->channel->sendMessage(Poco::format("[<@%Lu>] Invalid command arguments.", message->member->id));
+        return;
+    }
+    uint64_t rembidder = std::stoull(bidder.substr(2, bidder.size() - 3));
+
+    for (auto & t : teams)
+    {
+        if (t.owner_id == message->member->id)
+        {
+            if (t.withdrawn)
+                return;
+            for (auto it = t.bidders.begin(); it != t.bidders.end(); ++it)
+            {
+                if (*it == rembidder)
+                {
+                    t.bidders.erase(it);
+                    message->channel->sendMessage(Poco::format("[<@%Lu>] Removed [<@%Lu>] from **%s**'s list of bidders.", message->member->id, rembidder, t.teamname));
+                    return;
+                }
+            }
+        }
+    }
+    message->channel->sendMessage(Poco::format("[<@%Lu>] You are not the manager of a team.", message->member->id));
+}
+
+void AuctionBot::Enable(shared_ptr<ABMessage> message)
+{
+    for (std::pair<const string, ABCallbackPair> & c : AegisBot::guildlist[289234114580840448LL]->cmdlist)
+    {
+        c.second.first.enabled = true;
+        c.second.first.level = 0;
+    }
+    message->channel->sendMessage("Auction commands enabled");
+}
+
+void AuctionBot::Disable(shared_ptr<ABMessage> message)
+{
+    for (std::pair<const string, ABCallbackPair> & c : AegisBot::guildlist[289234114580840448LL]->cmdlist)
+    {
+        if (c.first != "enable")
+        {
+            c.second.first.enabled = false;
+            c.second.first.level = 1;
+        }
+    }
+    message->channel->sendMessage("Auction commands disabled");
+
+}

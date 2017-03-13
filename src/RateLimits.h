@@ -31,11 +31,13 @@
 #include <string>
 #include <functional>
 #include <chrono>
-#include <boost/shared_ptr.hpp>
 #include <mutex>
 #include <iostream>
+#include <memory>
 
 class ABMessage;
+
+using std::shared_ptr;
 
 class RateLimits
 {
@@ -75,7 +77,7 @@ public:
         if (failures > 10)
         {
             uint64_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-            if (_lastfailure + 30000 < epoch)
+            if (_lastfailure + 30 < epoch)
             {
                 return true;
             }
@@ -83,7 +85,7 @@ public:
         if (failures > 3)
         {
             uint64_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-            if (_lastfailure + 5000 < epoch)
+            if (_lastfailure + 5 < epoch)
             {
                 return true;
             }
@@ -99,24 +101,25 @@ public:
         _retry_after = retry;
     }
 
-    boost::shared_ptr<ABMessage> getMessage()
+    shared_ptr<ABMessage> getMessage()
     {
         std::lock_guard<std::mutex> lock(m);
         if (outqueue.size() > 0)
         {
-            boost::shared_ptr<ABMessage> t = outqueue.front();
+            shared_ptr<ABMessage> t = outqueue.front();
             outqueue.pop();
             return t;
         }
+        return nullptr;
     }
 
-    void putMessage(boost::shared_ptr<ABMessage> message)
+    void putMessage(shared_ptr<ABMessage> message)
     {
         std::lock_guard<std::mutex> lock(m);
         outqueue.push(message);
     }
 
-    std::queue<boost::shared_ptr<ABMessage>> outqueue;
+    std::queue<shared_ptr<ABMessage>> outqueue;
 
     static bool rate_global;
 

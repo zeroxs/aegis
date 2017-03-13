@@ -28,29 +28,38 @@
 #include "AegisBot.h"
 #include <map>
 #include "Member.h"
-#include <boost/shared_ptr.hpp>
 #include "Permission.h"
 #include "Channel.h"
 #include "Role.h"
 #include "../lib/json/src/json.hpp"
 #include "RateLimits.h"
-#include <boost/enable_shared_from_this.hpp>
+#include "AegisModule.h"
 
-using boost::shared_ptr;
+using std::shared_ptr;
 class AegisBot;
 
 using std::string;
 using json = nlohmann::json;
 
-class Guild : public Permission, public boost::enable_shared_from_this<Guild>
+class Guild : public Permission, public std::enable_shared_from_this<Guild>
 {
 public:
-    Guild();
+    Guild(AegisBot & bot);
     ~Guild();
+
+    AegisBot & bot;
 
     void processMessage(json obj);
     void addCommand(string command, ABMessageCallback callback);
     void addCommand(string command, ABCallbackPair callback);
+    void removeCommand(string command);
+    void addAttachmentHandler(ABMessageCallback callback);
+    void addAttachmentHandler(ABCallbackPair callback);
+    void removeAttachmentHandler();
+    void modifyMember(json content, uint64_t guildid, uint64_t memberid, ABMessageCallback callback = ABMessageCallback());
+    void createVoice(json content, uint64_t guildid, ABMessageCallback callback = ABMessageCallback());
+    bool addModule(string modName);
+    bool removeModule(string modName);
 
     //id, <object, accesslevel>
     std::map<uint64_t, std::pair<shared_ptr<Member>, uint16_t>> clientlist;
@@ -87,5 +96,8 @@ public:
     //extendable command list. this list allows you to place c++ functions in matching to a command
     //for more than just simple responses
     std::map<std::string, ABCallbackPair> cmdlist = {};
+    ABCallbackPair attachmenthandler;
+
+    std::vector<shared_ptr<AegisModule>> modules;
 };
 
