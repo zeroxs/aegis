@@ -53,7 +53,7 @@ public:
     string getparams(shared_ptr<ABMessage> message);
     void moveAfterCreate(shared_ptr<ABMessage> message, uint64_t member_id);
     void info(shared_ptr<ABMessage> message);
-    void deleteHistory(shared_ptr<ABMessage> message);
+    void clearChat(shared_ptr<ABMessage> message);
     void clean(shared_ptr<ABMessage> message);
 
 };
