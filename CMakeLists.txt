@@ -5,7 +5,7 @@ file(GLOB_RECURSE sources src/*.cpp src/*.h)
 
 add_executable(aegisbot ${sources})
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11 -Wall")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++14 -Wall")
 
 set(Boost_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/lib/boost-1.63.0)
 set(Boost_LIBRARY_DIR ${Boost_INCLUDE_DIR}/stage/lib)
