@@ -518,14 +518,16 @@ std::pair<bool,string> AegisBot::call(string url, string obj, RateLimits * endpo
         request.set("Content-Type", "application/json");
 
 
+        request.setMethod(method);
+
         if (obj.length() > 0)
         {
-            request.setMethod(method);
             request.setContentLength(obj.length());
 
-            std::cout << "Sent JSON: " << obj << "\n";
 
 #ifdef DEBUG_OUTPUT
+            //std::cout << "Sent JSON: " << obj << "\n";
+
             std::ostringstream debugoutput;
             std::cout << "Sent request: ";
             request.write(std::cout);
