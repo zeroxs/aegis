@@ -424,8 +424,12 @@ void AegisBot::userMessage(json & obj)
     {
         //
         poco_critical_f3(*log, "Bot shutdown g[%Lu] c[%Lu] u[%Lu]", id, channel_id, userid);
+        channellist[channel_id]->sendMessage("Bot shutting down.");
+        std::this_thread::sleep_for(std::chrono::seconds(2));
         ws.stop();
         io_service.stop();
+        isrunning = false;
+        active = false;
         return;
     }
 
