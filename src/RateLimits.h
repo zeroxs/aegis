@@ -103,19 +103,17 @@ public:
 
     shared_ptr<ABMessage> getMessage()
     {
-        std::lock_guard<std::mutex> lock(m);
+        std::lock_guard<std::recursive_mutex> lock(m);
         if (outqueue.size() > 0)
         {
-            shared_ptr<ABMessage> t = outqueue.front();
-            outqueue.pop();
-            return t;
+            return outqueue.front();
         }
         return nullptr;
     }
 
     void putMessage(shared_ptr<ABMessage> message)
     {
-        std::lock_guard<std::mutex> lock(m);
+        std::lock_guard<std::recursive_mutex> lock(m);
         outqueue.push(message);
     }
 
@@ -124,12 +122,12 @@ public:
     static bool rate_global;
 
     uint16_t failures = 0;
+    std::recursive_mutex m;
 private:
     uint32_t _rate_limit = 10;
     uint32_t _rate_remaining = 10;
     uint32_t _rate_reset = 0;
     uint32_t _retry_after = 0;
-    std::mutex m;
     uint16_t _lastfailure = 0;
 };
 
