@@ -741,6 +741,15 @@ void AegisBot::createTimer(uint64_t t, shared_ptr<boost::asio::steady_timer> tim
     poco_trace_f1(*log, "createTimer(%Lu)", t);
 }
 
+void AegisBot::wssend(string obj)
+{
+    std::lock_guard<std::recursive_mutex> lock(wsq);
+    //TODO check rate limits here and pop if send
+    {
+        ws.send(hdl, obj, websocketpp::frame::opcode::text);
+    }
+}
+
 shared_ptr<Guild> AegisBot::loadGuild(json & obj)
 {
     std::lock_guard<std::recursive_mutex> lock(m);

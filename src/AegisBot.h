@@ -194,6 +194,14 @@ public:
     websocketpp::config::asio_client::message_type::ptr message;
     websocketpp::client<websocketpp::config::asio_tls_client>::connection_type::ptr connection;
     boost::asio::steady_timer keepalive_timer_;
+    websocketpp::connection_hdl hdl;
+
+    uint32_t _rate_limit = 120;
+    uint32_t _rate_remaining = 60;
+    uint32_t _rate_reset = 0;
+
+    std::recursive_mutex wsq;
+    void wssend(string obj);
 
     RateLimits ratelimits;
 
