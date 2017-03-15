@@ -58,6 +58,7 @@ std::map<uint64_t, shared_ptr<Guild>> AegisBot::guildlist;
 std::vector<shared_ptr<AegisBot>> AegisBot::shards;
 boost::asio::io_service AegisBot::io_service;
 uint16_t AegisBot::shardidmax;
+string AegisBot::mention;
 
 AegisBot::AegisBot()
     : keepalive_timer_(io_service)
@@ -193,21 +194,23 @@ void AegisBot::threads()
 {
     for (size_t t = 0; t < std::thread::hardware_concurrency() * 2; t++)
         threadPool.push_back(std::thread([&]() { io_service.run(); }));
-    for (std::thread& t : AegisBot::threadPool)
-        t.join();
     for (auto & b : AegisBot::bots)
         AegisBot::threadPool.push_back(std::thread([&]() { b->run(); }));
+    for (std::thread& t : AegisBot::threadPool)
+        t.join();
 }
 
 void AegisBot::connectWS()
 {
     //make a portable way to do this even though I like the atomic-ness of redis scripts for obtaining inter-process locks
 #ifdef USE_REDIS
+/*
     while (true)
     {
         uint64_t epoch = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-        string obtainlock = Poco::format("\"local time = redis.call('get', KEYS[1]) if (not time) then redis.call('set', KEYS[1], ARGV[1]) return 1 end if (time < ARGV[1]) then return 1 else redis.call('set', KEYS[1], ARGV[1]) return 0 end\" 1 config:wslock %Lu", epoch);
-        if (static_cast<ABRedisCache*>(cache)->eval(obtainlock) == "1")
+        //string obtainlock = Poco::format("\"local time = redis.call('get', KEYS[1]) if (not time) then redis.call('set', KEYS[1], ARGV[1]) return 0 end if (time < ARGV[1]) then return 0 else redis.call('set', KEYS[1], ARGV[1]) return 1 end\" 1 config:wslock %Lu", epoch);
+        //string res = static_cast<ABRedisCache*>(cache)->eval(obtainlock);
+        if (res == "1")
             break;
         else
         {
@@ -217,6 +220,7 @@ void AegisBot::connectWS()
                 return;
         }
     }
+*/
 
 #endif
 
@@ -321,8 +325,16 @@ void AegisBot::processReady(json & d)
     sessionId = d["session_id"];
     json & userdata = d["user"];
     avatar = userdata["avatar"];
-    discriminator = std::stoll(userdata["discriminator"].get<string>());
-    userId = std::stoll(userdata["id"].get<string>());
+    discriminator = std::stoi(userdata["discriminator"].get<string>());
+    userId = std::stoull(userdata["id"].get<string>());
+
+    if (AegisBot::mention.size() == 0)
+    {
+        std::stringstream ss;
+        ss << "<@" << userId  << ">";
+        AegisBot::mention = ss.str();
+    }
+
     username = userdata["username"];
     mfa_enabled = userdata["mfa_enabled"];
     active = true;
@@ -424,8 +436,12 @@ void AegisBot::userMessage(json & obj)
     {
         //
         poco_critical_f3(*log, "Bot shutdown g[%Lu] c[%Lu] u[%Lu]", id, channel_id, userid);
+        channellist[channel_id]->sendMessage("Bot shutting down.");
+        std::this_thread::sleep_for(std::chrono::seconds(2));
         ws.stop();
         io_service.stop();
+        isrunning = false;
+        active = false;
         return;
     }
 
@@ -505,14 +521,16 @@ std::pair<bool,string> AegisBot::call(string url, string obj, RateLimits * endpo
         request.set("Content-Type", "application/json");
 
 
+        request.setMethod(method);
+
         if (obj.length() > 0)
         {
-            request.setMethod(method);
             request.setContentLength(obj.length());
 
-            std::cout << "Sent JSON: " << obj << "\n";
 
 #ifdef DEBUG_OUTPUT
+            //std::cout << "Sent JSON: " << obj << "\n";
+
             std::ostringstream debugoutput;
             std::cout << "Sent request: ";
             request.write(std::cout);
@@ -616,19 +634,40 @@ void AegisBot::run()
                                 continue;
                             }
 
+                            //TODO: support differing rate limits eg, differentiate between self commands and guild user renames
+                            //TODO: also merge this + guild call() calls.
+
+                            //Channel api calls
                             uint32_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
                             auto message = channel.second->ratelimits.getMessage();
                             bool success = false;
-                            boost::tie(success, message->content) = call(message->endpoint, message->content, &message->channel->ratelimits, message->method, message->query);
-                            if (!success)
+
+
                             {
-                                //rate limit hit, requeue message
-                                message->channel->ratelimits.putMessage(message);
-#ifdef DEBUG_OUTPUT
-                                poco_trace_f4(*log, "Rate Limit hit or connection error - requeuing message [%s] [%Lu] [%s] [%Lu]", message->guild->name, message->guild->id, message->channel->name, message->channel->id);
-#endif
-                                continue;
+                                //lock and pop when success
+                                std::lock_guard<std::recursive_mutex> lock(channel.second->ratelimits.m);
+
+                                boost::tie(success, message->content) = call(message->endpoint, message->content, &message->channel->ratelimits, message->method, message->query);
+                                try
+                                {
+                                    if (message->content.size() != 0)
+                                        message->obj = json::parse(message->content);
+                                }
+                                catch (...)
+                                {
+                                    //dummy catch on empty or malformed responses
+                                }
+
+                                if (!success)
+                                {
+                                    //rate limit hit
+                                    poco_trace_f4(*log, "Rate Limit hit or connection error - requeuing message [%s] [%Lu] [%s] [%Lu]", message->guild->name, message->guild->id, message->channel->name, message->channel->id);
+                                    continue;
+                                }
+                                //message success, pop
+                                message->channel->ratelimits.outqueue.pop();
                             }
+
                             poco_trace_f2(*log, "Message sent: [%s] [%s]", message->endpoint, message->content);
 #ifdef DEBUG_OUTPUT
                             poco_trace_f1(*log, "rate_limit:     %u", message->channel->ratelimits.rateLimit());
@@ -654,18 +693,21 @@ void AegisBot::run()
                             continue;
                         }
 
+                        //Guild api calls
                         uint32_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
                         auto message = guild.second->ratelimits.getMessage();
                         bool success = false;
-                        boost::tie(success, message->content) = call(message->endpoint, message->content, &message->channel->ratelimits, message->method, message->query);
-                        if (!success)
                         {
-                            //rate limit hit, requeue message
-                            message->channel->ratelimits.putMessage(message);
-#ifdef DEBUG_OUTPUT
-                            poco_trace_f4(*log, "Rate Limit hit or connection error - requeuing message [%s] [%Lu] [%s] [%Lu]", message->guild->name, message->guild->id, message->channel->name, message->channel->id);
-#endif
-                            continue;
+                            std::lock_guard<std::recursive_mutex> lock(guild.second->ratelimits.m);
+                            boost::tie(success, message->content) = call(message->endpoint, message->content, &guild.second->ratelimits, message->method, message->query);
+                            if (!success)
+                            {
+                                //rate limit hit, requeue message
+                                message->channel->ratelimits.putMessage(message);
+                                poco_trace_f4(*log, "Rate Limit hit or connection error - requeuing message [%s] [%Lu] [%s] [%Lu]", message->guild->name, message->guild->id, message->channel->name, message->channel->id);
+                                continue;
+                            }
+                            guild.second->ratelimits.outqueue.pop();
                         }
                         poco_trace_f2(*log, "Message sent: [%s] [%s]", message->endpoint, message->content);
 #ifdef DEBUG_OUTPUT
@@ -697,6 +739,15 @@ void AegisBot::createTimer(uint64_t t, shared_ptr<boost::asio::steady_timer> tim
     timer->expires_from_now(std::chrono::milliseconds(t));
     timer->async_wait(std::bind(f, this, __args...));
     poco_trace_f1(*log, "createTimer(%Lu)", t);
+}
+
+void AegisBot::wssend(string obj)
+{
+    std::lock_guard<std::recursive_mutex> lock(wsq);
+    //TODO check rate limits here and pop if send
+    {
+        ws.send(hdl, obj, websocketpp::frame::opcode::text);
+    }
 }
 
 shared_ptr<Guild> AegisBot::loadGuild(json & obj)

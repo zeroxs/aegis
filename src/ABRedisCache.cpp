@@ -68,6 +68,17 @@ bool ABRedisCache::initialize()
     return true;
 }
 
+string ABRedisCache::run(string key)
+{
+    RedisValue result;
+    result = redis.command(key, {});
+
+    if (result.isOk())
+        return result.toString();
+    else
+        return "";
+}
+
 string ABRedisCache::get(string key, bool useprefix)
 {
     RedisValue result;

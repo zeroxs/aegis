@@ -80,7 +80,10 @@ install:
   ############################################################################
   # Install Boost.Build
   ############################################################################
-  - (cd ${BOOST_DIR} && ./bootstrap.sh && ./b2 toolset=${BOOST_C} --with-program_options --with-date_time --with-thread --with-system)
+  - if [[ -z "$(ls -A ${BOOST_DIR})/stage" ]]; then
+      (cd ${BOOST_DIR} && ./bootstrap.sh && ./b2 toolset=${BOOST_C} --with-program_options --with-date_time --with-thread --with-system)
+    fi
+
   ############################################################################
   # Install Clang, libc++ and libc++abi
   ############################################################################
@@ -115,11 +118,14 @@ install:
     POCO_URL="https://pocoproject.org/releases/poco-${POCO_VERSION}/poco-${POCO_VERSION}-all.tar.gz"
     mkdir -p ${POCO_DIR}
     travis_retry wget --quiet -O - ${POCO_URL}      | tar --strip-components=1 -xz -C ${POCO_DIR}
-    if [[ "${LLVM_VERSION}" != "" ]]; then
-      (cd ${POCO_DIR} && cmake . -DCMAKE_CXX_COMPILER=${COMPILER} && make)
-    else
-      (cd ${POCO_DIR} && cmake . -DCMAKE_CXX_COMPILER=${COMPILER} -DCMAKE_C_COMPILER=${COMPILERGCC} && make)
+    if [[ -z "$(ls -A ${POCO_DIR})/lib" ]]; then
+        if [[ "${LLVM_VERSION}" != "" ]]; then
+          (cd ${POCO_DIR} && cmake . -DCMAKE_CXX_COMPILER=${COMPILER} && make)
+        else
+          (cd ${POCO_DIR} && cmake . -DCMAKE_CXX_COMPILER=${COMPILER} -DCMAKE_C_COMPILER=${COMPILERGCC} && make)
+        fi
     fi
+
 
 
 before_script:

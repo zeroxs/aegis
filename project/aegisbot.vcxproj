@@ -71,7 +71,6 @@
     <ClInclude Include="..\src\Permission.h" />
     <ClInclude Include="..\src\RateLimits.h" />
     <ClInclude Include="..\src\Role.h" />
-    <ClInclude Include="..\src\rss.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{7892ad94-fd49-48b7-afa3-9bf6b16fd202}</ProjectGuid>

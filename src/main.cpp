@@ -34,39 +34,36 @@
 #include "AuctionBot.h"
 #include "AegisOfficial.h"
 
-//////////////////////////////////////////////////////////////////////////
-//
-void this_is_a_global_function(shared_ptr<ABMessage> message)
-{
-    message->channel->sendMessage("return from this_is_a_global_function()");
-}
-
 int main(int argc, char * argv[])
 {
     try
     {
         boost::asio::io_service::work work(AegisBot::io_service);
-        AegisBot::pFC = new FormattingChannel(new PatternFormatter("%p:%T %t"));
-        AegisBot::pFC->setChannel(new ConsoleChannel);
-        AegisBot::pFC->open();
 
-        File f("log/");
-        if (!f.exists())
+        //TODO: remove for boost::logging
         {
-            f.createDirectory();
-        }
-        else if (f.isFile())
-        {
-            throw std::runtime_error("Error creating log directory!");
-        }
+            AegisBot::pFC = new FormattingChannel(new PatternFormatter("%p:%T %t"));
+            AegisBot::pFC->setChannel(new ConsoleChannel);
+            AegisBot::pFC->open();
 
-        AegisBot::pFCf = new FormattingChannel(new PatternFormatter("%Y-%m-%d %H:%M:%S.%c | %s:%q:%t"));
-        AegisBot::pFCf->setChannel(new FileChannel("log/console.log"));
-        AegisBot::pFCf->setProperty("rotation", "daily");
-        AegisBot::pFCf->setProperty("times", "local");
-        AegisBot::pFCf->open();
-        AegisBot::logf = &Poco::Logger::create("fileLogger", AegisBot::pFCf, Message::PRIO_TRACE);
-        AegisBot::log = &Poco::Logger::create("consoleLogger", AegisBot::pFC, Message::PRIO_TRACE);
+            File f("log/");
+            if (!f.exists())
+            {
+                f.createDirectory();
+            }
+            else if (f.isFile())
+            {
+                throw std::runtime_error("Error creating log directory!");
+            }
+
+            AegisBot::pFCf = new FormattingChannel(new PatternFormatter("%Y-%m-%d %H:%M:%S.%c | %s:%q:%t"));
+            AegisBot::pFCf->setChannel(new FileChannel("log/console.log"));
+            AegisBot::pFCf->setProperty("rotation", "daily");
+            AegisBot::pFCf->setProperty("times", "local");
+            AegisBot::pFCf->open();
+            AegisBot::logf = &Poco::Logger::create("fileLogger", AegisBot::pFCf, Message::PRIO_TRACE);
+            AegisBot::log = &Poco::Logger::create("consoleLogger", AegisBot::pFC, Message::PRIO_TRACE);
+        }
 
 
 #ifdef USE_REDIS
@@ -108,45 +105,9 @@ int main(int argc, char * argv[])
 
         //Add the default module along with all the default commands
         myguild->addModule("default");
+        myguild->addModule("example");
+        myguild->addModule("admin");
 
-
-
-
-
-/*
-        bot.addCommand("timer", [&bot](shared_ptr<ABMessage> message)
-        {
-            uint64_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-
-            std::vector<string> tokens;
-            boost::split(tokens, message->content, boost::is_any_of(" "));
-
-            if (tokens.size() < 3)
-            {
-                //not enough tokens
-                message->channel->sendMessage(Poco::format("Error parsing. Format is %s%s time-in-seconds message", message->guild->prefix, message->cmd));
-                return;
-            }
-
-            int64_t time = std::stoll(tokens[1]);
-            if (time > 1000 * 60 * 60)//1 hour max timer
-            {
-                //fix this mess, have Channel class have a sendMessage function instead of guild
-                message->channel->sendMessage(Poco::format("Timer too large `%Ld`", time));
-                return;
-            }
-            message->channel->sendMessage(Poco::format("Timer started `%Ld`", time));
-            //this WILL instantly fire and possibly crash since t loses scope. leaving it here just because.
-            //add a timers vector to the bot that tracks users, channels, reasons, and times and have main loop
-            //process it instead
-            std::thread t([&]() {
-                std::this_thread::sleep_for(std::chrono::milliseconds(time));
-                bot.io_service.post([message, time]()
-                {
-                    message->channel->sendMessage(Poco::format("Response to `%s`", message->content));
-                });
-            });
-        });*/
 
 
         AegisBot::threads();

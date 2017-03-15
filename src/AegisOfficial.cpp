@@ -30,7 +30,6 @@
 #include "AegisBot.h"
 #include <json.hpp>
 #include <chrono>
-#include "rss.h"
 #include "AegisBot.h"
 
 AegisOfficial::AegisOfficial(AegisBot & bot, shared_ptr<Guild> guild)
@@ -46,7 +45,7 @@ void AegisOfficial::initialize()
         return;
     g->addCommand("createvoice", std::bind(&AegisOfficial::createVoice, this, std::placeholders::_1));
     g->addCommand("info", std::bind(&AegisOfficial::info, this, std::placeholders::_1));
-    g->addCommand("clearchat", std::bind(&AegisOfficial::info, this, std::placeholders::_1));
+    g->addCommand("clearchat", std::bind(&AegisOfficial::clearChat, this, std::placeholders::_1));
     g->addCommand("clean", std::bind(&AegisOfficial::clean, this, std::placeholders::_1));
 }
 
@@ -61,20 +60,27 @@ void AegisOfficial::remove()
     g->removeCommand("clean");
 }
 
-void AegisOfficial::deleteHistory(shared_ptr<ABMessage> message)
+void AegisOfficial::clearChat(shared_ptr<ABMessage> message)
 {
     message->channel->getMessages(message->message_id, [](shared_ptr<ABMessage> message)
     {
-        uint32_t epoch = ((std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count() - 14 * 24 * 60 * 60) - 1420070400000) << 22;
-        std::vector<string> delmessages;
-        for (auto & m : message->obj)
+        try
         {
-            if (std::stoi(m.get<string>()) > epoch)
+            uint32_t epoch = ((std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count() - 14 * 24 * 60 * 60) - 1420070400000) << 22;
+            std::vector<string> delmessages;
+            for (auto & m : message->obj)
             {
-                delmessages.push_back(m);
+                if (std::stoull(m["id"].get<string>()) > epoch)
+                {
+                    delmessages.push_back(m["id"].get<string>());
+                }
             }
+            message->channel->bulkDelete(delmessages);
         }
-        message->channel->bulkDelete(delmessages);
+        catch (std::exception & e)
+        {
+            std::cout << "Error: " << e.what() << std::endl;
+        }
     });
     //
 
@@ -162,7 +168,7 @@ void AegisOfficial::info(shared_ptr<ABMessage> message)
 
     message->content = "";
     string stats;
-    stats = Poco::format("[Latest bot source](https://github.com/zeroxs/aegisbot)\n[Official Bot Server](https://discord.gg/w7Y3Bb8)\n\nMemory usage: %.2fMB\nMax Memory: %.2fMB", double(getCurrentRSS()) / (1024 * 1024), double(getPeakRSS()) / (1024 * 1024));
+    stats = Poco::format("[Latest bot source](https://github.com/zeroxs/aegisbot)\n[Official Bot Server](https://discord.gg/w7Y3Bb8)\n\nMemory usage: %.2fMB\nMax Memory: %.2fMB", double(AegisBot::getCurrentRSS()) / (1024 * 1024), double(AegisBot::getPeakRSS()) / (1024 * 1024));
     json t = {
         { "title", "AegisBot" },
         { "description", stats },

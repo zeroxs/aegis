@@ -32,11 +32,10 @@
 #include <chrono>
 #include "AegisBot.h"
 
-
 AegisAdmin::AegisAdmin(AegisBot & bot, shared_ptr<Guild> guild)
     : AegisModule(bot, guild)
 {
-    name = "default";
+    name = "admin";
 }
 
 void AegisAdmin::initialize()
@@ -45,6 +44,8 @@ void AegisAdmin::initialize()
     if (!g)
         return;
     g->addCommand("reload", std::bind(&AegisAdmin::reload, this, std::placeholders::_1));
+    g->addCommand("rates", std::bind(&AegisAdmin::rates, this, std::placeholders::_1));
+    g->addCommand("setgame", std::bind(&AegisAdmin::setGame, this, std::placeholders::_1));
 }
 
 void AegisAdmin::remove()
@@ -53,6 +54,8 @@ void AegisAdmin::remove()
     if (!g)
         return;
     g->removeCommand("reload");
+    g->removeCommand("rates");
+    g->removeCommand("setgame");
 }
 
 void AegisAdmin::reload(shared_ptr<ABMessage> message)
@@ -66,4 +69,49 @@ void AegisAdmin::reload(shared_ptr<ABMessage> message)
     {
         message->channel->sendMessage("Not authorized.");
     }
+}
+
+void AegisAdmin::rates(shared_ptr<ABMessage> message)
+{
+    uint32_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+
+    json t = {
+        { "title", "AegisBot" },
+        { "description", "" },
+        { "color", 10599460 },
+        { "fields",
+        json::array(
+    {
+        { { "name", "Memory Usage" },{ "value", Poco::format("[Latest bot source](https://github.com/zeroxs/aegisbot)\n[Official Bot Server](https://discord.gg/w7Y3Bb8)\n\nMemory usage: %.2fMB\nMax Memory: %.2fMB", double(AegisBot::getCurrentRSS()) / (1024 * 1024), double(AegisBot::getPeakRSS()) / (1024 * 1024)) } },
+        { { "name", "Rates" },{ "value", Poco::format("Content: %s\nLimit: %u\nRemain: %u\nReset: %u\nEpoch: %u\nDiff: %u", message->content, message->channel->ratelimits.rateLimit()
+        , message->channel->ratelimits.rateRemaining(), message->channel->ratelimits.rateReset(), epoch, message->channel->ratelimits.rateReset() - epoch) } }
+    }
+            )
+        },
+        { "footer",{ { "icon_url", "https://cdn.discordapp.com/attachments/288707540844412928/289572000391888906/cpp.png" },{ "text", "Made in c++ running aegisbot library" } } }
+    };
+    message->channel->sendMessageEmbed(json(), t);
+}
+
+void AegisAdmin::setGame(shared_ptr<ABMessage> message)
+{
+    string gamestr = message->content.substr(message->guild->prefix.size() + 8);
+    AegisBot::io_service.post([game = std::move(gamestr), &bot = message->guild->bot]()
+    {
+        /*json obj = {
+            { "idle_since", nullptr },
+            { "game", { "name", game }
+            }
+        };*/
+        json obj;
+        obj["op"] = 3;
+        obj["d"]["idle_since"] = nullptr;
+        //obj["d"]["since"] = epoch;
+        //obj["d"]["afk"] = epoch;//clients
+        //obj["d"]["status"] = epoch;//"online" "dnd" "idle" "invisible"
+
+        obj["d"]["game"] = { { "name", game } };
+        
+        bot.wssend(obj.dump());
+    });
 }
