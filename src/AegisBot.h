@@ -153,6 +153,7 @@ public:
     static string avatar;
     static uint64_t userId;
     static bool mfa_enabled;
+    static string mention;
     //Private chat tracking
     struct PrivateChat
     {

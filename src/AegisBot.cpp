@@ -58,6 +58,7 @@ std::map<uint64_t, shared_ptr<Guild>> AegisBot::guildlist;
 std::vector<shared_ptr<AegisBot>> AegisBot::shards;
 boost::asio::io_service AegisBot::io_service;
 uint16_t AegisBot::shardidmax;
+string AegisBot::mention;
 
 AegisBot::AegisBot()
     : keepalive_timer_(io_service)
@@ -321,8 +322,16 @@ void AegisBot::processReady(json & d)
     sessionId = d["session_id"];
     json & userdata = d["user"];
     avatar = userdata["avatar"];
-    discriminator = std::stoll(userdata["discriminator"].get<string>());
-    userId = std::stoll(userdata["id"].get<string>());
+    discriminator = std::stoi(userdata["discriminator"].get<string>());
+    userId = std::stoull(userdata["id"].get<string>());
+
+    if (AegisBot::mention.size() == 0)
+    {
+        std::stringstream ss;
+        ss << "<@" << userId  << ">";
+        AegisBot::mention = ss.str();
+    }
+
     username = userdata["username"];
     mfa_enabled = userdata["mfa_enabled"];
     active = true;

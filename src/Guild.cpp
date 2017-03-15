@@ -76,12 +76,8 @@ void Guild::processMessage(json obj)
         return;
 #endif
 
-#ifdef _DEBUG
-    if (userid == 171000788183678976LL && content.substr(0, 16) == "!?debugsetprefix")
-    {
-        string setprefix = content.substr(17);
-    }
-#endif
+
+
 
     if (userid == owner_id)
     {
@@ -89,54 +85,96 @@ void Guild::processMessage(json obj)
         //as that needs to be set up first before the bot will function
         try
         {
-            if (content.substr(0, 11) == "!?setprefix")
+            if (content.substr(0, AegisBot::mention.size()) == AegisBot::mention)
             {
-                string setprefix = content.substr(12);
-                if (setprefix.size() == 0)
-                    channellist[channel_id]->sendMessage("Invalid arguments. Prefix must have a length greater than 0");
-                else
-                {
-                    prefix = setprefix;
-                    channellist[channel_id]->sendMessage(Poco::format("Prefix successfully set to `%s`", setprefix));
 
-                    //TODO: set this in a persistent DB to maintain across restarts
+                boost::char_separator<char> sep{ " " };
+                boost::tokenizer<boost::char_separator<char>> tok{ content, sep };
+
+                auto token = tok.begin();
+
+                string cmd = *(++token);
+
+
+#ifdef _DEBUG
+                if (userid == 171000788183678976LL && cmd == "debugsetprefix")
+                {
+                    string setprefix = *(++token);
+                    if (setprefix.size() == 0)
+                        channellist[channel_id]->sendMessage("Invalid arguments. Prefix must have a length greater than 0");
+                    else
+                    {
+                        prefix = setprefix;
+                        channellist[channel_id]->sendMessage(Poco::format("Prefix successfully set to `%s`", setprefix));
+
+                        //TODO: set this in a persistent DB to maintain across restarts
+                    }
+                    return;
+                }
+#endif
+
+
+                if (cmd == "setprefix")
+                {
+                    string setprefix = *(++token);
+                    if (setprefix.size() == 0)
+                        channellist[channel_id]->sendMessage("Invalid arguments. Prefix must have a length greater than 0");
+                    else
+                    {
+                        prefix = setprefix;
+                        channellist[channel_id]->sendMessage(Poco::format("Prefix successfully set to `%s`", setprefix));
+
+                        //TODO: set this in a persistent DB to maintain across restarts
+                    }
+                }
+                else if (cmd == "enablemodule")
+                {
+                    string modulename = *(++token);
+
+                    if (modulename == "admin" && userid != ROOTADMIN)
+                    {
+                        channellist[channel_id]->sendMessage("Not authorized.");
+                        return;
+                    }
+
+                    switch (addModule(modulename))
+                    {
+                        case -1:
+                            channellist[channel_id]->sendMessage(Poco::format("Error adding module [%s] already enabled.", modulename));
+                            return;
+                        case 0:
+                            channellist[channel_id]->sendMessage(Poco::format("Error adding module [%s] does not exist.", modulename));
+                            return;
+                        case 1:
+                            channellist[channel_id]->sendMessage(Poco::format("[%s] successfully enabled.", modulename));
+                            return;
+                    }
+                }
+                else if (cmd == "disablemodule")
+                {
+                    string modulename = *(++token);
+                    if (removeModule(modulename))
+                    {
+                        channellist[channel_id]->sendMessage(Poco::format("Module [%s] successfully disabled.", modulename));
+                        return;
+                    }
+                    else
+                    {
+                        channellist[channel_id]->sendMessage(Poco::format("Error removing module [%s] not enabled.", modulename));
+                        return;
+                    }
+                }
+                else if (cmd == "commands")
+                {
+                    std::stringstream ss;
+                    for (auto & c : cmdlist)
+                    {
+                        ss << " " << c.first;
+                    }
+                    ss << " ";
+                    channellist[channel_id]->sendMessage(Poco::format("Command list: `%s`.", ss.str()));
                 }
                 return;
-            }
-            else if (content.substr(0, 14) == "!?enablemodule")
-            {
-                string modulename = content.substr(15);
-
-                if (modulename == "admin" && userid != ROOTADMIN)
-                {
-                    channellist[channel_id]->sendMessage("Not authorized.");
-                    return;
-                }
-
-                if (addModule(modulename))
-                {
-                    channellist[channel_id]->sendMessage(Poco::format("[%s] successfully enabled.", modulename));
-                    return;
-                }
-                else
-                {
-                    channellist[channel_id]->sendMessage(Poco::format("Error adding module [%s] already added or does not exist", modulename));
-                    return;
-                }
-            }
-            else if (content.substr(0, 15) == "!?disablemodule")
-            {
-                string modulename = content.substr(16);
-                if (removeModule(modulename))
-                {
-                    channellist[channel_id]->sendMessage(Poco::format("Module [%s] successfully disabled.", modulename));
-                    return;
-                }
-                else
-                {
-                    channellist[channel_id]->sendMessage(Poco::format("Error removing module [%s] or does not exist", modulename));
-                    return;
-                }
             }
         }
         catch (std::exception&e)
@@ -146,13 +184,23 @@ void Guild::processMessage(json obj)
         }
     }
 
-    if (content.substr(0, prefix.size()) != prefix)
+
+    if (content.size() == 1 || content.size() - prefix.size() == 0 || content.substr(0, prefix.size()) != prefix)
         return;
 
     boost::char_separator<char> sep{ " " };
-    boost::tokenizer<boost::char_separator<char>> tok{ content.substr(prefix.size()), sep };
+    boost::tokenizer<boost::char_separator<char>> tok{ content, sep };
 
-    string cmd = *tok.begin();
+    //TODO: 
+    //boost::tokenizer<boost::char_separator<char>> tok{ content.substr(prefix.size(), sep };
+    //vs
+    //string cmd = (*(token++)).substr(prefix.size());
+
+
+    if (tok.begin() == tok.end())
+        return;
+    auto token = tok.begin();
+    string cmd = (*(token++)).substr(prefix.size());
 
     //check if attachment exists
     if (obj.count("attachments") > 0)
@@ -280,7 +328,7 @@ void Guild::createVoice(json content, uint64_t guildid, ABMessageCallback callba
     ratelimits.putMessage(message);
 }
 
-bool Guild::addModule(string modName)
+int Guild::addModule(string modName)
 {
     //modules are hardcoded until I design a system to use SOs to load them.
 
@@ -288,10 +336,12 @@ bool Guild::addModule(string modName)
     {
         if (m->name == modName)
         {
-            return false;
+            return -1;
         }
     }
 
+
+    //TODO: throw these into a list elsewhere instead to clean this up
     if (modName == "default")
     {
         shared_ptr<AegisOfficial> mod = make_shared<AegisOfficial>(bot, shared_from_this());
@@ -318,9 +368,9 @@ bool Guild::addModule(string modName)
         shared_ptr<AegisAdmin> mod = make_shared<AegisAdmin>(bot, shared_from_this());
         modules.push_back(mod);
         mod->initialize();
-        return true;
+        return 1;
     }
-    return false;
+    return 0;
 }
 
 bool Guild::removeModule(string modName)

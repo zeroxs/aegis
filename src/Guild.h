@@ -58,13 +58,27 @@ public:
     void removeAttachmentHandler();
     void modifyMember(json content, uint64_t guildid, uint64_t memberid, ABMessageCallback callback = ABMessageCallback());
     void createVoice(json content, uint64_t guildid, ABMessageCallback callback = ABMessageCallback());
-    bool addModule(string modName);
+    int addModule(string modName);
     bool removeModule(string modName);
 
     //id, <object, accesslevel>
     std::map<uint64_t, std::pair<shared_ptr<Member>, uint16_t>> clientlist;
     std::map<uint64_t, shared_ptr<Channel>> channellist;
     std::map<uint64_t, shared_ptr<Role>> rolelist;
+
+    //TODO: perhaps endpoint objects for storing ratelimits and can share base class of
+    //ratelimits and send functionality, but determine path? overcomplicated?
+
+    //current rate limit system is perfect, but does not adequately handle the different endpoints
+
+    //DM            5:5s
+    //ChannelMsg    5:5s
+    //account-wide  50:10s
+    //delete        5:1s
+    //bulk          1:1s
+    //member        10:10s
+    //member nick   1:1s
+    //username      2:3600s
 
     RateLimits ratelimits;
 
