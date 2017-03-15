@@ -193,10 +193,10 @@ void AegisBot::threads()
 {
     for (size_t t = 0; t < std::thread::hardware_concurrency() * 2; t++)
         threadPool.push_back(std::thread([&]() { io_service.run(); }));
-    for (std::thread& t : AegisBot::threadPool)
-        t.join();
     for (auto & b : AegisBot::bots)
         AegisBot::threadPool.push_back(std::thread([&]() { b->run(); }));
+    for (std::thread& t : AegisBot::threadPool)
+        t.join();
 }
 
 void AegisBot::connectWS()
