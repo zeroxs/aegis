@@ -204,11 +204,13 @@ void AegisBot::connectWS()
 {
     //make a portable way to do this even though I like the atomic-ness of redis scripts for obtaining inter-process locks
 #ifdef USE_REDIS
+/*
     while (true)
     {
         uint64_t epoch = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-        string obtainlock = Poco::format("\"local time = redis.call('get', KEYS[1]) if (not time) then redis.call('set', KEYS[1], ARGV[1]) return 1 end if (time < ARGV[1]) then return 1 else redis.call('set', KEYS[1], ARGV[1]) return 0 end\" 1 config:wslock %Lu", epoch);
-        if (static_cast<ABRedisCache*>(cache)->eval(obtainlock) == "1")
+        //string obtainlock = Poco::format("\"local time = redis.call('get', KEYS[1]) if (not time) then redis.call('set', KEYS[1], ARGV[1]) return 0 end if (time < ARGV[1]) then return 0 else redis.call('set', KEYS[1], ARGV[1]) return 1 end\" 1 config:wslock %Lu", epoch);
+        //string res = static_cast<ABRedisCache*>(cache)->eval(obtainlock);
+        if (res == "1")
             break;
         else
         {
@@ -218,6 +220,7 @@ void AegisBot::connectWS()
                 return;
         }
     }
+*/
 
 #endif
 
