@@ -230,9 +230,6 @@ public:
     * Add zlib support
     */
 
-private:
-    //internal function for sending messages
-    void _sendMessage(string content, uint64_t channel);
 
 
 
