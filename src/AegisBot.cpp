@@ -631,19 +631,40 @@ void AegisBot::run()
                                 continue;
                             }
 
+                            //TODO: support differing rate limits eg, differentiate between self commands and guild user renames
+                            //TODO: also merge this + guild call() calls.
+
+                            //Channel api calls
                             uint32_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
                             auto message = channel.second->ratelimits.getMessage();
                             bool success = false;
-                            boost::tie(success, message->content) = call(message->endpoint, message->content, &message->channel->ratelimits, message->method, message->query);
-                            if (!success)
+
+
                             {
-                                //rate limit hit, requeue message
-                                message->channel->ratelimits.putMessage(message);
-#ifdef DEBUG_OUTPUT
-                                poco_trace_f4(*log, "Rate Limit hit or connection error - requeuing message [%s] [%Lu] [%s] [%Lu]", message->guild->name, message->guild->id, message->channel->name, message->channel->id);
-#endif
-                                continue;
+                                //lock and pop when success
+                                std::lock_guard<std::recursive_mutex> lock(channel.second->ratelimits.m);
+
+                                boost::tie(success, message->content) = call(message->endpoint, message->content, &message->channel->ratelimits, message->method, message->query);
+                                try
+                                {
+                                    if (message->content.size() != 0)
+                                        message->obj = json::parse(message->content);
+                                }
+                                catch (...)
+                                {
+                                    //dummy catch on empty or malformed responses
+                                }
+
+                                if (!success)
+                                {
+                                    //rate limit hit
+                                    poco_trace_f4(*log, "Rate Limit hit or connection error - requeuing message [%s] [%Lu] [%s] [%Lu]", message->guild->name, message->guild->id, message->channel->name, message->channel->id);
+                                    continue;
+                                }
+                                //message success, pop
+                                message->channel->ratelimits.outqueue.pop();
                             }
+
                             poco_trace_f2(*log, "Message sent: [%s] [%s]", message->endpoint, message->content);
 #ifdef DEBUG_OUTPUT
                             poco_trace_f1(*log, "rate_limit:     %u", message->channel->ratelimits.rateLimit());
@@ -669,18 +690,21 @@ void AegisBot::run()
                             continue;
                         }
 
+                        //Guild api calls
                         uint32_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
                         auto message = guild.second->ratelimits.getMessage();
                         bool success = false;
-                        boost::tie(success, message->content) = call(message->endpoint, message->content, &message->channel->ratelimits, message->method, message->query);
-                        if (!success)
                         {
-                            //rate limit hit, requeue message
-                            message->channel->ratelimits.putMessage(message);
-#ifdef DEBUG_OUTPUT
-                            poco_trace_f4(*log, "Rate Limit hit or connection error - requeuing message [%s] [%Lu] [%s] [%Lu]", message->guild->name, message->guild->id, message->channel->name, message->channel->id);
-#endif
-                            continue;
+                            std::lock_guard<std::recursive_mutex> lock(guild.second->ratelimits.m);
+                            boost::tie(success, message->content) = call(message->endpoint, message->content, &guild.second->ratelimits, message->method, message->query);
+                            if (!success)
+                            {
+                                //rate limit hit, requeue message
+                                message->channel->ratelimits.putMessage(message);
+                                poco_trace_f4(*log, "Rate Limit hit or connection error - requeuing message [%s] [%Lu] [%s] [%Lu]", message->guild->name, message->guild->id, message->channel->name, message->channel->id);
+                                continue;
+                            }
+                            guild.second->ratelimits.outqueue.pop();
                         }
                         poco_trace_f2(*log, "Message sent: [%s] [%s]", message->endpoint, message->content);
 #ifdef DEBUG_OUTPUT
