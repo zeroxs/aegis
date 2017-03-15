@@ -30,7 +30,6 @@
 #include "AegisBot.h"
 #include <json.hpp>
 #include <chrono>
-#include "rss.h"
 #include "AegisBot.h"
 
 AegisOfficial::AegisOfficial(AegisBot & bot, shared_ptr<Guild> guild)
@@ -162,7 +161,7 @@ void AegisOfficial::info(shared_ptr<ABMessage> message)
 
     message->content = "";
     string stats;
-    stats = Poco::format("[Latest bot source](https://github.com/zeroxs/aegisbot)\n[Official Bot Server](https://discord.gg/w7Y3Bb8)\n\nMemory usage: %.2fMB\nMax Memory: %.2fMB", double(getCurrentRSS()) / (1024 * 1024), double(getPeakRSS()) / (1024 * 1024));
+    stats = Poco::format("[Latest bot source](https://github.com/zeroxs/aegisbot)\n[Official Bot Server](https://discord.gg/w7Y3Bb8)\n\nMemory usage: %.2fMB\nMax Memory: %.2fMB", double(AegisBot::getCurrentRSS()) / (1024 * 1024), double(AegisBot::getPeakRSS()) / (1024 * 1024));
     json t = {
         { "title", "AegisBot" },
         { "description", stats },
