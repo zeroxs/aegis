@@ -49,6 +49,7 @@ public:
     bool initialize();
     string getset(string key, string value, bool useprefix = true);
     string eval(string script);
+    string run(string command);
 
 private:
     RedisSyncClient redis;
