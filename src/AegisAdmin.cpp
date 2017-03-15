@@ -32,11 +32,10 @@
 #include <chrono>
 #include "AegisBot.h"
 
-
 AegisAdmin::AegisAdmin(AegisBot & bot, shared_ptr<Guild> guild)
     : AegisModule(bot, guild)
 {
-    name = "default";
+    name = "admin";
 }
 
 void AegisAdmin::initialize()
@@ -46,6 +45,7 @@ void AegisAdmin::initialize()
         return;
     g->addCommand("reload", std::bind(&AegisAdmin::reload, this, std::placeholders::_1));
     g->addCommand("rates", std::bind(&AegisAdmin::rates, this, std::placeholders::_1));
+    g->addCommand("setgame", std::bind(&AegisAdmin::setGame, this, std::placeholders::_1));
 }
 
 void AegisAdmin::remove()
@@ -55,6 +55,7 @@ void AegisAdmin::remove()
         return;
     g->removeCommand("reload");
     g->removeCommand("rates");
+    g->removeCommand("setgame");
 }
 
 void AegisAdmin::reload(shared_ptr<ABMessage> message)

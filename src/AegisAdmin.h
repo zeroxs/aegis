@@ -44,6 +44,8 @@ public:
     void remove();
 
     void reload(shared_ptr<ABMessage> message);
+    void rates(shared_ptr<ABMessage> message);
+    void setGame(shared_ptr<ABMessage> message);
 
 };
 
