@@ -95,13 +95,23 @@ void AegisAdmin::rates(shared_ptr<ABMessage> message)
 
 void AegisAdmin::setGame(shared_ptr<ABMessage> message)
 {
-    
-    AegisBot::io_service.post([game = std::move(message->content), &bot = message->guild->bot]()
+    string gamestr = message->content.substr(message->guild->prefix.size() + 8);
+    AegisBot::io_service.post([game = std::move(gamestr), &bot = message->guild->bot]()
     {
-        json obj = {
+        /*json obj = {
+            { "idle_since", nullptr },
             { "game", { "name", game }
             }
-        };
-        bot.putWSQ(obj.dump());
+        };*/
+        json obj;
+        obj["op"] = 3;
+        obj["d"]["idle_since"] = nullptr;
+        //obj["d"]["since"] = epoch;
+        //obj["d"]["afk"] = epoch;//clients
+        //obj["d"]["status"] = epoch;//"online" "dnd" "idle" "invisible"
+
+        obj["d"]["game"] = { { "name", game } };
+        
+        bot.wssend(obj.dump());
     });
 }

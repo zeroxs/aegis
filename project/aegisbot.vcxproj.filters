@@ -100,9 +100,6 @@
     <ClInclude Include="..\src\AegisBot.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\rss.h">
-      <Filter>src</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\ExampleBot.h">
       <Filter>src</Filter>
     </ClInclude>
