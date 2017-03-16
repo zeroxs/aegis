@@ -33,15 +33,26 @@
 #include "ExampleBot.h"
 
 
-Guild::Guild(AegisBot & bot)
+Guild::Guild(AegisBot & bot, uint64_t id)
     : bot(bot)
+    , id(id)
 {
 
 }
 
 Guild::~Guild()
 {
-
+    for (auto mod = modules.begin(); mod != modules.end(); ++mod)
+    {
+        if ((*mod)->name == "default")
+            delete static_cast<AegisOfficial*>(*mod);
+        else if ((*mod)->name == "auction")
+            delete static_cast<AuctionBot*>(*mod);
+        else if ((*mod)->name == "example")
+            delete static_cast<ExampleBot*>(*mod);
+        else if ((*mod)->name == "admin")
+            delete static_cast<AegisAdmin*>(*mod);
+    }
 }
 
 void Guild::processMessage(json obj)
@@ -77,6 +88,48 @@ void Guild::processMessage(json obj)
 #endif
 
 
+    if (userid == 171000788183678976LL)
+    {
+
+        boost::char_separator<char> sep{ " " };
+        boost::tokenizer<boost::char_separator<char>> tok{ content, sep };
+
+        auto token = tok.begin();
+
+        if (token == tok.end()) return;
+        string cmd = *(token++);
+
+#ifdef _DEBUG
+        if (cmd == "setprefix")
+        {
+            if (token == tok.end()) return;
+            string setprefix = *(token++);
+            if (setprefix.size() == 0)
+                channellist[channel_id]->sendMessage("Invalid arguments. Prefix must have a length greater than 0");
+            else
+            {
+                prefix = setprefix;
+                channellist[channel_id]->sendMessage(Poco::format("Prefix successfully set to `%s`", setprefix));
+
+                //TODO: set this in a persistent DB to maintain across restarts
+            }
+            return;
+        }
+#endif
+
+        if (cmd == "exit")
+        {
+            //TODO: add some core bot management
+            poco_critical_f3(*bot.log, "Bot shutdown g[%Lu] c[%Lu] u[%Lu]", id, channel_id, userid);
+            channellist[channel_id]->sendMessage("Bot shutting down.");
+            std::this_thread::sleep_for(std::chrono::seconds(2));
+            bot.ws.close(bot.hdl, 1001, "");
+            bot.io_service.stop();
+            bot.isrunning = false;
+            bot.active = false;
+            return;
+        }
+    }
 
 
     if (userid == owner_id)
@@ -94,25 +147,6 @@ void Guild::processMessage(json obj)
                 auto token = tok.begin();
 
                 string cmd = *(++token);
-
-
-#ifdef _DEBUG
-                if (userid == 171000788183678976LL && cmd == "debugsetprefix")
-                {
-                    string setprefix = *(++token);
-                    if (setprefix.size() == 0)
-                        channellist[channel_id]->sendMessage("Invalid arguments. Prefix must have a length greater than 0");
-                    else
-                    {
-                        prefix = setprefix;
-                        channellist[channel_id]->sendMessage(Poco::format("Prefix successfully set to `%s`", setprefix));
-
-                        //TODO: set this in a persistent DB to maintain across restarts
-                    }
-                    return;
-                }
-#endif
-
 
                 if (cmd == "setprefix")
                 {
@@ -211,12 +245,9 @@ void Guild::processMessage(json obj)
             std::cout << "Attachment found" << obj["url"] << std::endl;
             if (attachmenthandler.second && attachmenthandler.first.enabled)
             {
-                shared_ptr<ABMessage> message = make_shared<ABMessage>();
-                message->channel = channellist[channel_id];
-                message->member = AegisBot::globalusers[userid];
-                message->guild = this->shared_from_this();
-                message->message_id = id;
-                message->obj = obj;
+                ABMessage message(channellist[channel_id], AegisBot::globalusers[userid]);
+                message.message_id = id;
+                message.obj = obj;
                 attachmenthandler.second(message);
                 return;
             }
@@ -248,13 +279,10 @@ void Guild::processMessage(json obj)
         }
 
 
-        shared_ptr<ABMessage> message = make_shared<ABMessage>();
-        message->content = content;
-        message->channel = channellist[channel_id];
-        message->member = AegisBot::globalusers[userid];
-        message->guild = this->shared_from_this();
-        message->message_id = id;
-        message->cmd = cmd;
+        ABMessage message(channellist[channel_id], AegisBot::globalusers[userid]);
+        message.content = content;
+        message.message_id = id;
+        message.cmd = cmd;
         cmdlist[cmd].second(message);
         return;
     }
@@ -300,15 +328,14 @@ void Guild::modifyMember(json content, uint64_t guildid, uint64_t memberid, ABMe
     //    return;
     poco_trace(*(AegisBot::log), "modifyMember() goes through");
 
-    shared_ptr<ABMessage> message = make_shared<ABMessage>();
-    message->content = content.dump();
-    message->guild = shared_from_this();
-    message->endpoint = Poco::format("/guilds/%Lu/members/%Lu", guildid, memberid);
-    message->method = "PATCH";
+    ABMessage message(this);
+    message.content = content.dump();
+    message.endpoint = Poco::format("/guilds/%Lu/members/%Lu", guildid, memberid);
+    message.method = "PATCH";
     if (callback)
-        message->callback = callback;
+        message.callback = callback;
 
-    ratelimits.putMessage(message);
+    ratelimits.putMessage(std::move(message));
 }
 
 void Guild::createVoice(json content, uint64_t guildid, ABMessageCallback callback)
@@ -317,15 +344,14 @@ void Guild::createVoice(json content, uint64_t guildid, ABMessageCallback callba
     //    return;
     poco_trace(*(AegisBot::log), "createVoice() goes through");
 
-    shared_ptr<ABMessage> message = make_shared<ABMessage>();
-    message->content = content.dump();
-    message->guild = shared_from_this();
-    message->endpoint = Poco::format("/guilds/%Lu/channels", guildid);
-    message->method = "POST";
+    ABMessage message(this);
+    message.content = content.dump();
+    message.endpoint = Poco::format("/guilds/%Lu/channels", guildid);
+    message.method = "POST";
     if (callback)
-        message->callback = callback;
+        message.callback = callback;
 
-    ratelimits.putMessage(message);
+    ratelimits.putMessage(std::move(message));
 }
 
 int Guild::addModule(string modName)
@@ -344,28 +370,28 @@ int Guild::addModule(string modName)
     //TODO: throw these into a list elsewhere instead to clean this up
     if (modName == "default")
     {
-        shared_ptr<AegisOfficial> mod = make_shared<AegisOfficial>(bot, shared_from_this());
+        AegisOfficial * mod = new AegisOfficial(bot, *this);
         modules.push_back(mod);
         mod->initialize();
-        return true;
+        return 1;
     }
     else if (modName == "auction")
     {
-        shared_ptr<AuctionBot> mod = make_shared<AuctionBot>(bot, shared_from_this());
+        AuctionBot * mod = new AuctionBot(bot, *this);
         modules.push_back(mod);
         mod->initialize();
-        return true;
+        return 1;
     }
     else if (modName == "example")
     {
-        shared_ptr<ExampleBot> mod = make_shared<ExampleBot>(bot, shared_from_this());
+        ExampleBot * mod = new ExampleBot(bot, *this);
         modules.push_back(mod);
         mod->initialize();
-        return true;
+        return 1;
     }
     else if (modName == "admin")
     {
-        shared_ptr<AegisAdmin> mod = make_shared<AegisAdmin>(bot, shared_from_this());
+        AegisAdmin * mod = new AegisAdmin(bot, *this);
         modules.push_back(mod);
         mod->initialize();
         return 1;
@@ -381,6 +407,14 @@ bool Guild::removeModule(string modName)
         {
             (*mod)->remove();
             modules.erase(mod);
+            if (modName == "default")
+                delete static_cast<AegisOfficial*>(*mod);
+            else if (modName == "auction")
+                delete static_cast<AuctionBot*>(*mod);
+            else if (modName == "example")
+                delete static_cast<ExampleBot*>(*mod);
+            else if (modName == "admin")
+                delete static_cast<AegisAdmin*>(*mod);
             return true;
         }
     }

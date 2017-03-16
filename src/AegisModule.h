@@ -29,8 +29,6 @@
 #include <memory>
 
 using std::string;
-using std::shared_ptr;
-using std::weak_ptr;
 
 class Guild;
 class AegisBot;
@@ -38,7 +36,7 @@ class AegisBot;
 class AegisModule
 {
 public:
-    AegisModule(AegisBot & bot, shared_ptr<Guild> guild) : bot(bot), guild(guild) { };
+    AegisModule(AegisBot & bot, Guild & guild) : bot(bot), guild(guild) { };
     AegisModule(AegisModule && m) : bot(m.bot), name(std::move(m.name)), guild(m.guild) { };
     virtual ~AegisModule() {};
 
@@ -47,5 +45,5 @@ public:
 
     AegisBot & bot;
     string name;
-    weak_ptr<Guild> guild;
+    Guild & guild;
 };

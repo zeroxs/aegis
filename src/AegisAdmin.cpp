@@ -32,7 +32,7 @@
 #include <chrono>
 #include "AegisBot.h"
 
-AegisAdmin::AegisAdmin(AegisBot & bot, shared_ptr<Guild> guild)
+AegisAdmin::AegisAdmin(AegisBot & bot, Guild & guild)
     : AegisModule(bot, guild)
 {
     name = "admin";
@@ -40,38 +40,36 @@ AegisAdmin::AegisAdmin(AegisBot & bot, shared_ptr<Guild> guild)
 
 void AegisAdmin::initialize()
 {
-    auto g = guild.lock();
-    if (!g)
-        return;
-    g->addCommand("reload", std::bind(&AegisAdmin::reload, this, std::placeholders::_1));
-    g->addCommand("rates", std::bind(&AegisAdmin::rates, this, std::placeholders::_1));
-    g->addCommand("setgame", std::bind(&AegisAdmin::setGame, this, std::placeholders::_1));
+    guild.addCommand("reload", std::bind(&AegisAdmin::reload, this, std::placeholders::_1));
+    guild.addCommand("rates", std::bind(&AegisAdmin::rates, this, std::placeholders::_1));
+    guild.addCommand("setgame", std::bind(&AegisAdmin::setGame, this, std::placeholders::_1));
+    guild.addCommand("deletechannel", std::bind(&AegisAdmin::deletechannel, this, std::placeholders::_1));
+    guild.addCommand("test", std::bind(&AegisAdmin::test, this, std::placeholders::_1));
 }
 
 void AegisAdmin::remove()
 {
-    auto g = guild.lock();
-    if (!g)
-        return;
-    g->removeCommand("reload");
-    g->removeCommand("rates");
-    g->removeCommand("setgame");
+    guild.removeCommand("reload");
+    guild.removeCommand("rates");
+    guild.removeCommand("setgame");
+    guild.removeCommand("deletechannel");
+    guild.removeCommand("test");
 }
 
-void AegisAdmin::reload(shared_ptr<ABMessage> message)
+void AegisAdmin::reload(ABMessage & message)
 {
-    if (message->member->id)
+    if (message.member().id)
     {
         bot.loadConfigs();
-        message->channel->sendMessage("Configs reloaded.");
+        message.channel().sendMessage("Configs reloaded.");
     }
     else
     {
-        message->channel->sendMessage("Not authorized.");
+        message.channel().sendMessage("Not authorized.");
     }
 }
 
-void AegisAdmin::rates(shared_ptr<ABMessage> message)
+void AegisAdmin::rates(ABMessage & message)
 {
     uint32_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
@@ -83,20 +81,20 @@ void AegisAdmin::rates(shared_ptr<ABMessage> message)
         json::array(
     {
         { { "name", "Memory Usage" },{ "value", Poco::format("[Latest bot source](https://github.com/zeroxs/aegisbot)\n[Official Bot Server](https://discord.gg/w7Y3Bb8)\n\nMemory usage: %.2fMB\nMax Memory: %.2fMB", double(AegisBot::getCurrentRSS()) / (1024 * 1024), double(AegisBot::getPeakRSS()) / (1024 * 1024)) } },
-        { { "name", "Rates" },{ "value", Poco::format("Content: %s\nLimit: %u\nRemain: %u\nReset: %u\nEpoch: %u\nDiff: %u", message->content, message->channel->ratelimits.rateLimit()
-        , message->channel->ratelimits.rateRemaining(), message->channel->ratelimits.rateReset(), epoch, message->channel->ratelimits.rateReset() - epoch) } }
+        { { "name", "Rates" },{ "value", Poco::format("Content: %s\nLimit: %u\nRemain: %u\nReset: %u\nEpoch: %u\nDiff: %u", message.content, message.channel().ratelimits.rateLimit()
+        , message.channel().ratelimits.rateRemaining(), message.channel().ratelimits.rateReset(), epoch, message.channel().ratelimits.rateReset() - epoch) } }
     }
             )
         },
         { "footer",{ { "icon_url", "https://cdn.discordapp.com/attachments/288707540844412928/289572000391888906/cpp.png" },{ "text", "Made in c++ running aegisbot library" } } }
     };
-    message->channel->sendMessageEmbed(json(), t);
+    message.channel().sendMessageEmbed(json(), t);
 }
 
-void AegisAdmin::setGame(shared_ptr<ABMessage> message)
+void AegisAdmin::setGame(ABMessage & message)
 {
-    string gamestr = message->content.substr(message->guild->prefix.size() + 8);
-    AegisBot::io_service.post([game = std::move(gamestr), &bot = message->guild->bot]()
+    string gamestr = message.content.substr(message.channel().guild().prefix.size() + 8);
+    AegisBot::io_service.post([game = std::move(gamestr), &bot = message.channel().guild().bot]()
     {
         /*json obj = {
             { "idle_since", nullptr },

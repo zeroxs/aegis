@@ -36,12 +36,11 @@ class Channel;
 class AegisBot;
 
 using std::string;
-using std::shared_ptr;
 
 class AegisOfficial : public AegisModule
 {
 public:
-    AegisOfficial(AegisBot & bot, shared_ptr<Guild> guild);
+    AegisOfficial(AegisBot & bot, Guild & guild);
     ~AegisOfficial() {};
 
     void initialize();
@@ -49,12 +48,12 @@ public:
 
     string uptime();
 
-    void createVoice(shared_ptr<ABMessage> message);
-    string getparams(shared_ptr<ABMessage> message);
-    void moveAfterCreate(shared_ptr<ABMessage> message, uint64_t member_id);
-    void info(shared_ptr<ABMessage> message);
-    void clearChat(shared_ptr<ABMessage> message);
-    void clean(shared_ptr<ABMessage> message);
+    void createVoice(ABMessage & message);
+    string getparams(ABMessage & message);
+    void moveAfterCreate(ABMessage & message, uint64_t member_id);
+    void info(ABMessage & message);
+    void clearChat(ABMessage & message);
+    void clean(ABMessage & message);
 
 };
 

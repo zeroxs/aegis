@@ -37,15 +37,14 @@ Member::Member(uint64_t id, string name, uint16_t discriminator, string avatar)
 {
 }
 
-
 Member::~Member()
 {
 }
 
-std::vector<shared_ptr<Guild>> Member::getGuilds()
+std::vector<Guild*> Member::getGuilds()
 {
     //TODO: Performance test this some time
-    std::vector<shared_ptr<Guild>> result;
+    std::vector<Guild*> result;
     std::lock_guard<std::recursive_mutex> lock(AegisBot::m);
     for (auto & guild : AegisBot::guildlist)
     {

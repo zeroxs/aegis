@@ -39,32 +39,17 @@ class Guild;
 class Channel;
 class Member;
 class AegisBot;
-using std::shared_ptr;
 using std::string;
-struct ABMessage;
 struct ABCallbackOptions
 {
     bool enabled = true;// false;
     uint16_t level = 0;//1;
 };
 
-typedef std::function<void(shared_ptr<ABMessage>)> ABMessageCallback;
-typedef std::pair<ABCallbackOptions, std::function<void(shared_ptr<ABMessage>)>> ABCallbackPair;
+//TODO:
+typedef std::function<void(ABMessage&)> ABMessageCallback;
+typedef std::pair<ABCallbackOptions, std::function<void(ABMessage&)>> ABCallbackPair;
 
-struct ABMessage
-{
-    uint64_t message_id = 0;
-    string content;
-    string cmd;
-    shared_ptr<Guild> guild;
-    shared_ptr<Channel> channel;
-    shared_ptr<Member> member;
-    string method;
-    string endpoint;
-    string query;
-    ABMessageCallback callback;
-    json obj;
-};
 
 enum class ChannelType
 {
@@ -72,19 +57,19 @@ enum class ChannelType
     VOICE = 2
 };
 
-class Channel : public Permission, public std::enable_shared_from_this<Channel>
+class Channel : public Permission
 {
 public:
-    Channel(shared_ptr<Guild> guild) : guild(guild) {}
+    Channel(Guild * guild) : _guild(guild) {}
     ~Channel() {};
 
-    void belongs_to(shared_ptr<Guild> g) { guild = g; }
-    shared_ptr<Guild> belongs_to() { return guild; }
-
+    Guild & guild() { return *_guild; }
+ 
     void getMessages(uint64_t messageid, ABMessageCallback callback = ABMessageCallback());
     void sendMessage(string content, ABMessageCallback callback = ABMessageCallback());
     void sendMessageEmbed(json content, json embed, ABMessageCallback callback = ABMessageCallback());
     void bulkDelete(std::vector<string> messages, ABMessageCallback callback = ABMessageCallback());
+    void deleteChannel(ABMessageCallback callback = ABMessageCallback());
 
 
     uint64_t id = 0;
@@ -105,6 +90,30 @@ public:
     //std::pair<Role, Permission> overrides
 
 private:
-    shared_ptr<Guild> guild;
+    Guild * _guild;
 };
 
+
+class ABMessage
+{
+public:
+    ABMessage(Channel * channel);
+    ABMessage(Channel * channel, Member * member);
+    ABMessage(Guild * guild);
+    uint64_t message_id = 0;
+    Guild & guild() { return *_guild; }
+    Channel & channel() { return *_channel; }
+    Member & member() { return *_member; }
+    string content;
+    string cmd;
+    string method;
+    string endpoint;
+    string query;
+    ABMessageCallback callback;
+    json obj;
+
+private:
+    Channel * _channel = nullptr;
+    Member * _member = nullptr;
+    Guild * _guild = nullptr;
+};

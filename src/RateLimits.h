@@ -33,16 +33,24 @@
 #include <chrono>
 #include <mutex>
 #include <iostream>
-#include <memory>
 
 class ABMessage;
-
-using std::shared_ptr;
 
 class RateLimits
 {
 public:
     RateLimits() {};
+    //only intended for initialization
+//     RateLimits(const RateLimits & r)
+//     {
+//         this->outqueue = std::move(r.outqueue);
+//         this->failures = r.failures;
+//         this->_rate_limit = r._rate_limit;
+//         this->_rate_remaining = 10;
+//         this->_rate_reset = r._rate_remaining;
+//         this->_retry_after = r._retry_after;
+//         this->_lastfailure = r._lastfailure;
+//     }
     ~RateLimits() {};
 
 
@@ -101,35 +109,34 @@ public:
         _retry_after = retry;
     }
 
-    shared_ptr<ABMessage> getMessage()
+    ABMessage & getMessage()
     {
-        std::lock_guard<std::mutex> lock(m);
+        std::lock_guard<std::recursive_mutex> lock(m);
         if (outqueue.size() > 0)
         {
-            shared_ptr<ABMessage> t = outqueue.front();
-            outqueue.pop();
-            return t;
+            return outqueue.front();
         }
-        return nullptr;
+        throw std::out_of_range("getMessage()");
     }
 
-    void putMessage(shared_ptr<ABMessage> message)
+    void putMessage(ABMessage && message)
     {
-        std::lock_guard<std::mutex> lock(m);
+        std::lock_guard<std::recursive_mutex> lock(m);
         outqueue.push(message);
     }
 
-    std::queue<shared_ptr<ABMessage>> outqueue;
+    std::queue<ABMessage> outqueue;
+    //boost::lockfree::queue<ABMessage> outqueue;
 
     static bool rate_global;
 
     uint16_t failures = 0;
+    std::recursive_mutex m;
 private:
     uint32_t _rate_limit = 10;
     uint32_t _rate_remaining = 10;
     uint32_t _rate_reset = 0;
     uint32_t _retry_after = 0;
-    std::mutex m;
     uint16_t _lastfailure = 0;
 };
 

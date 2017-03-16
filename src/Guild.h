@@ -35,7 +35,6 @@
 #include "RateLimits.h"
 #include "AegisModule.h"
 
-using std::shared_ptr;
 class AegisBot;
 
 using std::string;
@@ -44,7 +43,7 @@ using json = nlohmann::json;
 class Guild : public Permission, public std::enable_shared_from_this<Guild>
 {
 public:
-    Guild(AegisBot & bot);
+    Guild(AegisBot & bot, uint64_t id);
     ~Guild();
 
     AegisBot & bot;
@@ -62,9 +61,9 @@ public:
     bool removeModule(string modName);
 
     //id, <object, accesslevel>
-    std::map<uint64_t, std::pair<shared_ptr<Member>, uint16_t>> clientlist;
-    std::map<uint64_t, shared_ptr<Channel>> channellist;
-    std::map<uint64_t, shared_ptr<Role>> rolelist;
+    std::map<uint64_t, std::pair<Member*, uint16_t>> clientlist;
+    std::map<uint64_t, Channel*> channellist;
+    std::map<uint64_t, Role> rolelist;
 
     //TODO: perhaps endpoint objects for storing ratelimits and can share base class of
     //ratelimits and send functionality, but determine path? overcomplicated?
@@ -112,6 +111,6 @@ public:
     std::map<std::string, ABCallbackPair> cmdlist = {};
     ABCallbackPair attachmenthandler;
 
-    std::vector<shared_ptr<AegisModule>> modules;
+    std::vector<AegisModule*> modules;
 };
 
