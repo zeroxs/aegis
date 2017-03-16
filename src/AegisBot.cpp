@@ -375,21 +375,139 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
             {
                 string cmd = result["t"];
                 poco_trace_f1(*log, "Processing: %s", cmd);
-                if (cmd == "READY")
+
+                if (cmd == "TYPING_START")
                 {
-                    processReady(result["d"]);
+                    //do we care? it'd easily be the most sent event
+                    return;
                 }
                 else if (cmd == "MESSAGE_CREATE")
                 {
                     while (!active && isrunning)
                         std::this_thread::sleep_for(std::chrono::milliseconds(1));
                     userMessage(result["d"]);
+                    result["d"]["id"];
+                    result["d"]["author"]["id"];
+                }
+                else if (cmd == "MESSAGE_UPDATE")
+                {
+                    std::cout << result.dump() << std::endl;
+
+                    uint64_t message_id = std::stoull(result["d"]["id"].get<string>());
+                    uint64_t channel_id = std::stoull(result["d"]["channel_id"].get<string>());
+
+                    string content = result["d"]["content"];
+
+                    uint64_t timestamp = result["d"]["timestamp"];
+                    uint64_t edited_timestamp = result["d"]["edited_timestamp"];
+
+                    bool mention_everyone = result["d"]["mention_everyone"];
+                    bool pinned = result["d"]["pinned"];
+                    //
+                    json reactions;
+                    if (result["d"].count("reactions"))
+                        reactions = result["d"]["reactions"];
+                    json mentions = result["d"]["mentions"];
+                    json mention_roles = result["d"]["mention_roles"];
+
+
+
+
                 }
                 else if (cmd == "GUILD_CREATE")
                 {
                     loadGuild(result["d"]);
 
                     //load things like database commands and permissions here
+                }
+                else if (cmd == "GUILD_UPDATE")
+                {
+                }
+                else if (cmd == "GUILD_DELETE")
+                {
+                }
+                else if (cmd == "MESSAGE_DELETE")
+                {
+                }
+                else if (cmd == "MESSAGE_DELETE_BULK")
+                {
+                }
+                else if (cmd == "USER_SETTINGS_UPDATE")
+                {
+                }
+                else if (cmd == "USER_UPDATE")
+                {
+                }
+                else if (cmd == "VOICE_STATE_UPDATE")
+                {
+                }
+                else if (cmd == "READY")
+                {
+                    processReady(result["d"]);
+                }
+
+
+
+                //////////////////////////////////////////////////////////////////////////
+                //start of guild_id events
+                //everything beyond here has a guild_id
+
+                std::cout << result.dump() << std::endl;
+                if (result["d"].count("guild_id"))
+                {
+                    Guild & guild = getGuild(std::stoull(result["d"]["guild_id"].get<string>()));
+                    if (cmd == "CHANNEL_CREATE")
+                    {
+                        loadChannel(result["d"], guild.id);//untested
+                    }
+                    else if (cmd == "CHANNEL_UPDATE")
+                    {
+                    }
+                    else if (cmd == "CHANNEL_DELETE")
+                    {
+                    }
+                    else if (cmd == "GUILD_BAN_ADD")
+                    {
+                    }
+                    else if (cmd == "GUILD_BAN_REMOVE")
+                    {
+                    }
+                    else if (cmd == "GUILD_EMOJIS_UPDATE")
+                    {
+                    }
+                    else if (cmd == "GUILD_INTEGRATIONS_UPDATE")
+                    {
+                    }
+                    else if (cmd == "GUILD_MEMBER_ADD")
+                    {
+                        loadMember(result["d"], guild);//untested
+                    }
+                    else if (cmd == "GUILD_MEMBER_REMOVE")
+                    {
+                        uint64_t guildid = result["d"]["guild_id"];
+                    }
+                    else if (cmd == "GUILD_MEMBER_UPDATE")
+                    {
+                    }
+                    else if (cmd == "GUILD_MEMBER_CHUNK")
+                    {
+                    }
+                    else if (cmd == "GUILD_ROLE_CREATE")
+                    {
+                    }
+                    else if (cmd == "GUILD_ROLE_UPDATE")
+                    {
+                    }
+                    else if (cmd == "GUILD_ROLE_DELETE")
+                    {
+                    }
+                    else if (cmd == "PRESENCE_UPDATE")
+                    {
+                        std::cout << result.dump() << std::endl;
+                    }
+                    else if (cmd == "VOICE_SERVER_UPDATE")
+                    {
+                    }
                 }
             }
             if (!result["s"].is_null())

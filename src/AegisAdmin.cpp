@@ -45,6 +45,7 @@ void AegisAdmin::initialize()
     guild.addCommand("setgame", std::bind(&AegisAdmin::setGame, this, std::placeholders::_1));
     guild.addCommand("deletechannel", std::bind(&AegisAdmin::deletechannel, this, std::placeholders::_1));
     guild.addCommand("test", std::bind(&AegisAdmin::test, this, std::placeholders::_1));
+    guild.addCommand("serverlist", std::bind(&AegisAdmin::serverList, this, std::placeholders::_1));
 }
 
 void AegisAdmin::remove()
@@ -54,6 +55,40 @@ void AegisAdmin::remove()
     guild.removeCommand("setgame");
     guild.removeCommand("deletechannel");
     guild.removeCommand("test");
+    guild.removeCommand("serverlist");
+}
+
+void AegisAdmin::test(ABMessage & message)
+{
+    message.channel().guild().bot.ws.close(message.channel().guild().bot.hdl, 1001, "");
+}
+
+void AegisAdmin::serverList(ABMessage & message)
+{
+    std::stringstream ss;
+    for (auto & g : message.channel().guild().bot.guildlist)
+    {
+        ss << "*" << g.second->name << "*  :  " << g.second->id << "\n";
+    }
+
+
+    json t = {
+        { "title", "Server List" },
+        { "description", ss.str() },
+        { "color", 10599460 }
+    };
+    message.channel().sendMessageEmbed(json(), t);
+}
+
+void AegisAdmin::deletechannel(ABMessage & message)
+{
+    for (auto & c : message.channel().guild().channellist)
+    {
+        if (c.second->type == ChannelType::VOICE)
+        {
+            c.second->deleteChannel();
+        }
+    }
 }
 
 void AegisAdmin::reload(ABMessage & message)

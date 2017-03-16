@@ -47,6 +47,7 @@ public:
     void setGame(ABMessage & message);
     void deletechannel(ABMessage & message);
     void test(ABMessage & message);
+    void serverList(ABMessage & message);
 
 };
 
