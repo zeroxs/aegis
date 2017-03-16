@@ -69,6 +69,7 @@
 #include "Guild.h"
 #include "Member.h"
 #include "Channel.h"
+#include "Role.h"
 #include "RateLimits.h"
 
 
@@ -111,8 +112,6 @@ using Poco::Logger;
 using Poco::File;
 
 using std::string;
-using std::shared_ptr;
-using std::make_shared;
 
 class Guild;
 
@@ -124,7 +123,13 @@ class Guild;
 class AegisBot
 {
 public:
-    shared_ptr<Guild> CreateGuild(uint64_t id);
+    Guild & createGuild(uint64_t id);
+    Member & createMember(uint64_t id);
+    Channel & createChannel(uint64_t id, uint64_t guildid);
+    Guild & getGuild(uint64_t id);
+    Member & getMember(uint64_t id);
+    Channel & getChannel(uint64_t id);
+
     static std::pair<bool, string> call(string url, string obj = "", RateLimits * endpoint = nullptr, string method = "GET", string query = "");
 
     static FormattingChannel * pFC;
@@ -136,8 +141,8 @@ public:
     static void loadConfigs();
     static void startShards();
     static void threads();
+    static void cleanup();
     static string gatewayurl;
-    static std::vector<shared_ptr<AegisBot>> bots;
     static bool isrunning;
     static bool active;
     //default commands for guilds
@@ -159,17 +164,19 @@ public:
     {
         uint64_t id;
         uint64_t last_message_id;
-        std::map<uint64_t, shared_ptr<Member>> recipients;
+        std::vector<uint64_t> recipients;
     };
-    static std::map<uint64_t, shared_ptr<PrivateChat>> private_channels;
-    static std::map<uint64_t, shared_ptr<Channel>> channellist;
-    static std::map<uint64_t, shared_ptr<Member>> globalusers;
+    static std::map<uint64_t, PrivateChat> private_channels;
+    static std::map<uint64_t, Channel*> channellist;
+    static std::map<uint64_t, Member*> globalusers;
 
     //Guild tracking (Servers)
-    static std::map<uint64_t, shared_ptr<Guild>> guildlist;
+    static std::map<uint64_t, Guild*> guildlist;
 
-    static std::vector<shared_ptr<AegisBot>> shards;
+    static std::vector<std::unique_ptr<AegisBot>> shards;
     static boost::asio::io_service io_service;
+
+    Member * self;
 
     static uint16_t shardidmax;
     uint16_t shardid;
@@ -186,8 +193,9 @@ public:
     void processReady(json & d);
     void connectWS();
 
+/*
     template <typename T, typename... _BoundArgs>
-    void createTimer(uint64_t t, shared_ptr<boost::asio::steady_timer> timer, T f, _BoundArgs&&... __args);
+    void createTimer(uint64_t t, shared_ptr<boost::asio::steady_timer> timer, T f, _BoundArgs&&... __args);*/
 
     //Websockets
     websocketpp::client<websocketpp::config::asio_tls_client> ws;
@@ -209,10 +217,12 @@ public:
     uint64_t sequence = 0;
     string sessionId;
 
-    shared_ptr<Guild> loadGuild(json & obj);
-    shared_ptr<Guild> loadGuildFromCache(json & obj);
-    shared_ptr<Member> loadMember(json & obj);
-    shared_ptr<Member> loadMemberFromCache(json & obj);
+    void loadGuild(json & obj);
+    void loadChannel(json & channel, uint64_t guild_id);
+    void loadMember(json & member, Guild & guild);
+    void loadRole(json & role, Guild & guild);
+    void loadEmoji(json & emoji, Guild & guild);
+    void loadPresence(json & presence, Guild & guild);
 
     void run();
 

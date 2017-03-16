@@ -33,21 +33,20 @@
 
 class ABMessage;
 class AegisBot;
-using std::shared_ptr;
 
 
 class ExampleBot : public AegisModule
 {
 public:
-    ExampleBot(AegisBot & bot, shared_ptr<Guild> guild);
+    ExampleBot(AegisBot & bot, Guild & guild);
     ~ExampleBot();
 
     void initialize();
     void remove();
 
-    void echo(shared_ptr<ABMessage> message);
-    void rates2(shared_ptr<ABMessage> message);
-    void this_is_a_class_function(::shared_ptr<ABMessage> message);
+    void echo(ABMessage & message);
+    void rates2(ABMessage & message);
+    void this_is_a_class_function(ABMessage & message);
 
 
 };

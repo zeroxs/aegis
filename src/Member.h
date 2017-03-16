@@ -36,23 +36,26 @@ class Guild;
 
 using std::string;
 
+struct stGuildInfo
+{
+    std::vector<uint64_t> roles;
+    string nickname;
+    Guild * guild;
+};
+
 class Member : public Permission 
 {
 public:
-    Member() { };
+    Member() {};
     Member(uint64_t id, string name, uint16_t discriminator, string avatar);
     ~Member();
 
-    struct stGuildInfo
-    {
-        std::vector<uint64_t> roles;
-        string nickname;
-        shared_ptr<Guild> guild;
-    };
-
-    std::vector<shared_ptr<Guild>> getGuilds();
+    std::vector<Guild*> getGuilds();
     boost::optional<string> getName(uint64_t guildid);
     string getFullName();
+
+    std::map<uint64_t, stGuildInfo> guilds;
+    std::vector<uint64_t> channels;
 
     uint64_t id = 0;
     string name;
@@ -62,8 +65,6 @@ public:
     bool deaf = false;
     bool mute = false;
     string joined_at;
-    std::map<uint64_t, stGuildInfo> guilds;
-    std::vector<uint64_t> channels;
 
     RateLimits ratelimits;
 };

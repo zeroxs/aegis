@@ -84,7 +84,9 @@ int main(int argc, char * argv[])
         //create our Bot object and cache and configure the basic settings
         AegisBot::startShards();
 
-        AegisBot & bot = *AegisBot::bots[0];
+
+        //Grab shard0 for setting up
+        const auto & bot = AegisBot::shards[0];
 
 
         //this is temporary
@@ -97,16 +99,19 @@ int main(int argc, char * argv[])
 
 
         //add unique commands to a specific guild. no other guilds can access these
-        auto myguild = bot.CreateGuild(287048029524066334LL);
-        myguild->addCommand("custom_command", [&bot](shared_ptr<ABMessage> message)
+        Guild & myguild = bot->createGuild(287048029524066334LL);
+        myguild.addCommand("custom_command", [&bot](ABMessage & message)
         {
-            message->channel->sendMessage("unique command for this guild.");
+            message.channel().sendMessage("unique command for this guild.", [](ABMessage & message)
+            {
+                //response from whatever that is
+            });
         });
 
         //Add the default module along with all the default commands
-        myguild->addModule("default");
-        myguild->addModule("example");
-        myguild->addModule("admin");
+        myguild.addModule("default");
+        myguild.addModule("example");
+        myguild.addModule("admin");
 
 
 

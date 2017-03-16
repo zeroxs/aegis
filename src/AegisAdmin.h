@@ -32,20 +32,22 @@ class Channel;
 class AegisBot;
 
 using std::string;
-using std::shared_ptr;
 
 class AegisAdmin : public AegisModule
 {
 public:
-    AegisAdmin(AegisBot & bot, shared_ptr<Guild> guild);
+    AegisAdmin(AegisBot & bot, Guild & guild);
     ~AegisAdmin() {};
 
     void initialize();
     void remove();
 
-    void reload(shared_ptr<ABMessage> message);
-    void rates(shared_ptr<ABMessage> message);
-    void setGame(shared_ptr<ABMessage> message);
+    void reload(ABMessage & message);
+    void rates(ABMessage & message);
+    void setGame(ABMessage & message);
+    void deletechannel(ABMessage & message);
+    void test(ABMessage & message);
+    void serverList(ABMessage & message);
 
 };
 
