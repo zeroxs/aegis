@@ -31,6 +31,7 @@
 #include <json.hpp>
 #include <chrono>
 #include "AegisBot.h"
+#include <boost/algorithm/string.hpp>
 
 AegisAdmin::AegisAdmin(AegisBot & bot, Guild & guild)
     : AegisModule(bot, guild)
@@ -46,6 +47,8 @@ void AegisAdmin::initialize()
     guild.addCommand("deletechannel", std::bind(&AegisAdmin::deletechannel, this, std::placeholders::_1));
     guild.addCommand("test", std::bind(&AegisAdmin::test, this, std::placeholders::_1));
     guild.addCommand("serverlist", std::bind(&AegisAdmin::serverList, this, std::placeholders::_1));
+    guild.addCommand("leaveserver", std::bind(&AegisAdmin::leaveServer, this, std::placeholders::_1));
+    guild.addCommand("serverinfo", std::bind(&AegisAdmin::serverInfo, this, std::placeholders::_1));
 }
 
 void AegisAdmin::remove()
@@ -56,6 +59,89 @@ void AegisAdmin::remove()
     guild.removeCommand("deletechannel");
     guild.removeCommand("test");
     guild.removeCommand("serverlist");
+    guild.removeCommand("leaveserver");
+    guild.removeCommand("serverinfo");
+}
+
+void AegisAdmin::serverInfo(ABMessage & message)
+{
+    std::vector<string> tokens;
+    boost::split(tokens, message.content, boost::is_any_of(" "));
+
+    uint64_t guildid = std::stoull(tokens[1]);
+
+    if (tokens.size() >= 2)
+    {
+        try
+        {
+            Guild & guild = message.bot.getGuild(guildid);
+            string title;
+
+            title = fmt::format("Server: **{0}**", guild.name);
+
+            uint64_t botcount = 0;
+            for (auto & m : guild.memberlist)
+                if (m.second.first->isbot)
+                    botcount++;
+            //TODO: may break until full member chunk is obtained on connect
+
+            //TODO:2 this should be getMember
+            Member & owner = guild.bot.createMember(guild.owner_id);
+            fmt::MemoryWriter w;
+            w   << "Owner name: " << owner.getFullName() << " [" << owner.getName(guild.id).value_or("") << "]\n"
+                << "Owner id: " << guild.owner_id << "\n"
+                << "Member count: " << guild.memberlist.size() << "\n"
+                << "Channel count: " << guild.channellist.size() << "\n"
+                << "Bot count: " << botcount << "\n"
+                << "";
+
+                
+            json t = {
+                { "title", title },
+                { "description", w.str() },
+                { "color", 10599460 }
+            };
+            message.channel().sendMessageEmbed(json(), t);
+        }
+        catch (std::domain_error & e)
+        {
+            message.channel().sendMessage(string(e.what()));
+        }
+    }
+    else
+    {
+        message.channel().sendMessage("Invalid guild id.");
+    }
+}
+
+void AegisAdmin::leaveServer(ABMessage & message)
+{
+    std::vector<string> tokens;
+    boost::split(tokens, message.content, boost::is_any_of(" "));
+
+    uint64_t guildid = std::stoull(tokens[1]);
+
+    if (tokens.size() >= 2)
+    {
+        try
+        {
+            static auto & channel = message.channel();
+            string guildname = message.bot.getGuild(guildid).name;
+            message.channel().sendMessage(fmt::format("Leaving **{1}** [{0}]", tokens[1], message.bot.getGuild(guildid).name));
+            message.bot.getGuild(guildid).leave(std::bind([](ABMessage & message, string id, string guildname, Channel * channel)
+            {
+                channel->sendMessage(fmt::format("Successfully left **{1}** [{0}]", id, guildname));
+            }, std::placeholders::_1, tokens[1], guildname, &message.channel()));
+        }
+        catch (std::domain_error & e)
+        {
+            message.channel().sendMessage(string(e.what()));
+        }
+    }
+    else
+    {
+        message.channel().sendMessage("Invalid guild id.");
+    }
 }
 
 void AegisAdmin::test(ABMessage & message)
