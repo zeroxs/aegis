@@ -124,7 +124,6 @@ string AegisOfficial::getparams(ABMessage & message)
 
 void AegisOfficial::info(ABMessage & message)
 {
-    uint64_t timenow = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     uint64_t guild_count = AegisBot::guildlist.size();
     uint64_t member_count = 0;
     uint64_t member_count_unique = AegisBot::memberlist.size();

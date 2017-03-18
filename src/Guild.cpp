@@ -66,15 +66,15 @@ void Guild::processMessage(json obj)
 
     string avatar = author["avatar"].is_string()?author["avatar"]:"";
     string username = author["username"];
-    uint16_t discriminator = std::stoll(author["discriminator"].get<string>());
+    //uint16_t discriminator = std::stoll(author["discriminator"].get<string>());
 
     uint64_t channel_id = std::stoll(obj["channel_id"].get<string>());
     uint64_t id = std::stoll(obj["id"].get<string>());
-    uint64_t nonce = obj["nonce"].is_null()?0:std::stoll(obj["nonce"].get<string>());
+    //uint64_t nonce = obj["nonce"].is_null()?0:std::stoll(obj["nonce"].get<string>());
 
     string content = obj["content"];
-    bool tts = obj["tts"];
-    bool pinned = obj["pinned"];
+    //bool tts = obj["tts"];
+    //bool pinned = obj["pinned"];
 
     //if message came from a bot, ignore
     if (!AegisBot::memberlist.count(userid) || AegisBot::memberlist[userid]->isbot == true)
@@ -247,6 +247,7 @@ void Guild::processMessage(json obj)
     //check if attachment exists
     if (obj.count("attachments") > 0)
     {
+/*
         std::cout << "Attachments check true" << std::endl;
         for (auto & attach : obj["attachments"])
         {
@@ -259,7 +260,7 @@ void Guild::processMessage(json obj)
                 attachmenthandler.second(message);
                 return;
             }
-        }
+        }*/
     }
 
     if (cmdlist.count(cmd))

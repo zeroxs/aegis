@@ -315,8 +315,8 @@ void AegisBot::processReady(json & d)
             unavailable = guildobj["unavailable"];
 
         Guild & guild = createGuild(id);
-        poco_trace_f1(*log, "Guild created: %Lu", id);
-        guildlist[id]->unavailable = unavailable;
+        poco_trace_f1(*log, "Guild created: %Lu", guild.id);
+        guild.unavailable = unavailable;
         if (!unavailable)
         {
             loadGuild(guildobj);
@@ -333,19 +333,20 @@ void AegisBot::processReady(json & d)
         }
     }
 
+/*
     json presences = d["presences"];
     for (auto & presenceobj : presences)
     {
         //TODO
-    }
+    }*/
 
     private_channels.clear();
     json pchannels = d["private_channels"];
     for (auto & channel : pchannels)
     {
         uint64_t channel_id = std::stoll(channel["id"].get<string>());
-        uint64_t last_message_id = channel["last_message_id"].is_null()?0:std::stoll(channel["last_message_id"].get<string>());
-        int32_t channelType = channel["type"];
+        //uint64_t last_message_id = channel["last_message_id"].is_null()?0:std::stoll(channel["last_message_id"].get<string>());
+        //int32_t channelType = channel["type"];
         json recipients = channel["recipients"];
       
         PrivateChat & privateChat = private_channels[channel_id];//test
@@ -416,8 +417,8 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                 {
                     //std::cout << result.dump() << std::endl;
                     json message = result["d"];
-                    uint64_t message_id = std::stoull(message["id"].get<string>());
-                    uint64_t channel_id = std::stoull(message["channel_id"].get<string>());
+                    //uint64_t message_id = std::stoull(message["id"].get<string>());
+                    //uint64_t channel_id = std::stoull(message["channel_id"].get<string>());
 
                     if (message["embeds"].size() > 0)
                     {
@@ -438,6 +439,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     }
                     else
                     {
+/*
                         uint64_t user_id = std::stoull(message["author"]["id"].get<string>());
                         string content = message["content"];
 
@@ -451,7 +453,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                         if (message.count("reactions"))
                             reactions = message["reactions"];
                         json mentions = message["mentions"];
-                        json mention_roles = message["mention_roles"];
+                        json mention_roles = message["mention_roles"];*/
                     }
 
 
@@ -897,7 +899,6 @@ void AegisBot::run()
                             //TODO: also merge this + guild call() calls.
 
                             //Channel api calls
-                            uint32_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
                             auto message = channel.second->ratelimits.getMessage();
                             bool success = false;
 
@@ -929,6 +930,7 @@ void AegisBot::run()
 
                             poco_trace_f2(*log, "Message sent: [%s] [%s]", message.endpoint, message.content);
 #ifdef DEBUG_OUTPUT
+                            uint64_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
                             poco_trace_f1(*log, "rate_limit:     %u", message.channel().ratelimits.rateLimit());
                             poco_trace_f1(*log, "rate_remaining: %u", message.channel().ratelimits.rateRemaining());
                             poco_trace_f1(*log, "rate_reset:     %u", message.channel().ratelimits.rateReset());
@@ -953,7 +955,6 @@ void AegisBot::run()
                         }
 
                         //Guild api calls
-                        uint32_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
                         auto & message = guild.second->ratelimits.getMessage();
                         bool success = false;
                         {
@@ -979,6 +980,7 @@ void AegisBot::run()
                         }
                         poco_trace_f2(*log, "Message sent: [%s] [%s]", message.endpoint, message.content);
 #ifdef DEBUG_OUTPUT
+                        uint64_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
                         poco_trace_f1(*log, "rate_limit:     %u", message.guild().ratelimits.rateLimit());
                         poco_trace_f1(*log, "rate_remaining: %u", message.guild().ratelimits.rateRemaining());
                         poco_trace_f1(*log, "rate_reset:     %u", message.guild().ratelimits.rateReset());
@@ -1085,6 +1087,7 @@ void AegisBot::loadGuild(json & obj)
             loadEmoji(emoji, guild);
         }
 
+/*
         for (auto & feature : features)
         {
             //??
@@ -1093,7 +1096,7 @@ void AegisBot::loadGuild(json & obj)
         for (auto & voicestate : voice_states)
         {
             //no voice yet
-        }
+        }*/
 
 
 
@@ -1136,15 +1139,17 @@ void AegisBot::loadChannel(json & channel, uint64_t guild_id)
         }
 
 
+/*
         json permission_overwrites = channel["permission_overwrites"];
         for (auto & permission : permission_overwrites)
         {
+/ *
             uint32_t allow = permission["allow"];
             uint32_t deny = permission["deny"];
             uint64_t p_id = std::stoll(permission["id"].get<string>());
-            string p_role = GET_NULL(permission, "role");
+            string p_role = GET_NULL(permission, "role");* /
             //TODO: implement
-        }
+        }*/
 
         guild.channellist.insert(std::pair<uint64_t, Channel*>(checkchannel.id, &checkchannel));
     }

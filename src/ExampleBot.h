@@ -25,10 +25,6 @@
 
 #pragma once
 
-#include <iostream>
-#include <chrono>
-#include <Poco/Format.h>
-#include <memory>
 #include "AegisModule.h"
 
 class ABMessage;

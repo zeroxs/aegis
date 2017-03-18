@@ -16,7 +16,7 @@ ADD_DEFINITIONS(-DBOOST_ALL_DYN_LINK -DUSE_REDIS -DROOTADMIN=171000788183678976L
 
 target_include_directories(aegisbot PUBLIC src)
 
-include_directories(${Boost_INCLUDE_DIR} ${Poco_DIR}/Foundation/include ${Poco_DIR}/Net/include ${Poco_DIR}/NetSSL/include ${Poco_DIR}/NetSSL_OpenSSL/include ${Poco_DIR}/Crypto/include ${CMAKE_SOURCE_DIR}/lib/json/src ${CMAKE_SOURCE_DIR}/lib/redisclient/src ${CMAKE_SOURCE_DIR}/lib/websocketpp ${CMAKE_SOURCE_DIR}/lib/fmt/fmt)
+include_directories(${Boost_INCLUDE_DIR} ${Poco_DIR}/Foundation/include ${Poco_DIR}/Net/include ${Poco_DIR}/NetSSL/include ${Poco_DIR}/NetSSL_OpenSSL/include ${Poco_DIR}/Crypto/include ${CMAKE_SOURCE_DIR}/lib/json/src ${CMAKE_SOURCE_DIR}/lib/redisclient/src ${CMAKE_SOURCE_DIR}/lib/websocketpp ${CMAKE_SOURCE_DIR}/lib/fmt)
 
 link_directories(${Boost_LIBRARY_DIR} ${Poco_LIBRARY_DIR})
 

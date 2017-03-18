@@ -149,7 +149,7 @@ void AegisAdmin::leaveServer(ABMessage & message)
     {
         try
         {
-            static auto & channel = message.channel();
+            //static auto & channel = message.channel();
             string guildname = message.bot.getGuild(guildid).name;
             message.channel().sendMessage(fmt::format("Leaving **{1}** [{0}]", tokens[1], message.bot.getGuild(guildid).name));
             message.bot.getGuild(guildid).leave(std::bind([](ABMessage & message, string id, string guildname, Channel * channel)

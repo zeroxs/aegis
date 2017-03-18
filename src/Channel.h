@@ -114,7 +114,7 @@ public:
     AegisBot & bot;
 
 private:
-    Channel * _channel = nullptr;
-    Member * _member = nullptr;
-    Guild * _guild = nullptr;
+    Channel * _channel;
+    Member * _member;
+    Guild * _guild;
 };

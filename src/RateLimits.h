@@ -119,13 +119,13 @@ public:
 
     static bool rate_global;
 
-    uint16_t failures = 0;
+    uint64_t failures = 0;
     std::recursive_mutex m;
 private:
-    uint32_t _rate_limit = 10;
-    uint32_t _rate_remaining = 10;
-    uint32_t _rate_reset = 0;
-    uint32_t _retry_after = 0;
-    uint16_t _lastfailure = 0;
+    uint64_t _rate_limit = 10;
+    uint64_t _rate_remaining = 10;
+    uint64_t _rate_reset = 0;
+    uint64_t _retry_after = 0;
+    uint64_t _lastfailure = 0;
 };
 

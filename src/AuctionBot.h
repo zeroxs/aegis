@@ -50,22 +50,22 @@ public:
         uint64_t owner_id;
         std::vector<uint64_t> bidders;
         string teamname;
-        std::vector<std::pair<string, int>> players;
-        int funds = 0;
+        std::vector<std::pair<string, uint32_t>> players;
+        uint32_t funds = 0;
         bool withdrawn = false;
     };
 
     std::vector<std::pair<string,bool>> players;
     std::vector<Team> teams;
-    int defaultfunds = 0;
+    uint16_t defaultfunds = 0;
     int direction = 1;
-    int lastteam = 0;
-    int currentteam = 0;
+    uint16_t lastteam = 0;
+    uint16_t currentteam = 0;
     bool auctioninprogress = false;
     string currentnom;
-    std::vector<std::pair<int, int>> bids;//team id, bid amount
+    std::vector<std::pair<uint32_t, uint32_t>> bids;//team id, bid amount
     bool paused = false;
-    uint64_t timeuntilstop = 0;
+    int64_t timeuntilstop = 0;
     uint64_t channeloutput = 0;
 
     uint64_t currentstandingsid = 0;

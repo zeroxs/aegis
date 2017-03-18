@@ -283,6 +283,7 @@ AuctionBot::Team & AuctionBot::getteam(const uint64_t id)
             return t;
         }
     }
+    throw std::out_of_range("Team does not exist");
 }
 
 bool AuctionBot::nextplayer()
@@ -389,7 +390,7 @@ void AuctionBot::timercontinuation(Channel * channel)
             channel->sendMessage(fmt::format("Auction of player **{0}** completed for [{1}] awarded to **{2}**\n<@{3}> type `{4}nom player name` to nominate another player.", currentnom, res.second, teams[bids.back().first].teamname, teams[currentteam].owner_id, channel->guild().prefix));
 
 
-            for (int i = 0; i < players.size(); ++i)
+            for (uint16_t i = 0; i < players.size(); ++i)
             {
                 if (players[i].first == currentnom)
                 {
@@ -457,21 +458,24 @@ void AuctionBot::Start(ABMessage & message)
 void AuctionBot::Playerlist(ABMessage & message)
 {
     std::vector<std::stringstream> outputs;
-    for (auto & t : {1,2,3,4,5,6})
-    {
-        outputs.push_back(std::stringstream());
-    }
+
+    outputs.push_back(std::stringstream());
+    outputs.push_back(std::stringstream());
+    outputs.push_back(std::stringstream());
+    outputs.push_back(std::stringstream());
+    outputs.push_back(std::stringstream());
+    outputs.push_back(std::stringstream());
 
     json jteams;
 
-    for (int i = 0; i < players.size(); ++i)
+    for (uint32_t i = 0; i < players.size(); ++i)
     {
         if (players[i].second)//taken
             outputs[i%6] << players[i].first << "\n";
 //         else
 //             outputs[i % 6] << "~~" << players[i].first << "~~\n";
     }
-    for (int i = 0; i < outputs.size(); ++i)
+    for (uint32_t i = 0; i < outputs.size(); ++i)
     {
         jteams.push_back(json({ { "name", "Players" },{ "value", outputs[i].str().size()>0? outputs[i].str():"No Players" },{ "inline", true } }));
     }
@@ -540,7 +544,7 @@ void AuctionBot::Nom(ABMessage & message)
     }
     catch (...)
     {
-        message.channel().sendMessage(fmt::format("[<@{0}] Invalid command arguments.", message.member().id));
+        message.channel().sendMessage(fmt::format("[<@{0}>] Invalid command arguments.", message.member().id));
     }
 }
 
@@ -608,7 +612,7 @@ void AuctionBot::Bid(ABMessage & message)
         message.channel().sendMessage(fmt::format("[<@{0}>] Invalid command arguments.", message.member().id));
         return;
     }
-    int bid = std::stoi(sbid);
+    uint32_t bid = std::stoi(sbid);
 
     if (bid % 500 > 0)
     {
@@ -740,8 +744,8 @@ void AuctionBot::Retain(ABMessage & message)
         len += 3;
 
         string playername = message.content.substr(len);
-        int teamindex = std::stoi(tokens[1])-1;
-        int funds = std::stoi(tokens[2]);
+        uint16_t teamindex = std::stoul(tokens[1])-1;
+        uint16_t funds = std::stoul(tokens[2]);
 
         if (teamindex > teams.size())
         {
@@ -778,7 +782,6 @@ void AuctionBot::Skip(ABMessage & message)
         message.channel().sendMessage(fmt::format("[<@{0}>] No auction going on.", message.member().id));
         return;
     }
-    int failurecheck = 0;
     string oldteam = teams[currentteam].teamname;
 
     if (!nextplayer())
@@ -809,7 +812,7 @@ void AuctionBot::Setfunds(ABMessage & message)
             return;
         }
 
-        if (teams.size() < std::stoi(team)-1)
+        if (teams.size() < std::stoul(team)-1)
         {
             message.channel().sendMessage(fmt::format("[<@{0}>] Invalid team.", message.member().id));
             return;
@@ -931,7 +934,7 @@ void AuctionBot::Addfunds(ABMessage & message)
             return;
         }
 
-        if (teams.size() < std::stoi(team) - 1)
+        if (teams.size() < std::stoul(team) - 1)
         {
             message.channel().sendMessage(fmt::format("[<@{0}>] Invalid team.", message.member().id));
             return;
@@ -975,7 +978,7 @@ void AuctionBot::Removefunds(ABMessage & message)
             return;
         }
 
-        if (teams.size() < std::stoi(team) - 1)
+        if (teams.size() < std::stoul(team) - 1)
         {
             message.channel().sendMessage(fmt::format("[<@{0}>] Invalid team.", message.member().id));
             return;
@@ -1021,7 +1024,7 @@ void AuctionBot::Adminsetname(ABMessage & message)
             return;
         }
 
-        if (teams.size() < std::stoi(team)-1)
+        if (teams.size() < std::stoul(team)-1)
         {
             message.channel().sendMessage(fmt::format("[<@{0}>] Invalid team.", message.member().id));
             return;
