@@ -118,12 +118,16 @@ install:
     POCO_URL="https://pocoproject.org/releases/poco-${POCO_VERSION}/poco-${POCO_VERSION}-all.tar.gz"
     mkdir -p ${POCO_DIR}
     travis_retry wget --quiet -O - ${POCO_URL}      | tar --strip-components=1 -xz -C ${POCO_DIR}
-    if [[ -z "$(ls -A ${POCO_DIR})/lib" ]]; then
+    if [[ -z "$(ls -A ${POCO_DIR})" ]]; then
         if [[ "${LLVM_VERSION}" != "" ]]; then
           (cd ${POCO_DIR} && cmake . -DCMAKE_CXX_COMPILER=${COMPILER} && make)
         else
           (cd ${POCO_DIR} && cmake . -DCMAKE_CXX_COMPILER=${COMPILER} -DCMAKE_C_COMPILER=${COMPILERGCC} && make)
         fi
+    fi
+  - |
+    if [[ -z "$(ls -A ${DEPS_DIR}/fmt/fmt/libfmt.a)" ]]; then
+      (cd ${DEPS_DIR}/fmt && cmake . && make)
     fi
 
 
