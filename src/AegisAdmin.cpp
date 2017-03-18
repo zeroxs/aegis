@@ -49,6 +49,7 @@ void AegisAdmin::initialize()
     guild.addCommand("serverlist", std::bind(&AegisAdmin::serverList, this, std::placeholders::_1));
     guild.addCommand("leaveserver", std::bind(&AegisAdmin::leaveServer, this, std::placeholders::_1));
     guild.addCommand("serverinfo", std::bind(&AegisAdmin::serverInfo, this, std::placeholders::_1));
+    guild.addCommand("disc", std::bind(&AegisAdmin::disc, this, std::placeholders::_1));
 }
 
 void AegisAdmin::remove()
@@ -61,6 +62,29 @@ void AegisAdmin::remove()
     guild.removeCommand("serverlist");
     guild.removeCommand("leaveserver");
     guild.removeCommand("serverinfo");
+    guild.removeCommand("disc");
+}
+
+void AegisAdmin::disc(ABMessage & message)
+{
+    std::vector<string> tokens;
+    boost::split(tokens, message.content, boost::is_any_of(" "));
+
+    fmt::MemoryWriter w;
+    int i = 0;
+
+    for (auto & m : AegisBot::memberlist)
+    {
+        if (m.second->discriminator == std::stoi(tokens[1]))
+        {
+            ++i;
+            w << m.second->getFullName() << "\n";
+        }
+    }
+    if (i > 0)
+        message.channel().sendMessage(w.str());
+    else
+        message.channel().sendMessage("None");
 }
 
 void AegisAdmin::serverInfo(ABMessage & message)

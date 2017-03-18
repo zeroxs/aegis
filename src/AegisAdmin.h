@@ -50,6 +50,7 @@ public:
     void serverList(ABMessage & message);
     void leaveServer(ABMessage & message);
     void serverInfo(ABMessage & message);
+    void disc(ABMessage & message);
 
 };
 

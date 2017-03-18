@@ -16,7 +16,7 @@ ADD_DEFINITIONS(-DBOOST_ALL_DYN_LINK -DUSE_REDIS -DROOTADMIN=171000788183678976L
 
 target_include_directories(aegisbot PUBLIC src)
 
-include_directories(${Boost_INCLUDE_DIR} ${Poco_DIR}/Foundation/include ${Poco_DIR}/Net/include ${Poco_DIR}/NetSSL/include ${Poco_DIR}/NetSSL_OpenSSL/include ${Poco_DIR}/Crypto/include ${CMAKE_SOURCE_DIR}/lib/json/src ${CMAKE_SOURCE_DIR}/lib/redisclient/src ${CMAKE_SOURCE_DIR}/lib/websocketpp )
+include_directories(${Boost_INCLUDE_DIR} ${Poco_DIR}/Foundation/include ${Poco_DIR}/Net/include ${Poco_DIR}/NetSSL/include ${Poco_DIR}/NetSSL_OpenSSL/include ${Poco_DIR}/Crypto/include ${CMAKE_SOURCE_DIR}/lib/json/src ${CMAKE_SOURCE_DIR}/lib/redisclient/src ${CMAKE_SOURCE_DIR}/lib/websocketpp ${CMAKE_SOURCE_DIR}/lib/fmt/fmt)
 
 link_directories(${Boost_LIBRARY_DIR} ${Poco_LIBRARY_DIR})
 
@@ -25,4 +25,4 @@ MESSAGE( STATUS "Boost_INCLUDE_DIR:  " ${Boost_INCLUDE_DIR} )
 MESSAGE( STATUS "Boost_LIBRARY_DIR:  " ${Boost_LIBRARY_DIR} )
 MESSAGE( STATUS "Poco_LIBRARY_DIR:   " ${Poco_LIBRARY_DIR} )
 
-target_link_libraries(aegisbot pthread ${Poco_LIBRARY_DIR}/libPocoNet.so ${Poco_LIBRARY_DIR}/libPocoNetSSL.so ${Poco_LIBRARY_DIR}/libPocoFoundation.so ssl crypto ${Boost_LIBRARY_DIR}/libboost_program_options.so ${Boost_LIBRARY_DIR}/libboost_thread.so ${Boost_LIBRARY_DIR}/libboost_system.so )
+target_link_libraries(aegisbot pthread ${Poco_LIBRARY_DIR}/libPocoNet.so ${Poco_LIBRARY_DIR}/libPocoNetSSL.so ${Poco_LIBRARY_DIR}/libPocoFoundation.so ssl crypto ${Boost_LIBRARY_DIR}/libboost_program_options.so ${Boost_LIBRARY_DIR}/libboost_thread.so ${Boost_LIBRARY_DIR}/libboost_system.so ${CMAKE_SOURCE_DIR}/lib/fmt/fmt/libfmt.a)
