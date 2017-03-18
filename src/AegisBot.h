@@ -159,6 +159,12 @@ public:
     static uint64_t userId;
     static bool mfa_enabled;
     static string mention;
+    static string tokenstr;
+
+    //stats
+    static uint64_t eventsSeen;
+    static uint64_t apiCalls;
+
     //Private chat tracking
     struct PrivateChat
     {

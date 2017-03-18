@@ -77,62 +77,69 @@ void Guild::processMessage(json obj)
     bool pinned = obj["pinned"];
 
     //if message came from a bot, ignore
-    if (!AegisBot::globalusers.count(userid) || AegisBot::globalusers[userid]->isbot == true)
+    if (!AegisBot::memberlist.count(userid) || AegisBot::memberlist[userid]->isbot == true)
         return;
 
 
 
 #ifdef SELFBOT
-    if (userid != 171000788183678976LL)
+    if (userid != ROOTADMIN)
         return;
 #endif
 
 
-    if (userid == 171000788183678976LL)
+    if (userid == ROOTADMIN)
     {
 
-        boost::char_separator<char> sep{ " " };
-        boost::tokenizer<boost::char_separator<char>> tok{ content, sep };
+        if (content.substr(0, AegisBot::mention.size()) == AegisBot::mention)
+        {
 
-        auto token = tok.begin();
+            boost::char_separator<char> sep{ " " };
+            boost::tokenizer<boost::char_separator<char>> tok{ content, sep };
 
-        if (token == tok.end()) return;
-        string cmd = *(token++);
+            auto token = tok.begin();
+
+            ++token;
+
+            if (token == tok.end()) return;
+
+            string cmd = *(token++);
 
 #ifdef _DEBUG
-        if (cmd == "setprefix")
-        {
-            if (token == tok.end()) return;
-            string setprefix = *(token++);
-            if (setprefix.size() == 0)
-                channellist[channel_id]->sendMessage("Invalid arguments. Prefix must have a length greater than 0");
-            else
+            if (cmd == "setprefix")
             {
-                prefix = setprefix;
-                channellist[channel_id]->sendMessage(Poco::format("Prefix successfully set to `%s`", setprefix));
+                if (token == tok.end()) return;
+                string setprefix = *(token++);
+                if (setprefix.size() == 0)
+                    channellist[channel_id]->sendMessage("Invalid arguments. Prefix must have a length greater than 0");
+                else
+                {
+                    prefix = setprefix;
+                    channellist[channel_id]->sendMessage(Poco::format("Prefix successfully set to `%s`", setprefix));
 
-                //TODO: set this in a persistent DB to maintain across restarts
+                    //TODO: set this in a persistent DB to maintain across restarts
+                }
+                return;
             }
-            return;
-        }
 #endif
 
-        if (cmd == "exit")
-        {
-            //TODO: add some core bot management
-            poco_critical_f3(*bot.log, "Bot shutdown g[%Lu] c[%Lu] u[%Lu]", id, channel_id, userid);
-            channellist[channel_id]->sendMessage("Bot shutting down.");
-            std::this_thread::sleep_for(std::chrono::seconds(2));
-            bot.ws.close(bot.hdl, 1001, "");
-            bot.io_service.stop();
-            bot.isrunning = false;
-            bot.active = false;
-            return;
+            if (cmd == "exit")
+            {
+                //TODO: add some core bot management
+                poco_critical_f3(*bot.log, "Bot shutdown g[%Lu] c[%Lu] u[%Lu]", id, channel_id, userid);
+                channellist[channel_id]->sendMessage("Bot shutting down.");
+                std::this_thread::sleep_for(std::chrono::seconds(2));
+                bot.ws.close(bot.hdl, 1001, "");
+                bot.io_service.stop();
+                bot.isrunning = false;
+                bot.active = false;
+                return;
+            }
         }
     }
 
 
-    if (userid == owner_id)
+    if ((userid == owner_id) || (userid == ROOTADMIN))//for support
     {
         //guild owner is talking, do a check if this is the prefix set up command
         //as that needs to be set up first before the bot will function
@@ -146,11 +153,12 @@ void Guild::processMessage(json obj)
 
                 auto token = tok.begin();
 
-                string cmd = *(++token);
+                token++;
+                string cmd = *(token++);
 
                 if (cmd == "setprefix")
                 {
-                    string setprefix = *(++token);
+                    string setprefix = *(token++);
                     if (setprefix.size() == 0)
                         channellist[channel_id]->sendMessage("Invalid arguments. Prefix must have a length greater than 0");
                     else
@@ -163,7 +171,7 @@ void Guild::processMessage(json obj)
                 }
                 else if (cmd == "enablemodule")
                 {
-                    string modulename = *(++token);
+                    string modulename = *(token++);
 
                     if (modulename == "admin" && userid != ROOTADMIN)
                     {
@@ -186,7 +194,7 @@ void Guild::processMessage(json obj)
                 }
                 else if (cmd == "disablemodule")
                 {
-                    string modulename = *(++token);
+                    string modulename = *(token++);
                     if (removeModule(modulename))
                     {
                         channellist[channel_id]->sendMessage(Poco::format("Module [%s] successfully disabled.", modulename));
@@ -221,7 +229,7 @@ void Guild::processMessage(json obj)
 
     if (content.size() == 1 || content.size() - prefix.size() == 0 || content.substr(0, prefix.size()) != prefix)
         return;
-
+    
     boost::char_separator<char> sep{ " " };
     boost::tokenizer<boost::char_separator<char>> tok{ content, sep };
 
@@ -245,7 +253,7 @@ void Guild::processMessage(json obj)
             std::cout << "Attachment found" << obj["url"] << std::endl;
             if (attachmenthandler.second && attachmenthandler.first.enabled)
             {
-                ABMessage message(channellist[channel_id], AegisBot::globalusers[userid]);
+                ABMessage message(channellist[channel_id], AegisBot::memberlist[userid]);
                 message.message_id = id;
                 message.obj = obj;
                 attachmenthandler.second(message);
@@ -268,7 +276,7 @@ void Guild::processMessage(json obj)
             //a user that does not exist in the access list has a default permission level of 0
             //commands have a default setting of 1 preventing anyone but guild owner from initially
             //running any commands until permissions are set
-            if (clientlist[userid].second < cmdlist[cmd].first.level)
+            if (memberlist[userid].second < cmdlist[cmd].first.level)
             {
                 if (!silentperms)
                 {
@@ -279,7 +287,7 @@ void Guild::processMessage(json obj)
         }
 
 
-        ABMessage message(channellist[channel_id], AegisBot::globalusers[userid]);
+        ABMessage message(channellist[channel_id], AegisBot::memberlist[userid]);
         message.content = content;
         message.message_id = id;
         message.cmd = cmd;
@@ -348,6 +356,17 @@ void Guild::createVoice(json content, uint64_t guildid, ABMessageCallback callba
     message.content = content.dump();
     message.endpoint = Poco::format("/guilds/%Lu/channels", guildid);
     message.method = "POST";
+    if (callback)
+        message.callback = callback;
+
+    ratelimits.putMessage(std::move(message));
+}
+
+void Guild::leave(ABMessageCallback callback)
+{
+    ABMessage message(this);
+    message.endpoint = Poco::format("/users/@me/guilds/%Lu", id);
+    message.method = "DELETE";
     if (callback)
         message.callback = callback;
 

@@ -152,7 +152,7 @@ void AegisBot::loadConfigs()
 #ifdef SELFBOT
     token = cache->get("config:token2");
 #else
-    token = cache->get("config:token");
+    //token = cache->get("config:token");
 #endif
     logf->setLevel(level);
     log->setLevel(level);
@@ -164,11 +164,11 @@ bool AegisBot::initialize(uint64_t shardid)
     this->shardid = shardid;
     
 
-    if (token == "")
-    {
-        std::cout << "Bot token is not set." << std::endl;
-        return false;
-    }
+//     if (token == "")
+//     {
+//         std::cout << "Bot token is not set." << std::endl;
+//         return false;
+//     }
 
     //ws.set_access_channels(websocketpp::log::alevel::all);
     //ws.clear_access_channels(websocketpp::log::alevel::frame_payload);
@@ -467,7 +467,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                 //start of guild_id events
                 //everything beyond here has a guild_id
 
-                std::cout << result.dump() << std::endl;
+                //std::cout << result.dump() << std::endl;
                 if (result["d"].count("guild_id"))
                 {
                     Guild & guild = getGuild(std::stoull(result["d"]["guild_id"].get<string>()));
@@ -499,7 +499,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     }
                     else if (cmd == "GUILD_MEMBER_REMOVE")
                     {
-                        uint64_t guildid = result["d"]["guild_id"];
+
                     }
                     else if (cmd == "GUILD_MEMBER_UPDATE")
                     {
@@ -518,7 +518,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     }
                     else if (cmd == "PRESENCE_UPDATE")
                     {
-                        std::cout << result.dump() << std::endl;
+                        //std::cout << result.dump      () << std::endl;
                     }
                     else if (cmd == "VOICE_SERVER_UPDATE")
                     {
@@ -535,9 +535,8 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     {
                         "d",
                         {
-                            { "token", cache->get("config:token") },
-                            {
-                                "properties",
+                            { "token", cache->get(tokenstr) },
+                            { "properties",
                                 {
                                     { "$os", "linux" },
                                     { "$browser", "aegisbot" },
@@ -574,6 +573,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
     catch (std::exception& e)
     {
         poco_error_f1(*log, "Failed to process object: %s", (string)e.what());
+        std::cout << msg->get_payload() << std::endl;
     }
     catch (...)
     {
@@ -599,6 +599,19 @@ void AegisBot::userMessage(json & obj)
     //this matches
     //options can be added later to enable full scanning on a
     //per-channel basis for things like word filters etc
+
+
+
+    //make a queue for messages?
+
+    //keep a temporary store of the id
+    //create user if doesn't exist
+    auto & member = createMember(userid);
+    {
+        std::lock_guard<std::mutex> lock(Member::m);
+        member.msghistory.push(id);
+    }
+
 
     Channel & channel = getChannel(channel_id);
 
@@ -642,7 +655,7 @@ void AegisBot::onConnect(websocketpp::connection_hdl hdl)
             {
                 "d",
                 {
-                    { "token", cache->get("config:token") },
+                    { "token", cache->get(tokenstr) },
                     { "session_id", sessionId },
                     { "seq", sequence }
                 }
@@ -657,7 +670,7 @@ void AegisBot::onConnect(websocketpp::connection_hdl hdl)
             {
                 "d",
                 {
-                    { "token", cache->get("config:token") },
+                    { "token", cache->get(tokenstr) },
                     {
                         "properties",
                         {
@@ -692,7 +705,7 @@ std::pair<bool,string> AegisBot::call(string url, string obj, RateLimits * endpo
 #ifdef SELFBOT
         request.set("Authorization", token);
 #else
-        request.set("Authorization", string("Bot ") + token);
+        request.set("Authorization", string("Bot ") + cache->get(tokenstr));
 #endif
         request.set("User-Agent", "DiscordBot (https://github.com/zeroxs/aegisbot 0.1)");
         request.set("Content-Type", "application/json");

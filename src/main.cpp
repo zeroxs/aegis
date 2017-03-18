@@ -34,8 +34,18 @@
 #include "AuctionBot.h"
 #include "AegisOfficial.h"
 
+//#define _DEBUGTOKEN
+
+
+
 int main(int argc, char * argv[])
 {
+#ifdef _DEBUGTOKEN
+    AegisBot::tokenstr = "config:token";
+#else
+    AegisBot::tokenstr = "config:token-prod";
+#endif
+
     try
     {
         boost::asio::io_service::work work(AegisBot::io_service);
@@ -87,7 +97,6 @@ int main(int argc, char * argv[])
 
         //Grab shard0 for setting up
         const auto & bot = AegisBot::shards[0];
-
 
         //this is temporary
 #ifdef USE_MEMORY
