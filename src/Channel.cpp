@@ -29,17 +29,22 @@
 #include "Member.h"
 
 ABMessage::ABMessage(Channel * channel)
-    : _channel(channel), _member(channel->guild().bot.self)
+    : _channel(channel)
+    , _member(channel->guild().bot.self)
+    , bot(channel->guild().bot)
 {
 
 }
 ABMessage::ABMessage(Channel * channel, Member * member)
-    : _channel(channel), _member(member)
+    : _channel(channel)
+    , _member(member)
+    , bot(channel->guild().bot)
 {
 
 }
 ABMessage::ABMessage(Guild * guild)
     : _guild(guild)
+    , bot(guild->bot)
 {
 
 }

@@ -111,6 +111,7 @@ public:
     string query;
     ABMessageCallback callback;
     json obj;
+    AegisBot & bot;
 
 private:
     Channel * _channel = nullptr;

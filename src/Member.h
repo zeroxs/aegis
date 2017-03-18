@@ -36,6 +36,15 @@ class Guild;
 
 using std::string;
 
+
+enum class MEMBER_STATUS
+{
+    OFFLINE,
+    ONLINE,
+    STREAM,
+    DND
+};
+
 struct stGuildInfo
 {
     std::vector<uint64_t> roles;
@@ -57,6 +66,11 @@ public:
     std::map<uint64_t, stGuildInfo> guilds;
     std::vector<uint64_t> channels;
 
+    std::queue<uint64_t> msghistory;
+
+    //
+    static std::mutex m;
+
     uint64_t id = 0;
     string name;
     uint16_t discriminator = 0;
@@ -65,6 +79,8 @@ public:
     bool deaf = false;
     bool mute = false;
     string joined_at;
+    MEMBER_STATUS status = MEMBER_STATUS::OFFLINE;
+
 
     RateLimits ratelimits;
 };

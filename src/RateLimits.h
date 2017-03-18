@@ -40,17 +40,6 @@ class RateLimits
 {
 public:
     RateLimits() {};
-    //only intended for initialization
-//     RateLimits(const RateLimits & r)
-//     {
-//         this->outqueue = std::move(r.outqueue);
-//         this->failures = r.failures;
-//         this->_rate_limit = r._rate_limit;
-//         this->_rate_remaining = 10;
-//         this->_rate_reset = r._rate_remaining;
-//         this->_retry_after = r._retry_after;
-//         this->_lastfailure = r._lastfailure;
-//     }
     ~RateLimits() {};
 
 

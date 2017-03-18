@@ -31,6 +31,7 @@
 #include <json.hpp>
 #include <chrono>
 #include "AegisBot.h"
+#include "../lib/fmt/fmt/ostream.h"
 
 AegisOfficial::AegisOfficial(AegisBot & bot, Guild & guild)
     : AegisModule(bot, guild)
@@ -60,7 +61,7 @@ void AegisOfficial::clearChat(ABMessage & message)
     {
         try
         {
-            uint32_t epoch = ((std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count() - 14 * 24 * 60 * 60) - 1420070400000) << 22;
+            uint64_t epoch = ((std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - (14 * 24 * 60 * 60 * 1000)) - 1420070400000) << 22;
             std::vector<string> delmessages;
             for (auto & m : message.obj)
             {
@@ -125,12 +126,33 @@ void AegisOfficial::info(ABMessage & message)
 {
     uint64_t timenow = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     uint64_t guild_count = AegisBot::guildlist.size();
-    uint64_t member_count = AegisBot::globalusers.size();
+    uint64_t member_count = 0;
+    uint64_t member_count_unique = AegisBot::memberlist.size();
+    uint64_t member_online_count = 0;
+    uint64_t member_dnd_count = 0;
     uint64_t channel_count = AegisBot::channellist.size();
     uint64_t channel_text_count = 0;
     uint64_t channel_voice_count = 0;
+
+    uint64_t eventsseen = 0;
+
     {
         std::lock_guard<std::recursive_mutex> lock(AegisBot::m);
+
+
+        for (auto & bot : AegisBot::shards)
+        {
+            eventsseen += bot->sequence;
+        }
+
+        for (auto & member : AegisBot::memberlist)
+        {
+            if (member.second->status == MEMBER_STATUS::ONLINE)
+                member_online_count++;
+            else if (member.second->status == MEMBER_STATUS::DND)
+                member_dnd_count++;
+        }
+
         for (auto & channel : AegisBot::channellist)
         {
             if (channel.second->type == ChannelType::TEXT)
@@ -138,19 +160,27 @@ void AegisOfficial::info(ABMessage & message)
             else
                 channel_voice_count++;
         }
+
+        for (auto & guild : AegisBot::guildlist)
+        {
+            member_count += guild.second->memberlist.size();
+        }
     }
-    std::stringstream members;
-    members << member_count << "\n0 Online\n0 Offline\nstuff";
 
-    std::stringstream channels;
-    channels << channel_count << " total\n" << channel_text_count << " text\n" << channel_voice_count << " voice";
+    string members = fmt::format("{0} total\n{1} unique\n{2} online\n{3} dnd", member_count, member_count_unique, member_online_count, member_dnd_count);
+    string channels = fmt::format("{0} total\n{1} online\n{2} dnd", channel_count, channel_text_count, channel_voice_count);
+    string guilds = fmt::format("{0}", guild_count);
+    string stats;
+    string events = fmt::format("{0}", eventsseen);
+    string misc = fmt::format("I am shard {0} of {1}", message.channel().guild().bot.shardid + 1, message.channel().guild().bot.shardidmax);
 
-    std::stringstream guilds;
-    guilds << guild_count;
+    fmt::MemoryWriter w;
+    w << "[Latest bot source](https://github.com/zeroxs/aegisbot)\n[Official Bot Server](https://discord.gg/w7Y3Bb8)\n\nMemory usage: "
+        << double(AegisBot::getCurrentRSS()) / (1024 * 1024) << "MB\nMax Memory: "
+        << double(AegisBot::getPeakRSS()) / (1024 * 1024) << "MB";
+    stats = w.str();
 
     message.content = "";
-    string stats;
-    stats = Poco::format("[Latest bot source](https://github.com/zeroxs/aegisbot)\n[Official Bot Server](https://discord.gg/w7Y3Bb8)\n\nMemory usage: %.2fMB\nMax Memory: %.2fMB", double(AegisBot::getCurrentRSS()) / (1024 * 1024), double(AegisBot::getPeakRSS()) / (1024 * 1024));
     json t = {
         { "title", "AegisBot" },
         { "description", stats },
@@ -158,10 +188,13 @@ void AegisOfficial::info(ABMessage & message)
         { "fields",
         json::array(
     {
-        { { "name", "Members" },{ "value", members.str() },{ "inline", true } },
-        { { "name", "Channels" },{ "value", channels.str() },{ "inline", true } },
+        { { "name", "Members" },{ "value", members },{ "inline", true } },
+        { { "name", "Channels" },{ "value", channels },{ "inline", true } },
         { { "name", "Uptime test" },{ "value", uptime() },{ "inline", true } },
-        { { "name", "Guilds" },{ "value", guilds.str() },{ "inline", true } }
+        { { "name", "Guilds" },{ "value", guilds },{ "inline", true } },
+        { { "name", "Events Seen" },{ "value", events },{ "inline", true } },
+        { { "name", "_" },{ "value", "_" },{ "inline", true } },
+        { { "name", "misc" },{ "value", misc },{ "inline", false } }
     }
             )
         },

@@ -48,6 +48,8 @@ public:
     void deletechannel(ABMessage & message);
     void test(ABMessage & message);
     void serverList(ABMessage & message);
+    void leaveServer(ABMessage & message);
+    void serverInfo(ABMessage & message);
 
 };
 

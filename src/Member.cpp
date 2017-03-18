@@ -27,7 +27,7 @@
 #include "Guild.h"
 #include "AegisBot.h"
 
-
+std::mutex Member::m;
 
 Member::Member(uint64_t id, string name, uint16_t discriminator, string avatar)
     : id(id)
@@ -48,7 +48,7 @@ std::vector<Guild*> Member::getGuilds()
     std::lock_guard<std::recursive_mutex> lock(AegisBot::m);
     for (auto & guild : AegisBot::guildlist)
     {
-        if (guild.second->clientlist.count(id) > 0)
+        if (guild.second->memberlist.count(id) > 0)
         {
             result.push_back(guild.second);
         }

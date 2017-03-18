@@ -52,15 +52,17 @@ uint64_t AegisBot::userId;
 bool AegisBot::mfa_enabled;
 std::map<uint64_t, AegisBot::PrivateChat> AegisBot::private_channels;
 std::map<uint64_t, Channel*> AegisBot::channellist;
-std::map<uint64_t, Member*> AegisBot::globalusers;
+std::map<uint64_t, Member*> AegisBot::memberlist;
 std::map<uint64_t, Guild*> AegisBot::guildlist;
 std::vector<std::unique_ptr<AegisBot>> AegisBot::shards;
 boost::asio::io_service AegisBot::io_service;
 uint16_t AegisBot::shardidmax;
 string AegisBot::mention;
+string AegisBot::tokenstr;
 
 AegisBot::AegisBot()
     : keepalive_timer_(io_service)
+    , prunemessages(io_service)
 {
 
 }
@@ -76,7 +78,7 @@ void AegisBot::cleanup()
     {
         delete g.second;
     }
-    for (auto g : globalusers)
+    for (auto g : memberlist)
     {
         delete g.second;
     }
@@ -98,12 +100,12 @@ Guild & AegisBot::createGuild(uint64_t id)
 
 Member & AegisBot::createMember(uint64_t id)
 {
-    if (AegisBot::globalusers.count(id))
-        return *AegisBot::globalusers[id];
+    if (AegisBot::memberlist.count(id))
+        return *AegisBot::memberlist[id];
     //AegisBot::globalusers[id] = Member();
-    AegisBot::globalusers.insert(std::pair<uint64_t, Member*>(id, new Member()));
-    AegisBot::globalusers[id]->id = id;
-    return *AegisBot::globalusers[id];
+    AegisBot::memberlist.insert(std::pair<uint64_t, Member*>(id, new Member()));
+    AegisBot::memberlist[id]->id = id;
+    return *AegisBot::memberlist[id];
 }
 
 Channel & AegisBot::createChannel(uint64_t id, uint64_t guildid)
@@ -120,18 +122,21 @@ Guild & AegisBot::getGuild(uint64_t id)
 {
     if (AegisBot::guildlist.count(id))
         return *AegisBot::guildlist[id];
+    throw std::domain_error("Exception: Guild does not exist");
 }
 
 Member & AegisBot::getMember(uint64_t id)
 {
-    if (AegisBot::globalusers.count(id))
-        return *AegisBot::globalusers[id];
+    if (AegisBot::memberlist.count(id))
+        return *AegisBot::memberlist[id];
+    throw std::domain_error("Exception: Member does not exist");
 }
 
 Channel & AegisBot::getChannel(uint64_t id)
 {
     if (AegisBot::channellist.count(id))
         return *AegisBot::channellist[id];
+    throw std::domain_error("Exception: Channel does not exist");
 }
 
 void AegisBot::setupCache(ABCache * in)
@@ -147,7 +152,7 @@ void AegisBot::loadConfigs()
 #ifdef SELFBOT
     token = cache->get("config:token2");
 #else
-    token = cache->get("config:token");
+    //token = cache->get("config:token");
 #endif
     logf->setLevel(level);
     log->setLevel(level);
@@ -159,11 +164,11 @@ bool AegisBot::initialize(uint64_t shardid)
     this->shardid = shardid;
     
 
-    if (token == "")
-    {
-        std::cout << "Bot token is not set." << std::endl;
-        return false;
-    }
+//     if (token == "")
+//     {
+//         std::cout << "Bot token is not set." << std::endl;
+//         return false;
+//     }
 
     //ws.set_access_channels(websocketpp::log::alevel::all);
     //ws.clear_access_channels(websocketpp::log::alevel::frame_payload);
@@ -235,7 +240,17 @@ void AegisBot::startShards()
         std::cout << "Shard id: " << i << std::endl;
         AegisBot::shards.push_back(std::make_unique<AegisBot>());
         AegisBot::shards[i]->initialize(i);
-        AegisBot::threadPool.push_back(std::thread([=]() { AegisBot::shards[i]->run(); }));
+        AegisBot::threadPool.push_back(std::thread([=]()
+        {
+            if (i == 0)
+            {
+                //only have shard 0 do maint stuff since it's always guaranteed to be loaded
+                AegisBot::shards[i]->prunemessages.expires_from_now(std::chrono::seconds(30));
+                AegisBot::shards[i]->prunemessages.async_wait([=](const boost::system::error_code & ec) { AegisBot::shards[i]->pruneMsgHistory(ec); });
+            }
+
+            AegisBot::shards[i]->run();
+        }));
     }
 }
 
@@ -305,6 +320,16 @@ void AegisBot::processReady(json & d)
         if (!unavailable)
         {
             loadGuild(guildobj);
+
+            {
+                //temporary. This won't work when the bot is in over 120 guilds due to ratelimits over websocket
+                json obj;
+                obj["op"] = 8;
+                obj["d"]["guild_id"] = id;
+                obj["d"]["query"] = "";
+                obj["d"]["limit"] = 0;
+                wssend(obj.dump());
+            }
         }
     }
 
@@ -367,14 +392,14 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
     {
         json result = json::parse(msg->get_payload());
 
-        poco_trace_f1(*log, "Received JSON: %s", msg->get_payload());
+        //poco_trace_f1(*log, "Received JSON: %s", msg->get_payload());
 
         if (!result.is_null())
         {
             if (!result["t"].is_null())
             {
                 string cmd = result["t"];
-                poco_trace_f1(*log, "Processing: %s", cmd);
+                //poco_trace_f1(*log, "Processing: %s", cmd);
 
                 if (cmd == "TYPING_START")
                 {
@@ -386,29 +411,51 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     while (!active && isrunning)
                         std::this_thread::sleep_for(std::chrono::milliseconds(1));
                     userMessage(result["d"]);
-                    result["d"]["id"];
-                    result["d"]["author"]["id"];
                 }
                 else if (cmd == "MESSAGE_UPDATE")
                 {
-                    std::cout << result.dump() << std::endl;
+                    //std::cout << result.dump() << std::endl;
+                    json message = result["d"];
+                    uint64_t message_id = std::stoull(message["id"].get<string>());
+                    uint64_t channel_id = std::stoull(message["channel_id"].get<string>());
 
-                    uint64_t message_id = std::stoull(result["d"]["id"].get<string>());
-                    uint64_t channel_id = std::stoull(result["d"]["channel_id"].get<string>());
+                    if (message["embeds"].size() > 0)
+                    {
+                        //parse embeds some time
+/*
+                        string type = message["type"];
 
-                    string content = result["d"]["content"];
+                        string title;
+                        if (message.count("title"))
+                            title = message["title"];
 
-                    uint64_t timestamp = result["d"]["timestamp"];
-                    uint64_t edited_timestamp = result["d"]["edited_timestamp"];
+                        string description;
+                        if (message.count("description"))
+                            description = message["description"];
+                        uint32_t color;
+                        if (message.count("color"))
+                            color = message["color"];*/
+                    }
+                    else
+                    {
+                        uint64_t user_id = std::stoull(message["author"]["id"].get<string>());
+                        string content = message["content"];
 
-                    bool mention_everyone = result["d"]["mention_everyone"];
-                    bool pinned = result["d"]["pinned"];
-                    //
-                    json reactions;
-                    if (result["d"].count("reactions"))
-                        reactions = result["d"]["reactions"];
-                    json mentions = result["d"]["mentions"];
-                    json mention_roles = result["d"]["mention_roles"];
+                        string timestamp = message["timestamp"];
+                        string edited_timestamp = message["edited_timestamp"];
+
+                        bool mention_everyone = message["mention_everyone"];
+                        bool pinned = message["pinned"];
+                        //
+                        json reactions;
+                        if (message.count("reactions"))
+                            reactions = message["reactions"];
+                        json mentions = message["mentions"];
+                        json mention_roles = message["mention_roles"];
+                    }
+
+
+
 
 
 
@@ -452,7 +499,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                 //start of guild_id events
                 //everything beyond here has a guild_id
 
-                std::cout << result.dump() << std::endl;
+                //std::cout << result.dump() << std::endl;
                 if (result["d"].count("guild_id"))
                 {
                     Guild & guild = getGuild(std::stoull(result["d"]["guild_id"].get<string>()));
@@ -484,7 +531,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     }
                     else if (cmd == "GUILD_MEMBER_REMOVE")
                     {
-                        uint64_t guildid = result["d"]["guild_id"];
+
                     }
                     else if (cmd == "GUILD_MEMBER_UPDATE")
                     {
@@ -503,7 +550,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     }
                     else if (cmd == "PRESENCE_UPDATE")
                     {
-                        std::cout << result.dump() << std::endl;
+                        //std::cout << result.dump      () << std::endl;
                     }
                     else if (cmd == "VOICE_SERVER_UPDATE")
                     {
@@ -520,9 +567,8 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     {
                         "d",
                         {
-                            { "token", cache->get("config:token") },
-                            {
-                                "properties",
+                            { "token", cache->get(tokenstr) },
+                            { "properties",
                                 {
                                     { "$os", "linux" },
                                     { "$browser", "aegisbot" },
@@ -559,6 +605,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
     catch (std::exception& e)
     {
         poco_error_f1(*log, "Failed to process object: %s", (string)e.what());
+        std::cout << msg->get_payload() << std::endl;
     }
     catch (...)
     {
@@ -584,6 +631,19 @@ void AegisBot::userMessage(json & obj)
     //this matches
     //options can be added later to enable full scanning on a
     //per-channel basis for things like word filters etc
+
+
+
+    //make a queue for messages?
+
+    //keep a temporary store of the id
+    //create user if doesn't exist
+    auto & member = createMember(userid);
+    {
+        std::lock_guard<std::mutex> lock(Member::m);
+        member.msghistory.push(id);
+    }
+
 
     Channel & channel = getChannel(channel_id);
 
@@ -627,7 +687,7 @@ void AegisBot::onConnect(websocketpp::connection_hdl hdl)
             {
                 "d",
                 {
-                    { "token", cache->get("config:token") },
+                    { "token", cache->get(tokenstr) },
                     { "session_id", sessionId },
                     { "seq", sequence }
                 }
@@ -642,7 +702,7 @@ void AegisBot::onConnect(websocketpp::connection_hdl hdl)
             {
                 "d",
                 {
-                    { "token", cache->get("config:token") },
+                    { "token", cache->get(tokenstr) },
                     {
                         "properties",
                         {
@@ -677,7 +737,7 @@ std::pair<bool,string> AegisBot::call(string url, string obj, RateLimits * endpo
 #ifdef SELFBOT
         request.set("Authorization", token);
 #else
-        request.set("Authorization", string("Bot ") + token);
+        request.set("Authorization", string("Bot ") + cache->get(tokenstr));
 #endif
         request.set("User-Agent", "DiscordBot (https://github.com/zeroxs/aegisbot 0.1)");
         request.set("Content-Type", "application/json");
@@ -777,10 +837,47 @@ std::pair<bool,string> AegisBot::call(string url, string obj, RateLimits * endpo
     return { false, "" };
 }
 
+void AegisBot::pruneMsgHistory(const boost::system::error_code& error)
+{
+    if (error != boost::asio::error::operation_aborted)
+    {
+        std::lock_guard<std::mutex> lock(Member::m);
+
+        std::cout << "Starting message prune" << std::endl;
+        //2 hour expiry
+        uint64_t epoch = ((std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - (2 * 60 * 60 * 1000)) - 1420070400000) << 22;
+        for (auto & member : memberlist)
+        {
+            if (member.second->msghistory.size() > 0 && member.second->msghistory.front() < epoch)
+            {
+                std::cout << "Removed message [" << member.second->msghistory.front() << "] from [" << member.second->id << "] time: " << epoch << std::endl;
+                member.second->msghistory.pop();
+            }
+        }
+
+        prunemessages.expires_from_now(std::chrono::seconds(30));
+        prunemessages.async_wait([this](const boost::system::error_code & ec) { pruneMsgHistory(ec); });
+    }
+}
+
+void AegisBot::purgeMsgHistory()
+{
+    std::lock_guard<std::mutex> lock(Member::m);
+    for (auto & member : memberlist)
+    {
+        member.second->msghistory = std::queue<uint64_t>();
+    }
+}
+
 void AegisBot::run()
 {
     while (isrunning)
     {
+
+
+
+
+        // Check for outgoing messages that need sending
         {
             std::lock_guard<std::recursive_mutex> lock(m);
             for (auto & guild : guildlist)
@@ -1067,7 +1164,7 @@ void AegisBot::loadMember(json & member, Guild & guild)
     {
         Member & checkmember = createMember(member_id);
         poco_trace_f2(*log, "Member[%Lu] created for guild[%Lu]", member_id, guildId);
-        guild.clientlist[member_id] = std::pair<Member*, uint16_t>(&checkmember, 0);
+        guild.memberlist[member_id] = std::pair<Member*, uint16_t>(&checkmember, 0);
 
         checkmember.avatar = GET_NULL(user, "avatar");
         checkmember.discriminator = std::stoll(user["discriminator"].get<string>());

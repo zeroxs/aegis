@@ -44,14 +44,12 @@ ExampleBot::~ExampleBot()
 void ExampleBot::initialize()
 {
     guild.addCommand("echo", std::bind(&ExampleBot::echo, this, std::placeholders::_1));
-    guild.addCommand("rates2", std::bind(&ExampleBot::rates2, this, std::placeholders::_1));
     guild.addCommand("this_is_a_class_function", std::bind(&ExampleBot::this_is_a_class_function, this, std::placeholders::_1));
 }
 
 void ExampleBot::remove()
 {
     guild.removeCommand("echo");
-    guild.removeCommand("rates2");
     guild.removeCommand("this_is_a_class_function");
 }
 

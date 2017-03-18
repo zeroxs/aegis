@@ -45,7 +45,6 @@ public:
     void remove();
 
     void echo(ABMessage & message);
-    void rates2(ABMessage & message);
     void this_is_a_class_function(ABMessage & message);
 
 
