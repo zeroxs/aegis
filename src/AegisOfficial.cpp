@@ -61,7 +61,7 @@ void AegisOfficial::clearChat(ABMessage & message)
     {
         try
         {
-            uint32_t epoch = ((std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count() - 14 * 24 * 60 * 60) - 1420070400000) << 22;
+            uint64_t epoch = ((std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - (14 * 24 * 60 * 60 * 1000)) - 1420070400000) << 22;
             std::vector<string> delmessages;
             for (auto & m : message.obj)
             {
@@ -126,12 +126,33 @@ void AegisOfficial::info(ABMessage & message)
 {
     uint64_t timenow = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     uint64_t guild_count = AegisBot::guildlist.size();
-    uint64_t member_count = AegisBot::globalusers.size();
+    uint64_t member_count = 0;
+    uint64_t member_count_unique = AegisBot::memberlist.size();
+    uint64_t member_online_count = 0;
+    uint64_t member_dnd_count = 0;
     uint64_t channel_count = AegisBot::channellist.size();
     uint64_t channel_text_count = 0;
     uint64_t channel_voice_count = 0;
+
+    uint64_t eventsseen = 0;
+
     {
         std::lock_guard<std::recursive_mutex> lock(AegisBot::m);
+
+
+        for (auto & bot : AegisBot::shards)
+        {
+            eventsseen += bot->sequence;
+        }
+
+        for (auto & member : AegisBot::memberlist)
+        {
+            if (member.second->status == MEMBER_STATUS::ONLINE)
+                member_online_count++;
+            else if (member.second->status == MEMBER_STATUS::DND)
+                member_dnd_count++;
+        }
+
         for (auto & channel : AegisBot::channellist)
         {
             if (channel.second->type == ChannelType::TEXT)

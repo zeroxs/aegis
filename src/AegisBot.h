@@ -71,7 +71,7 @@
 #include "Channel.h"
 #include "Role.h"
 #include "RateLimits.h"
-
+#include "../lib/fmt/fmt/ostream.h"
 
 
 #if defined(_WIN32)
@@ -168,7 +168,7 @@ public:
     };
     static std::map<uint64_t, PrivateChat> private_channels;
     static std::map<uint64_t, Channel*> channellist;
-    static std::map<uint64_t, Member*> globalusers;
+    static std::map<uint64_t, Member*> memberlist;
 
     //Guild tracking (Servers)
     static std::map<uint64_t, Guild*> guildlist;
@@ -193,6 +193,9 @@ public:
     void processReady(json & d);
     void connectWS();
 
+    void pruneMsgHistory(const boost::system::error_code& error);
+    void purgeMsgHistory();
+
 /*
     template <typename T, typename... _BoundArgs>
     void createTimer(uint64_t t, shared_ptr<boost::asio::steady_timer> timer, T f, _BoundArgs&&... __args);*/
@@ -203,6 +206,9 @@ public:
     websocketpp::client<websocketpp::config::asio_tls_client>::connection_type::ptr connection;
     boost::asio::steady_timer keepalive_timer_;
     websocketpp::connection_hdl hdl;
+
+    //better organize timers?
+    boost::asio::steady_timer prunemessages;
 
     uint32_t _rate_limit = 120;
     uint32_t _rate_remaining = 60;

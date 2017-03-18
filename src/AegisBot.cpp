@@ -52,15 +52,17 @@ uint64_t AegisBot::userId;
 bool AegisBot::mfa_enabled;
 std::map<uint64_t, AegisBot::PrivateChat> AegisBot::private_channels;
 std::map<uint64_t, Channel*> AegisBot::channellist;
-std::map<uint64_t, Member*> AegisBot::globalusers;
+std::map<uint64_t, Member*> AegisBot::memberlist;
 std::map<uint64_t, Guild*> AegisBot::guildlist;
 std::vector<std::unique_ptr<AegisBot>> AegisBot::shards;
 boost::asio::io_service AegisBot::io_service;
 uint16_t AegisBot::shardidmax;
 string AegisBot::mention;
+string AegisBot::tokenstr;
 
 AegisBot::AegisBot()
     : keepalive_timer_(io_service)
+    , prunemessages(io_service)
 {
 
 }
@@ -76,7 +78,7 @@ void AegisBot::cleanup()
     {
         delete g.second;
     }
-    for (auto g : globalusers)
+    for (auto g : memberlist)
     {
         delete g.second;
     }
@@ -98,12 +100,12 @@ Guild & AegisBot::createGuild(uint64_t id)
 
 Member & AegisBot::createMember(uint64_t id)
 {
-    if (AegisBot::globalusers.count(id))
-        return *AegisBot::globalusers[id];
+    if (AegisBot::memberlist.count(id))
+        return *AegisBot::memberlist[id];
     //AegisBot::globalusers[id] = Member();
-    AegisBot::globalusers.insert(std::pair<uint64_t, Member*>(id, new Member()));
-    AegisBot::globalusers[id]->id = id;
-    return *AegisBot::globalusers[id];
+    AegisBot::memberlist.insert(std::pair<uint64_t, Member*>(id, new Member()));
+    AegisBot::memberlist[id]->id = id;
+    return *AegisBot::memberlist[id];
 }
 
 Channel & AegisBot::createChannel(uint64_t id, uint64_t guildid)
@@ -120,18 +122,21 @@ Guild & AegisBot::getGuild(uint64_t id)
 {
     if (AegisBot::guildlist.count(id))
         return *AegisBot::guildlist[id];
+    throw std::domain_error("Exception: Guild does not exist");
 }
 
 Member & AegisBot::getMember(uint64_t id)
 {
-    if (AegisBot::globalusers.count(id))
-        return *AegisBot::globalusers[id];
+    if (AegisBot::memberlist.count(id))
+        return *AegisBot::memberlist[id];
+    throw std::domain_error("Exception: Member does not exist");
 }
 
 Channel & AegisBot::getChannel(uint64_t id)
 {
     if (AegisBot::channellist.count(id))
         return *AegisBot::channellist[id];
+    throw std::domain_error("Exception: Channel does not exist");
 }
 
 void AegisBot::setupCache(ABCache * in)
@@ -235,7 +240,17 @@ void AegisBot::startShards()
         std::cout << "Shard id: " << i << std::endl;
         AegisBot::shards.push_back(std::make_unique<AegisBot>());
         AegisBot::shards[i]->initialize(i);
-        AegisBot::threadPool.push_back(std::thread([=]() { AegisBot::shards[i]->run(); }));
+        AegisBot::threadPool.push_back(std::thread([=]()
+        {
+            if (i == 0)
+            {
+                //only have shard 0 do maint stuff since it's always guaranteed to be loaded
+                AegisBot::shards[i]->prunemessages.expires_from_now(std::chrono::seconds(30));
+                AegisBot::shards[i]->prunemessages.async_wait([=](const boost::system::error_code & ec) { AegisBot::shards[i]->pruneMsgHistory(ec); });
+            }
+
+            AegisBot::shards[i]->run();
+        }));
     }
 }
 
@@ -777,6 +792,38 @@ std::pair<bool,string> AegisBot::call(string url, string obj, RateLimits * endpo
     return { false, "" };
 }
 
+void AegisBot::pruneMsgHistory(const boost::system::error_code& error)
+{
+    if (error != boost::asio::error::operation_aborted)
+    {
+        std::lock_guard<std::mutex> lock(Member::m);
+
+        std::cout << "Starting message prune" << std::endl;
+        //2 hour expiry
+        uint64_t epoch = ((std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - (2 * 60 * 60 * 1000)) - 1420070400000) << 22;
+        for (auto & member : memberlist)
+        {
+            if (member.second->msghistory.size() > 0 && member.second->msghistory.front() < epoch)
+            {
+                std::cout << "Removed message [" << member.second->msghistory.front() << "] from [" << member.second->id << "] time: " << epoch << std::endl;
+                member.second->msghistory.pop();
+            }
+        }
+
+        prunemessages.expires_from_now(std::chrono::seconds(30));
+        prunemessages.async_wait([this](const boost::system::error_code & ec) { pruneMsgHistory(ec); });
+    }
+}
+
+void AegisBot::purgeMsgHistory()
+{
+    std::lock_guard<std::mutex> lock(Member::m);
+    for (auto & member : memberlist)
+    {
+        member.second->msghistory = std::queue<uint64_t>();
+    }
+}
+
 void AegisBot::run()
 {
     while (isrunning)
@@ -1067,7 +1114,7 @@ void AegisBot::loadMember(json & member, Guild & guild)
     {
         Member & checkmember = createMember(member_id);
         poco_trace_f2(*log, "Member[%Lu] created for guild[%Lu]", member_id, guildId);
-        guild.clientlist[member_id] = std::pair<Member*, uint16_t>(&checkmember, 0);
+        guild.memberlist[member_id] = std::pair<Member*, uint16_t>(&checkmember, 0);
 
         checkmember.avatar = GET_NULL(user, "avatar");
         checkmember.discriminator = std::stoll(user["discriminator"].get<string>());
