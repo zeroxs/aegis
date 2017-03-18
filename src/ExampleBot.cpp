@@ -56,14 +56,8 @@ void ExampleBot::remove()
 void ExampleBot::echo(ABMessage & message)
 {
     std::cout << "Message callback triggered on channel[" << message.channel().name << "] from [" << message.member().name << "]" << std::endl;
-    message.channel().sendMessage(message.content.substr(message.cmd.size() + message.channel().guild().prefix.size()));
-}
 
-void ExampleBot::rates2(ABMessage & message)
-{
-    uint32_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    message.channel().sendMessage(Poco::format("Content: %s\nLimit: %u\nRemain: %u\nReset: %u\nEpoch: %u\nDiff: %u\n0x%X", message.content, message.channel().ratelimits.rateLimit()
-                                               , message.channel().ratelimits.rateRemaining(), message.channel().ratelimits.rateReset(), epoch, message.channel().ratelimits.rateReset() - epoch, &message.channel().ratelimits));
+    message.channel().sendMessage(message.content.substr(message.cmd.size() + message.channel().guild().prefix.size()), [](ABMessage & message)
 }
 
 void ExampleBot::this_is_a_class_function(ABMessage & message)
