@@ -65,16 +65,16 @@ void AegisAdmin::test(ABMessage & message)
 
 void AegisAdmin::serverList(ABMessage & message)
 {
-    std::stringstream ss;
+    fmt::MemoryWriter w;
     for (auto & g : message.channel().guild().bot.guildlist)
     {
-        ss << "*" << g.second->name << "*  :  " << g.second->id << "\n";
+        w << "*" << g.second->name << "*  :  " << g.second->id << "\n";
     }
 
 
     json t = {
         { "title", "Server List" },
-        { "description", ss.str() },
+        { "description", w.str() },
         { "color", 10599460 }
     };
     message.channel().sendMessageEmbed(json(), t);

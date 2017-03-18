@@ -31,6 +31,7 @@
 #include <json.hpp>
 #include <chrono>
 #include "AegisBot.h"
+#include "../lib/fmt/fmt/ostream.h"
 
 AegisOfficial::AegisOfficial(AegisBot & bot, Guild & guild)
     : AegisModule(bot, guild)
@@ -138,19 +139,27 @@ void AegisOfficial::info(ABMessage & message)
             else
                 channel_voice_count++;
         }
+
+        for (auto & guild : AegisBot::guildlist)
+        {
+            member_count += guild.second->memberlist.size();
+        }
     }
-    std::stringstream members;
-    members << member_count << "\n0 Online\n0 Offline\nstuff";
 
-    std::stringstream channels;
-    channels << channel_count << " total\n" << channel_text_count << " text\n" << channel_voice_count << " voice";
+    string members = fmt::format("{0} total\n{1} unique\n{2} online\n{3} dnd", member_count, member_count_unique, member_online_count, member_dnd_count);
+    string channels = fmt::format("{0} total\n{1} online\n{2} dnd", channel_count, channel_text_count, channel_voice_count);
+    string guilds = fmt::format("{0}", guild_count);
+    string stats;
+    string events = fmt::format("{0}", eventsseen);
+    string misc = fmt::format("I am shard {0} of {1}", message.channel().guild().bot.shardid + 1, message.channel().guild().bot.shardidmax);
 
-    std::stringstream guilds;
-    guilds << guild_count;
+    fmt::MemoryWriter w;
+    w << "[Latest bot source](https://github.com/zeroxs/aegisbot)\n[Official Bot Server](https://discord.gg/w7Y3Bb8)\n\nMemory usage: "
+        << double(AegisBot::getCurrentRSS()) / (1024 * 1024) << "MB\nMax Memory: "
+        << double(AegisBot::getPeakRSS()) / (1024 * 1024) << "MB";
+    stats = w.str();
 
     message.content = "";
-    string stats;
-    stats = Poco::format("[Latest bot source](https://github.com/zeroxs/aegisbot)\n[Official Bot Server](https://discord.gg/w7Y3Bb8)\n\nMemory usage: %.2fMB\nMax Memory: %.2fMB", double(AegisBot::getCurrentRSS()) / (1024 * 1024), double(AegisBot::getPeakRSS()) / (1024 * 1024));
     json t = {
         { "title", "AegisBot" },
         { "description", stats },
@@ -158,10 +167,13 @@ void AegisOfficial::info(ABMessage & message)
         { "fields",
         json::array(
     {
-        { { "name", "Members" },{ "value", members.str() },{ "inline", true } },
-        { { "name", "Channels" },{ "value", channels.str() },{ "inline", true } },
+        { { "name", "Members" },{ "value", members },{ "inline", true } },
+        { { "name", "Channels" },{ "value", channels },{ "inline", true } },
         { { "name", "Uptime test" },{ "value", uptime() },{ "inline", true } },
-        { { "name", "Guilds" },{ "value", guilds.str() },{ "inline", true } }
+        { { "name", "Guilds" },{ "value", guilds },{ "inline", true } },
+        { { "name", "Events Seen" },{ "value", events },{ "inline", true } },
+        { { "name", "_" },{ "value", "_" },{ "inline", true } },
+        { { "name", "misc" },{ "value", misc },{ "inline", false } }
     }
             )
         },

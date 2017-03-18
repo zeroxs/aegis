@@ -113,5 +113,6 @@ public:
     void Enable(ABMessage & message);
     void Disable(ABMessage & message);
     void Attachments(ABMessage & message);
+    void Debug(ABMessage & message);
 };
 

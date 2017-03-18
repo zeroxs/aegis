@@ -7,3 +7,6 @@
 [submodule "lib/redisclient"]
 	path = lib/redisclient
 	url = https://github.com/nekipelov/redisclient.git
+[submodule "lib/fmt"]
+	path = lib/fmt
+	url = https://github.com/fmtlib/fmt
