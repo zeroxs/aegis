@@ -320,6 +320,16 @@ void AegisBot::processReady(json & d)
         if (!unavailable)
         {
             loadGuild(guildobj);
+
+            {
+                //temporary. This won't work when the bot is in over 120 guilds due to ratelimits over websocket
+                json obj;
+                obj["op"] = 8;
+                obj["d"]["guild_id"] = id;
+                obj["d"]["query"] = "";
+                obj["d"]["limit"] = 0;
+                wssend(obj.dump());
+            }
         }
     }
 
@@ -382,14 +392,14 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
     {
         json result = json::parse(msg->get_payload());
 
-        poco_trace_f1(*log, "Received JSON: %s", msg->get_payload());
+        //poco_trace_f1(*log, "Received JSON: %s", msg->get_payload());
 
         if (!result.is_null())
         {
             if (!result["t"].is_null())
             {
                 string cmd = result["t"];
-                poco_trace_f1(*log, "Processing: %s", cmd);
+                //poco_trace_f1(*log, "Processing: %s", cmd);
 
                 if (cmd == "TYPING_START")
                 {
@@ -401,29 +411,51 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     while (!active && isrunning)
                         std::this_thread::sleep_for(std::chrono::milliseconds(1));
                     userMessage(result["d"]);
-                    result["d"]["id"];
-                    result["d"]["author"]["id"];
                 }
                 else if (cmd == "MESSAGE_UPDATE")
                 {
-                    std::cout << result.dump() << std::endl;
+                    //std::cout << result.dump() << std::endl;
+                    json message = result["d"];
+                    uint64_t message_id = std::stoull(message["id"].get<string>());
+                    uint64_t channel_id = std::stoull(message["channel_id"].get<string>());
 
-                    uint64_t message_id = std::stoull(result["d"]["id"].get<string>());
-                    uint64_t channel_id = std::stoull(result["d"]["channel_id"].get<string>());
+                    if (message["embeds"].size() > 0)
+                    {
+                        //parse embeds some time
+/*
+                        string type = message["type"];
 
-                    string content = result["d"]["content"];
+                        string title;
+                        if (message.count("title"))
+                            title = message["title"];
 
-                    uint64_t timestamp = result["d"]["timestamp"];
-                    uint64_t edited_timestamp = result["d"]["edited_timestamp"];
+                        string description;
+                        if (message.count("description"))
+                            description = message["description"];
+                        uint32_t color;
+                        if (message.count("color"))
+                            color = message["color"];*/
+                    }
+                    else
+                    {
+                        uint64_t user_id = std::stoull(message["author"]["id"].get<string>());
+                        string content = message["content"];
 
-                    bool mention_everyone = result["d"]["mention_everyone"];
-                    bool pinned = result["d"]["pinned"];
-                    //
-                    json reactions;
-                    if (result["d"].count("reactions"))
-                        reactions = result["d"]["reactions"];
-                    json mentions = result["d"]["mentions"];
-                    json mention_roles = result["d"]["mention_roles"];
+                        string timestamp = message["timestamp"];
+                        string edited_timestamp = message["edited_timestamp"];
+
+                        bool mention_everyone = message["mention_everyone"];
+                        bool pinned = message["pinned"];
+                        //
+                        json reactions;
+                        if (message.count("reactions"))
+                            reactions = message["reactions"];
+                        json mentions = message["mentions"];
+                        json mention_roles = message["mention_roles"];
+                    }
+
+
+
 
 
 
@@ -841,6 +873,11 @@ void AegisBot::run()
 {
     while (isrunning)
     {
+
+
+
+
+        // Check for outgoing messages that need sending
         {
             std::lock_guard<std::recursive_mutex> lock(m);
             for (auto & guild : guildlist)
