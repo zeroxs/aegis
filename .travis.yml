@@ -81,7 +81,7 @@ install:
   # Install Boost.Build
   ############################################################################
   - if [[ -z "$(ls -A ${BOOST_DIR})/stage" ]]; then
-      (cd ${BOOST_DIR} && ./bootstrap.sh && ./b2 toolset=${BOOST_C} --with-program_options --with-date_time --with-thread --with-system)
+      (cd ${BOOST_DIR} && ./bootstrap.sh && ./b2 toolset=${BOOST_C} --with-program_options --with-date_time --with-thread --with-system --with-log)
     fi
 
   ############################################################################

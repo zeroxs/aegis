@@ -46,8 +46,10 @@ Guild::~Guild()
     {
         if ((*mod)->name == "default")
             delete static_cast<AegisOfficial*>(*mod);
+#ifdef AB_AUCTION
         else if ((*mod)->name == "auction")
             delete static_cast<AuctionBot*>(*mod);
+#endif
         else if ((*mod)->name == "example")
             delete static_cast<ExampleBot*>(*mod);
         else if ((*mod)->name == "admin")
@@ -61,8 +63,13 @@ void Guild::processMessage(json obj)
     uint64_t userid = std::stoll(author["id"].get<string>());
 
     //if this is my own message, ignore
+#ifndef SELFBOT
     if (userid == AegisBot::userId)
         return;
+#else
+    if (userid != AegisBot::userId)
+        return;
+#endif
 
     string avatar = author["avatar"].is_string()?author["avatar"]:"";
     string username = author["username"];
@@ -82,10 +89,6 @@ void Guild::processMessage(json obj)
 
 
 
-#ifdef SELFBOT
-    if (userid != ROOTADMIN)
-        return;
-#endif
 
 
     if (userid == ROOTADMIN)
@@ -238,9 +241,9 @@ void Guild::processMessage(json obj)
     //vs
     //string cmd = (*(token++)).substr(prefix.size());
 
-
     if (tok.begin() == tok.end())
         return;
+
     auto token = tok.begin();
     string cmd = (*(token++)).substr(prefix.size());
 
@@ -395,6 +398,7 @@ int Guild::addModule(string modName)
         mod->initialize();
         return 1;
     }
+#ifdef AB_AUCTION
     else if (modName == "auction")
     {
         AuctionBot * mod = new AuctionBot(bot, *this);
@@ -402,6 +406,7 @@ int Guild::addModule(string modName)
         mod->initialize();
         return 1;
     }
+#endif
     else if (modName == "example")
     {
         ExampleBot * mod = new ExampleBot(bot, *this);
@@ -429,8 +434,10 @@ bool Guild::removeModule(string modName)
             modules.erase(mod);
             if (modName == "default")
                 delete static_cast<AegisOfficial*>(*mod);
+#ifdef AB_AUCTION
             else if (modName == "auction")
                 delete static_cast<AuctionBot*>(*mod);
+#endif
             else if (modName == "example")
                 delete static_cast<ExampleBot*>(*mod);
             else if (modName == "admin")

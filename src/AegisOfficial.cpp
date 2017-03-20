@@ -167,7 +167,7 @@ void AegisOfficial::info(ABMessage & message)
     }
 
     string members = fmt::format("{0} total\n{1} unique\n{2} online\n{3} dnd", member_count, member_count_unique, member_online_count, member_dnd_count);
-    string channels = fmt::format("{0} total\n{1} online\n{2} dnd", channel_count, channel_text_count, channel_voice_count);
+    string channels = fmt::format("{0} total\n{1} text\n{2} voice", channel_count, channel_text_count, channel_voice_count);
     string guilds = fmt::format("{0}", guild_count);
     string stats;
     string events = fmt::format("{0}", eventsseen);

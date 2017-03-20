@@ -23,6 +23,8 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+#ifdef AB_AUCTION
+
 #include "AuctionBot.h"
 #include "Channel.h"
 #include "Member.h"
@@ -41,7 +43,6 @@ AuctionBot::AuctionBot(AegisBot & bot, Guild & guild)
 
 void AuctionBot::initialize()
 {
-    admins.push_back(159046292633419776LL);//Disaster
     admins.push_back(ROOTADMIN);//Rensia
 
 //     for (int i = 0; i < 120; ++i)
@@ -50,96 +51,10 @@ void AuctionBot::initialize()
 
 
 
-    players.push_back({ "Golden Gyarados", true });
-    players.push_back({ "Peasounay", true });
-    players.push_back({ "Diegol", true });
-    players.push_back({ "thelinekioubeur", true });
-    players.push_back({ "Ugly Duckling", true });
-    players.push_back({ "Ron", true });
-    players.push_back({ "Cowboy Dan", true });
-    players.push_back({ "Fener", true });
-    players.push_back({ "SunnyR", true });
-    players.push_back({ "Leru", true });
-    players.push_back({ "Oltan", true });
-    players.push_back({ "Real FV13", true });
-    players.push_back({ "deluks917", true });
-    players.push_back({ "PhilosopherKing", true });
-    players.push_back({ "Kingler12345", true });
-    players.push_back({ "Bedschibaer", true });
-    players.push_back({ "TSR", true });
-    players.push_back({ "CZ", true });
-    players.push_back({ "george182", true });
-    players.push_back({ "Atli", true });
-    players.push_back({ "Linkin Karp", true });
-    players.push_back({ "Ibidem", true });
-    players.push_back({ "Melle2402", true });
-    players.push_back({ "Marcop9923", true });
-    players.push_back({ "Arifeen", true });
-    players.push_back({ "Ariel Rebel", true });
-    players.push_back({ "partys over", true });
-    players.push_back({ "NightFox", true });
-    players.push_back({ "lighthouses", true });
-    players.push_back({ "Conflict", true });
-    players.push_back({ "Finchinator", true });
-    players.push_back({ "hero", true });
-    players.push_back({ "Azzbo", true });
-    players.push_back({ "Ch01W0n5h1n", true });
-    players.push_back({ "thelinearcurve", true });
-    players.push_back({ "Deadboots", true });
-    players.push_back({ "Asim", true });
-    players.push_back({ "Bill Shatner", true });
-    players.push_back({ "slurmz", true });
-    players.push_back({ "DumbJokes", true });
-    players.push_back({ "pinktidal", true });
-    players.push_back({ "Fezant", true });
-    players.push_back({ "GGFan", true });
-    players.push_back({ "hclat", true });
-    players.push_back({ "Roostur", true });
-    players.push_back({ "Texas Cloverleaf", true });
-    players.push_back({ "terpnation", true });
-    players.push_back({ "Marcoasd", true });
-    players.push_back({ "SamuelBest", true });
-    players.push_back({ "Sans", true });
-    players.push_back({ "ReshiRampage", true });
-    players.push_back({ "drud", true });
-    players.push_back({ "Miere", true });
-    players.push_back({ "Klefkwi", true });
-    players.push_back({ "moonraker", true });
-    players.push_back({ "hellpowna", true });
-    players.push_back({ "Bomber", true });
-    players.push_back({ "Haxel", true });
-    players.push_back({ "Oibaf", true });
-    players.push_back({ "Kerts", true });
-    players.push_back({ "tjdaas", true });
-    players.push_back({ "j2dahop", true });
-    players.push_back({ "thecrystalonix", true });
-    players.push_back({ "k3nan", true });
-    players.push_back({ "Analytic", true });
-    players.push_back({ "Paraplegic", true });
-    players.push_back({ "DMA", true });
-    players.push_back({ "gorgie", true });
-    players.push_back({ "During Summer", true });
-    players.push_back({ "WSUWSU", true });
-    players.push_back({ "Steinitz", true });
-    players.push_back({ "bluri", true });
-    players.push_back({ "Tunc42", true });
-    players.push_back({ "DeepBlueC", true });
-    players.push_back({ "MetalGro$$", true });
-    players.push_back({ "sulcata", true });
-    players.push_back({ "p2", true });
-    players.push_back({ "Flares", true });
-    players.push_back({ "teal6", true });
-    players.push_back({ "slick nasty", true });
-    players.push_back({ "The Killing Moon", true });
-    players.push_back({ "amberlamps", true });
-    players.push_back({ "Snowy", true });
-    players.push_back({ "Omfuga", true });
-    players.push_back({ "Mister Tim", true });
-    players.push_back({ "Troller", true });
-    players.push_back({ "ThrashNinjax", true });
-    players.push_back({ "Enigami", true });
-    players.push_back({ "Contact", true });
-
+    players.push_back({ "Player1", true });
+    players.push_back({ "Player2", true });
+    players.push_back({ "Player3", true });
+    players.push_back({ "Player4", true });
 
 
     guild.addCommand("register", std::bind(&AuctionBot::Register, this, std::placeholders::_1));
@@ -171,7 +86,7 @@ void AuctionBot::initialize()
     guild.addCommand("enable", std::bind(&AuctionBot::Enable, this, std::placeholders::_1));
     guild.addCommand("disable", std::bind(&AuctionBot::Disable, this, std::placeholders::_1));
     guild.addCommand("debug", std::bind(&AuctionBot::Debug, this, std::placeholders::_1));
-
+    
     guild.addAttachmentHandler(std::bind(&AuctionBot::Attachments, this, std::placeholders::_1));
 }
 
@@ -234,10 +149,10 @@ void AuctionBot::Debug(ABMessage & message)
 
         currentteam2 = std::stoi((*token));
 
+        message.channel().sendMessage(fmt::format("DEBUG direction:{0}:{1} lastteam:{2}:{3} currentteam:{4}:{5}", direction2, direction, lastteam2, lastteam, currentteam2, currentteam));
         lastteam = lastteam2;
         currentteam = currentteam2;
         direction = direction2;
-        message.channel().sendMessage(fmt::format("DEBUG direction:{0}:{1} lastteam:{2}:{3} currentteam:{4}:{5}", direction2, direction, lastteam2, lastteam, currentteam2, currentteam));
     }
     catch (std::out_of_range & e)
     {
@@ -338,7 +253,7 @@ void AuctionBot::timercontinuation(Channel * channel)
     if (auctioninprogress)
     {
         if (!paused)
-            channel->sendMessage(fmt::format("Auction for player **{0}** currently at [{1}] by **%s**", currentnom, bids.back().second, teams[bids.back().first].teamname));
+            channel->sendMessage(fmt::format("Auction for player **{0}** currently at [{1}] by **{2}**", currentnom, bids.back().second, teams[bids.back().first].teamname));
         if (timeuntilstop <= std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count())
         {
             auto res = bids.back();
@@ -1126,3 +1041,5 @@ void AuctionBot::Disable(ABMessage & message)
     message.channel().sendMessage("Auction commands disabled");
 
 }
+
+#endif

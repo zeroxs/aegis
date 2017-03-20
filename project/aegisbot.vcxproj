@@ -131,7 +131,7 @@
       <AdditionalOptions> -L /home/zero/projects/aegisbot/lib/boost-1.63.0/stage/lib/ -L /home/zero/projects/aegisbot/lib/poco-1.7.8/lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ClCompile>
-      <PreprocessorDefinitions>_DEBUG;BOOST_DYN_LINK_ALL;USE_REDIS;ROOTADMIN=171000788183678976LL;TEST_GID=287048029524066334LL;CONTROL_CHANNEL=288707540844412928LL;BOOST_THREAD_PROVIDES_FUTURE;BOOST_THREAD_VERSION=4</PreprocessorDefinitions>
+      <PreprocessorDefinitions>SELFBOT;_DEBUG;BOOST_DYN_LINK_ALL;USE_REDIS;ROOTADMIN=171000788183678976LL;TEST_GID=287048029524066334LL;CONTROL_CHANNEL=288707540844412928LL;BOOST_THREAD_PROVIDES_FUTURE;BOOST_THREAD_VERSION=4</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(StlIncludeDirectories);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>
       </AdditionalOptions>

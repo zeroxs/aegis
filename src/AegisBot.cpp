@@ -149,11 +149,6 @@ void AegisBot::loadConfigs()
     //TODO: might need to add a mutex here to prevent actions from running while configs reload
 #ifdef USE_REDIS
     int32_t level = boost::lexical_cast<int32_t>(cache->get("config:loglevel"));
-#ifdef SELFBOT
-    token = cache->get("config:token2");
-#else
-    //token = cache->get("config:token");
-#endif
     logf->setLevel(level);
     log->setLevel(level);
 #endif
@@ -233,6 +228,8 @@ void AegisBot::startShards()
 #ifndef SELFBOT
     std::cout << "Shard count: " << ret["shards"] << std::endl;
     shardidmax = ret["shards"];
+#else
+    shardidmax = 1;
 #endif
 
     for (int i = 0; i < AegisBot::shardidmax; ++i)
@@ -351,6 +348,7 @@ void AegisBot::processReady(json & d)
       
         PrivateChat & privateChat = private_channels[channel_id];//test
         poco_trace_f1(*log, "Private Channel created: %Lu", channel_id);
+        privateChat.id = channel_id;
         
         for (auto & recipient : recipients)
         {
@@ -380,6 +378,7 @@ void AegisBot::processReady(json & d)
         std::stringstream ss;
         ss << "<@" << userId  << ">";
         AegisBot::mention = ss.str();
+        std::cout << "Mention: " << AegisBot::mention << std::endl;
     }
 
     username = userdata["username"];
@@ -646,13 +645,29 @@ void AegisBot::userMessage(json & obj)
         member.msghistory.push(id);
     }
 
+    try
+    {
+        Channel & channel = getChannel(channel_id);
 
-    Channel & channel = getChannel(channel_id);
+        channel.guild().processMessage(obj);
 
-    channel.guild().processMessage(obj);
+        return;
+    }
+    catch (std::out_of_range & e)
+    {
+        for (auto & dm : private_channels)
+        {
+            if (dm.second.id == channel_id)
+            {
 
-    boost::tokenizer<boost::char_separator<char>> tok{ content, boost::char_separator<char>(" ") };
+                boost::char_separator<char> sep{ " " };
+                boost::tokenizer<boost::char_separator<char>> tok{ content, sep };
 
+
+                return;
+            }
+        }
+    }
 }
 
 void AegisBot::keepalive(const boost::system::error_code& error, const uint64_t ms)
@@ -737,7 +752,7 @@ std::pair<bool,string> AegisBot::call(string url, string obj, RateLimits * endpo
         HTTPSClientSession session(uri.getHost(), uri.getPort());
         HTTPRequest request(HTTPRequest::HTTP_GET, path, HTTPMessage::HTTP_1_1);
 #ifdef SELFBOT
-        request.set("Authorization", token);
+        request.set("Authorization", cache->get(tokenstr));
 #else
         request.set("Authorization", string("Bot ") + cache->get(tokenstr));
 #endif
@@ -1030,6 +1045,11 @@ void AegisBot::loadGuild(json & obj)
 
 
     Guild & guild = createGuild(id);
+
+#ifdef SELFBOT
+    guild.addModule("self");
+#endif
+
     try
     {
         poco_trace_f1(*log, "Guild created: %Lu", id);
