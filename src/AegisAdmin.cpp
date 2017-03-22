@@ -205,7 +205,6 @@ void AegisAdmin::reload(ABMessage & message)
 {
     if (message.member().id)
     {
-        bot.loadConfigs();
         message.channel().sendMessage("Configs reloaded.");
     }
     else

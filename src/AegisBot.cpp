@@ -31,10 +31,6 @@
 #include "ABRedisCache.h"
 #endif
 
-FormattingChannel * AegisBot::pFC;
-FormattingChannel * AegisBot::pFCf;
-Logger * AegisBot::log;
-Logger * AegisBot::logf;
 string AegisBot::gatewayurl;
 bool AegisBot::isrunning;
 bool AegisBot::active;
@@ -142,16 +138,6 @@ Channel & AegisBot::getChannel(uint64_t id)
 void AegisBot::setupCache(ABCache * in)
 {
     cache = in;
-}
-
-void AegisBot::loadConfigs()
-{
-    //TODO: might need to add a mutex here to prevent actions from running while configs reload
-#ifdef USE_REDIS
-    int32_t level = boost::lexical_cast<int32_t>(cache->get("config:loglevel"));
-    logf->setLevel(level);
-    log->setLevel(level);
-#endif
 }
 
 bool AegisBot::initialize(uint64_t shardid)
@@ -293,8 +279,7 @@ void AegisBot::connectWS()
 void AegisBot::onClose(websocketpp::connection_hdl hdl)
 {
     keepalive_timer_.cancel();
-    poco_error(*log, "Connection closed.");
-    poco_information(*log, "Reconnecting.");
+    BOOST_LOG_TRIVIAL(error) << "Connection closed. Reconnecting.";
     if (isrunning)
         connectWS();
 }
@@ -312,7 +297,7 @@ void AegisBot::processReady(json & d)
             unavailable = guildobj["unavailable"];
 
         Guild & guild = createGuild(id);
-        poco_trace_f1(*log, "Guild created: %Lu", guild.id);
+        BOOST_LOG_TRIVIAL(trace) << "Guild created: " << guild.id;
         guild.unavailable = unavailable;
         if (!unavailable)
         {
@@ -347,7 +332,7 @@ void AegisBot::processReady(json & d)
         json recipients = channel["recipients"];
       
         PrivateChat & privateChat = private_channels[channel_id];//test
-        poco_trace_f1(*log, "Private Channel created: %Lu", channel_id);
+        BOOST_LOG_TRIVIAL(trace) << "Private Channel created: " << channel_id;
         privateChat.id = channel_id;
         
         for (auto & recipient : recipients)
@@ -360,7 +345,7 @@ void AegisBot::processReady(json & d)
             //Member & rec = privateChat.recipients[recipientId];
             privateChat.recipients.push_back(recipientId);
             Member & glob = AegisBot::createMember(recipientId);
-            poco_trace_f1(*log, "User created: %Lu", recipientId);
+            BOOST_LOG_TRIVIAL(trace) << "Member created: " << channel_id;
             glob.id = recipientId;
             glob.avatar = recipientAvatar;
             glob.name = recipientName;
@@ -588,29 +573,29 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
             if (result["op"] == 10)
             {
                 uint64_t heartbeat = result["d"]["heartbeat_interval"];
-                poco_trace_f1(*log, "Heartbeat timer added : %Lu ms", heartbeat);
+                BOOST_LOG_TRIVIAL(trace) << "Heartbeat timer added : " << heartbeat << " ms.";
                 keepalive_timer_.expires_from_now(std::chrono::milliseconds(heartbeat));
-                keepalive_timer_.async_wait([heartbeat, this](const boost::system::error_code & ec) { keepalive(ec, heartbeat); });
+                keepalive_timer_.async_wait([heartbeat, this](const boost::system::error_code & ec) { keepAlive(ec, heartbeat); });
             }
             if (result["op"] == 11)
             {
                 //heartbeat ACK
-                poco_trace(*log, "Heartbeat ACK");
+                BOOST_LOG_TRIVIAL(trace) << "Heartbeat ACK";
             }
         }
     }
     catch (Poco::BadCastException& e)
     {
-        poco_error_f1(*log, "BadCastException: %s", (string)e.what());
+        BOOST_LOG_TRIVIAL(error) << "BadCastException: " << e.what();
     }
     catch (std::exception& e)
     {
-        poco_error_f1(*log, "Failed to process object: %s", (string)e.what());
+        BOOST_LOG_TRIVIAL(error) << "Failed to process object: " << e.what();
         std::cout << msg->get_payload() << std::endl;
     }
     catch (...)
     {
-        poco_error(*log, "Failed to process object: Unknown error");
+        BOOST_LOG_TRIVIAL(error) << "Failed to process object: Unknown error";
     }
 }
 
@@ -670,7 +655,7 @@ void AegisBot::userMessage(json & obj)
     }
 }
 
-void AegisBot::keepalive(const boost::system::error_code& error, const uint64_t ms)
+void AegisBot::keepAlive(const boost::system::error_code& error, const uint64_t ms)
 {
     if (error != boost::asio::error::operation_aborted)
     {
@@ -683,9 +668,9 @@ void AegisBot::keepalive(const boost::system::error_code& error, const uint64_t 
 #endif
         ws.send(connection, obj.dump(), websocketpp::frame::opcode::text);
 
-        poco_trace_f1(*log, "Heartbeat timer added: %Lu ms", ms);
+        BOOST_LOG_TRIVIAL(trace) << "Heartbeat timer added: " << ms << " ms";
         keepalive_timer_.expires_from_now(std::chrono::milliseconds(ms));
-        keepalive_timer_.async_wait([ms, this](const boost::system::error_code & ec) { keepalive(ec, ms); });
+        keepalive_timer_.async_wait([ms, this](const boost::system::error_code & ec) { keepAlive(ec, ms); });
     }
 }
 
@@ -811,7 +796,7 @@ std::pair<bool,string> AegisBot::call(string url, string obj, RateLimits * endpo
             {
                 rate_global = true;
                 endpoint->rateRetry(Poco::DynamicAny(response.get("Retry-After")).convert<uint32_t>());
-                log->error(Poco::format("Global rate limit reached. Pausing for %Lums", endpoint->rateRetry()));
+                BOOST_LOG_TRIVIAL(trace) << "Global rate limit reached. Pausing for " << endpoint->rateRetry() << " ms";
                 std::this_thread::sleep_for(std::chrono::milliseconds(endpoint->rateRetry()));
                 rate_global = false;
                 if (status == 429)
@@ -832,14 +817,7 @@ std::pair<bool,string> AegisBot::call(string url, string obj, RateLimits * endpo
                 {
                     return { false, "" };
                 }
-#ifdef DEBUG_OUTPUT
-                poco_trace_f1(*log, "rate_limit:     %u", endpoint->rateLimit());
-                poco_trace_f1(*log, "rate_remaining: %u", endpoint->rateRemaining());
-                poco_trace_f1(*log, "rate_reset:     %u", endpoint->rateReset());
-                poco_trace_f1(*log, "epoch:          %Lu", epoch);
-                poco_trace_f1(*log, "content:        %s", obj);
-#endif
-                log->information(Poco::format("Rates: %u:%u resets in: %Lus", endpoint->rateLimit(), endpoint->rateRemaining(), (endpoint->rateReset() > 0) ? (endpoint->rateReset() - epoch) : 0));
+                BOOST_LOG_TRIVIAL(trace) << fmt::format("Rates: {0}:{1} resets in: {2}s", endpoint->rateLimit(), endpoint->rateRemaining(), (endpoint->rateReset() > 0) ? (endpoint->rateReset() - epoch) : 0);
             }
         }
 
@@ -847,7 +825,7 @@ std::pair<bool,string> AegisBot::call(string url, string obj, RateLimits * endpo
     }
     catch (std::exception&e)
     {
-        log->error(Poco::format("Unhandled error in Bot::call(): %s", (string)e.what()));
+        BOOST_LOG_TRIVIAL(error) << "Unhandled error in Bot::call(): " << e.what();
         endpoint->addFailure();
     }
 
@@ -860,14 +838,14 @@ void AegisBot::pruneMsgHistory(const boost::system::error_code& error)
     {
         std::lock_guard<std::mutex> lock(Member::m);
 
-        std::cout << "Starting message prune" << std::endl;
+        BOOST_LOG_TRIVIAL(trace) << "Starting message prune";
         //2 hour expiry
         uint64_t epoch = ((std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - (2 * 60 * 60 * 1000)) - 1420070400000) << 22;
         for (auto & member : memberlist)
         {
             if (member.second->msghistory.size() > 0 && member.second->msghistory.front() < epoch)
             {
-                std::cout << "Removed message [" << member.second->msghistory.front() << "] from [" << member.second->id << "] time: " << epoch << std::endl;
+                BOOST_LOG_TRIVIAL(trace) << "Removed message [" << member.second->msghistory.front() << "] from [" << member.second->id << "] time: " << epoch;
                 member.second->msghistory.pop();
             }
         }
@@ -936,22 +914,14 @@ void AegisBot::run()
                                 if (!success)
                                 {
                                     //rate limit hit
-                                    poco_trace_f4(*log, "Rate Limit hit or connection error - requeuing message [%s] [%Lu] [%s] [%Lu]", message.channel().guild().name, message.channel().guild().id, message.channel().name, message.channel().id);
+                                    BOOST_LOG_TRIVIAL(error) << fmt::format("Rate Limit hit or connection error - requeuing message [{0}] [{1}] [{2}] [{3}]", message.channel().guild().name, message.channel().guild().id, message.channel().name, message.channel().id);
                                     continue;
                                 }
                                 //message success, pop
                                 message.channel().ratelimits.outqueue.pop();
                             }
 
-                            poco_trace_f2(*log, "Message sent: [%s] [%s]", message.endpoint, message.content);
-#ifdef DEBUG_OUTPUT
-                            uint64_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-                            poco_trace_f1(*log, "rate_limit:     %u", message.channel().ratelimits.rateLimit());
-                            poco_trace_f1(*log, "rate_remaining: %u", message.channel().ratelimits.rateRemaining());
-                            poco_trace_f1(*log, "rate_reset:     %u", message.channel().ratelimits.rateReset());
-                            poco_trace_f1(*log, "epoch:          %u", epoch);
-                            poco_trace_f1(*log, "content:        %s", message.content);
-#endif
+                            BOOST_LOG_TRIVIAL(trace) << fmt::format("Message sent: [{0}] [{1}]", message.endpoint, message.content);
                             if (message.callback)
                             {
                                 message.callback(message);
@@ -988,20 +958,12 @@ void AegisBot::run()
                             if (!success)
                             {
                                 //rate limit hit
-                                poco_trace_f4(*log, "Rate Limit hit or connection error - requeuing message [%s] [%Lu] [%s] [%Lu]", message.channel().guild().name, message.channel().guild().id, message.channel().name, message.channel().id);
+                                BOOST_LOG_TRIVIAL(error) << fmt::format("Rate Limit hit or connection error - requeuing message [{0}] [{1}] [{2}] [{3}]", message.channel().guild().name, message.channel().guild().id, message.channel().name, message.channel().id);
                                 continue;
                             }
                             guild.second->ratelimits.outqueue.pop();
                         }
-                        poco_trace_f2(*log, "Message sent: [%s] [%s]", message.endpoint, message.content);
-#ifdef DEBUG_OUTPUT
-                        uint64_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-                        poco_trace_f1(*log, "rate_limit:     %u", message.guild().ratelimits.rateLimit());
-                        poco_trace_f1(*log, "rate_remaining: %u", message.guild().ratelimits.rateRemaining());
-                        poco_trace_f1(*log, "rate_reset:     %u", message.guild().ratelimits.rateReset());
-                        poco_trace_f1(*log, "epoch:          %u", epoch);
-                        poco_trace_f1(*log, "content:        %s", message.content);
-#endif
+                        BOOST_LOG_TRIVIAL(trace) << fmt::format("Message sent: [{0}] [{1}]", message.endpoint, message.content);
                         if (message.callback)
                         {
                             message.callback(message);
@@ -1013,19 +975,6 @@ void AegisBot::run()
         std::this_thread::sleep_for(std::chrono::microseconds(1));
     }
 }
-
-/*
-template <typename T, typename... _BoundArgs>
-void AegisBot::createTimer(uint64_t t, shared_ptr<boost::asio::steady_timer> timer, T f, _BoundArgs&&... __args)
-{
-    //new timer
-    if (timer == nullptr)
-        timer = make_shared<shared_ptr<boost::asio::steady_timer>::element_type>(io_service);
-
-    timer->expires_from_now(std::chrono::milliseconds(t));
-    timer->async_wait(std::bind(f, this, __args...));
-    poco_trace_f1(*log, "createTimer(%Lu)", t);
-}*/
 
 void AegisBot::wssend(string obj)
 {
@@ -1052,7 +1001,7 @@ void AegisBot::loadGuild(json & obj)
 
     try
     {
-        poco_trace_f1(*log, "Guild created: %Lu", id);
+        BOOST_LOG_TRIVIAL(trace) << "Guild created: " << id;
         guild.id = id;
 
         //guild->cmdlist = defaultcmdlist;
@@ -1123,7 +1072,7 @@ void AegisBot::loadGuild(json & obj)
     }
     catch(std::exception&e)
     {
-        poco_error_f2(*log, "Error processing guild[%Lu] %s", id, (string)e.what());
+        BOOST_LOG_TRIVIAL(error) << fmt::format("Error processing guild[{0}] {1}", id, (string)e.what());
     }
 }
 
@@ -1139,7 +1088,7 @@ void AegisBot::loadChannel(json & channel, uint64_t guild_id)
         //doesn't really hurt, and shouldn't really add up to anything to be concerned about, but maybe
         //do a check for .count() on all the checks instead?
         Channel & checkchannel = createChannel(channel_id, guild_id);
-        poco_trace_f2(*log, "Channel[%Lu] created for guild[%Lu]", channel_id, guild_id);
+        BOOST_LOG_TRIVIAL(trace) << fmt::format("Channel[{0}] created for guild[{1}]", channel_id, guild_id);
         checkchannel.name = GET_NULL(channel, "name");
         checkchannel.position = channel["position"];
         checkchannel.type = (ChannelType)channel["type"].get<int>();// 0 = text, 2 = voice
@@ -1175,20 +1124,20 @@ void AegisBot::loadChannel(json & channel, uint64_t guild_id)
     }
     catch (std::exception&e)
     {
-        poco_error_f3(*log, "Error processing channel[%Lu] of guild[%Lu] %s", channel_id, guild_id, (string)e.what());
+        BOOST_LOG_TRIVIAL(error) << fmt::format("Error processing channel[{0}] of guild[{1}] {2}", channel_id, guild_id, e.what());
     }
 }
 
 void AegisBot::loadMember(json & member, Guild & guild)
 {
-    uint64_t guildId = guild.id;
+    uint64_t guild_id = guild.id;
 
     json user = member["user"];
     uint64_t member_id = std::stoll(user["id"].get<string>());
     try
     {
         Member & checkmember = createMember(member_id);
-        poco_trace_f2(*log, "Member[%Lu] created for guild[%Lu]", member_id, guildId);
+        BOOST_LOG_TRIVIAL(trace) << fmt::format("Member[{0}] created for guild[{1}]", member_id, guild_id);
         guild.memberlist[member_id] = std::pair<Member*, uint16_t>(&checkmember, 0);
 
         checkmember.avatar = GET_NULL(user, "avatar");
@@ -1199,23 +1148,23 @@ void AegisBot::loadMember(json & member, Guild & guild)
         checkmember.joined_at = member["joined_at"];
         checkmember.mute = member["mute"];
         checkmember.isbot = member["bot"].is_null() ? false : true;
-        checkmember.guilds[guildId].nickname = GET_NULL(member, "nick");
+        checkmember.guilds[guild_id].nickname = GET_NULL(member, "nick");
 
         json roles = member["roles"];
         for (auto & r : roles)
-            checkmember.guilds[guildId].roles.push_back(std::stoll(r.get<string>()));
+            checkmember.guilds[guild_id].roles.push_back(std::stoll(r.get<string>()));
 
-        checkmember.guilds[guildId].guild = &getGuild(guildId);
+        checkmember.guilds[guild_id].guild = &getGuild(guild_id);
     }
     catch (std::exception&e)
     {
-        poco_error_f3(*log, "Error processing member[%Lu] of guild[%Lu] %s", member_id, guildId, (string)e.what());
+        BOOST_LOG_TRIVIAL(error) << fmt::format("Error processing member[{0}] of guild[{1}] {2}", member_id, guild_id, e.what());
     }
 }
 
 void AegisBot::loadRole(json & role, Guild & guild)
 {
-    uint64_t guildId = guild.id;
+    uint64_t guild_id = guild.id;
 
     Role _role;
     uint64_t role_id = std::stoll(role["id"].get<string>());
@@ -1244,7 +1193,7 @@ void AegisBot::loadRole(json & role, Guild & guild)
     }
     catch (std::exception&e)
     {
-        poco_error_f3(*log, "Error processing role[%Lu] of guild[%Lu] %s", role_id, guildId, (string)e.what());
+        BOOST_LOG_TRIVIAL(error) << fmt::format("Error processing role[{0}] of guild[{1}] {2}", role_id, guild_id, e.what());
     }
 }
 

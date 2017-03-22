@@ -42,14 +42,6 @@
 #include <Poco/StreamCopier.h>
 #include <Poco/Dynamic/Var.h>
 
-#include <Poco/Logger.h>
-#include <Poco/PatternFormatter.h>
-#include <Poco/FormattingChannel.h>
-#include <Poco/ConsoleChannel.h>
-#include <Poco/FileChannel.h>
-#include <Poco/Message.h>
-#include <Poco/File.h>
-
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <boost/bind/placeholders.hpp>
@@ -61,6 +53,8 @@
 #include <boost/tuple/tuple.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/thread/future.hpp>
+
+#include <boost/log/trivial.hpp>
 
 #include "ABCache.h"
 
@@ -103,14 +97,6 @@ using namespace Poco::Net;
 using Poco::Dynamic::Var;
 using Poco::URI;
 
-using Poco::PatternFormatter;
-using Poco::FormattingChannel;
-using Poco::ConsoleChannel;
-using Poco::FileChannel;
-using Poco::Message;
-using Poco::Logger;
-using Poco::File;
-
 using std::string;
 
 class Guild;
@@ -132,13 +118,7 @@ public:
 
     static std::pair<bool, string> call(string url, string obj = "", RateLimits * endpoint = nullptr, string method = "GET", string query = "");
 
-    static FormattingChannel * pFC;
-    static FormattingChannel * pFCf;
-    static Logger * log;
-    static Logger * logf;
-
     static void setupCache(ABCache * in);
-    static void loadConfigs();
     static void startShards();
     static void threads();
     static void cleanup();
@@ -190,21 +170,7 @@ public:
     AegisBot();
     ~AegisBot();
 
-    void keepalive(const boost::system::error_code& error, const uint64_t ms);
-    void onMessage(websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg);
-    void onConnect(websocketpp::connection_hdl hdl);
-    void onClose(websocketpp::connection_hdl hdl);
-    void userMessage(json & obj);
     bool initialize(uint64_t shardid);
-    void processReady(json & d);
-    void connectWS();
-
-    void pruneMsgHistory(const boost::system::error_code& error);
-    void purgeMsgHistory();
-
-/*
-    template <typename T, typename... _BoundArgs>
-    void createTimer(uint64_t t, shared_ptr<boost::asio::steady_timer> timer, T f, _BoundArgs&&... __args);*/
 
     //Websockets
     websocketpp::client<websocketpp::config::asio_tls_client> ws;
@@ -229,12 +195,6 @@ public:
     uint64_t sequence = 0;
     string sessionId;
 
-    void loadGuild(json & obj);
-    void loadChannel(json & channel, uint64_t guild_id);
-    void loadMember(json & member, Guild & guild);
-    void loadRole(json & role, Guild & guild);
-    void loadEmoji(json & emoji, Guild & guild);
-    void loadPresence(json & presence, Guild & guild);
 
     void run();
 
@@ -352,5 +312,23 @@ public:
 #endif
     }
     //////////////////////////////////////////////////////////////////////////
+
+
+private:
+    void onMessage(websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg);
+    void onConnect(websocketpp::connection_hdl hdl);
+    void onClose(websocketpp::connection_hdl hdl);
+    void userMessage(json & obj);
+    void processReady(json & d);
+    void connectWS();
+    void pruneMsgHistory(const boost::system::error_code& error);
+    void purgeMsgHistory();
+    void keepAlive(const boost::system::error_code& error, const uint64_t ms);
+    void loadGuild(json & obj);
+    void loadChannel(json & channel, uint64_t guild_id);
+    void loadMember(json & member, Guild & guild);
+    void loadRole(json & role, Guild & guild);
+    void loadEmoji(json & emoji, Guild & guild);
+    void loadPresence(json & presence, Guild & guild);
 };
 

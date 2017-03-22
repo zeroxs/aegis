@@ -50,32 +50,6 @@ int main(int argc, char * argv[])
     {
         boost::asio::io_service::work work(AegisBot::io_service);
 
-        //TODO: remove for boost::logging
-        {
-            AegisBot::pFC = new FormattingChannel(new PatternFormatter("%p:%T %t"));
-            AegisBot::pFC->setChannel(new ConsoleChannel);
-            AegisBot::pFC->open();
-
-            File f("log/");
-            if (!f.exists())
-            {
-                f.createDirectory();
-            }
-            else if (f.isFile())
-            {
-                throw std::runtime_error("Error creating log directory!");
-            }
-
-            AegisBot::pFCf = new FormattingChannel(new PatternFormatter("%Y-%m-%d %H:%M:%S.%c | %s:%q:%t"));
-            AegisBot::pFCf->setChannel(new FileChannel("log/console.log"));
-            AegisBot::pFCf->setProperty("rotation", "daily");
-            AegisBot::pFCf->setProperty("times", "local");
-            AegisBot::pFCf->open();
-            AegisBot::logf = &Poco::Logger::create("fileLogger", AegisBot::pFCf, Message::PRIO_TRACE);
-            AegisBot::log = &Poco::Logger::create("consoleLogger", AegisBot::pFC, Message::PRIO_TRACE);
-        }
-
-
 #ifdef USE_REDIS
         ABRedisCache cache(AegisBot::io_service);
         cache.address = "127.0.0.1";
@@ -89,8 +63,6 @@ int main(int argc, char * argv[])
         }
         AegisBot::setupCache(&cache);
 
-        AegisBot::loadConfigs();
-
         //create our Bot object and cache and configure the basic settings
         AegisBot::startShards();
 
@@ -98,22 +70,13 @@ int main(int argc, char * argv[])
         //Grab shard0 for setting up
         const auto & bot = AegisBot::shards[0];
 
-        //this is temporary
-#ifdef USE_MEMORY
-        string token = "yourtokenhere";
-#endif
-#ifdef SELFBOT
-        string token = "yourtokenhere";
-#endif
-
-
         //add unique commands to a specific guild. no other guilds can access these
         Guild & myguild = bot->createGuild(287048029524066334LL);
         myguild.addCommand("custom_command", [&bot](ABMessage & message)
         {
             message.channel().sendMessage("unique command for this guild.", [](ABMessage & message)
             {
-                //response from whatever that is
+                //continuation from whatever that is
             });
         });
 
@@ -126,9 +89,6 @@ int main(int argc, char * argv[])
 
         AegisBot::threads();
         AegisBot::workthread.join();
-        Poco::Logger::shutdown();
-        AegisBot::pFCf->close();
-        AegisBot::pFC->close();
     }
     catch (std::exception & e)
     {

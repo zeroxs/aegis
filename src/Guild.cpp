@@ -118,7 +118,7 @@ void Guild::processMessage(json obj)
                 else
                 {
                     prefix = setprefix;
-                    channellist[channel_id]->sendMessage(Poco::format("Prefix successfully set to `%s`", setprefix));
+                    channellist[channel_id]->sendMessage(fmt::format("Prefix successfully set to `{0}`", setprefix));
 
                     //TODO: set this in a persistent DB to maintain across restarts
                 }
@@ -167,7 +167,7 @@ void Guild::processMessage(json obj)
                     else
                     {
                         prefix = setprefix;
-                        channellist[channel_id]->sendMessage(Poco::format("Prefix successfully set to `%s`", setprefix));
+                        channellist[channel_id]->sendMessage(fmt::format("Prefix successfully set to `{0}`", setprefix));
 
                         //TODO: set this in a persistent DB to maintain across restarts
                     }
@@ -185,13 +185,13 @@ void Guild::processMessage(json obj)
                     switch (addModule(modulename))
                     {
                         case -1:
-                            channellist[channel_id]->sendMessage(Poco::format("Error adding module [%s] already enabled.", modulename));
+                            channellist[channel_id]->sendMessage(fmt::format("Error adding module [{0}] already enabled.", modulename));
                             return;
                         case 0:
-                            channellist[channel_id]->sendMessage(Poco::format("Error adding module [%s] does not exist.", modulename));
+                            channellist[channel_id]->sendMessage(fmt::format("Error adding module [{0}] does not exist.", modulename));
                             return;
                         case 1:
-                            channellist[channel_id]->sendMessage(Poco::format("[%s] successfully enabled.", modulename));
+                            channellist[channel_id]->sendMessage(fmt::format("[{0}] successfully enabled.", modulename));
                             return;
                     }
                 }
@@ -200,12 +200,12 @@ void Guild::processMessage(json obj)
                     string modulename = *(token++);
                     if (removeModule(modulename))
                     {
-                        channellist[channel_id]->sendMessage(Poco::format("Module [%s] successfully disabled.", modulename));
+                        channellist[channel_id]->sendMessage(fmt::format("Module [{0}] successfully disabled.", modulename));
                         return;
                     }
                     else
                     {
-                        channellist[channel_id]->sendMessage(Poco::format("Error removing module [%s] not enabled.", modulename));
+                        channellist[channel_id]->sendMessage(fmt::format("Error removing module [{0}] not enabled.", modulename));
                         return;
                     }
                 }
@@ -217,7 +217,7 @@ void Guild::processMessage(json obj)
                         ss << " " << c.first;
                     }
                     ss << " ";
-                    channellist[channel_id]->sendMessage(Poco::format("Command list: `%s`.", ss.str()));
+                    channellist[channel_id]->sendMessage(fmt::format("Command list: `{0}`.", ss.str()));
                 }
                 return;
             }
@@ -338,11 +338,10 @@ void Guild::modifyMember(json content, uint64_t guildid, uint64_t memberid, ABMe
 {
     //if (!canSendMessages())
     //    return;
-    poco_trace(*(AegisBot::log), "modifyMember() goes through");
 
     ABMessage message(this);
     message.content = content.dump();
-    message.endpoint = Poco::format("/guilds/%Lu/members/%Lu", guildid, memberid);
+    message.endpoint = fmt::format("/guilds/%Lu/members/{0}", guildid, memberid);
     message.method = "PATCH";
     if (callback)
         message.callback = callback;
@@ -354,11 +353,10 @@ void Guild::createVoice(json content, uint64_t guildid, ABMessageCallback callba
 {
     //if (!canSendMessages())
     //    return;
-    poco_trace(*(AegisBot::log), "createVoice() goes through");
 
     ABMessage message(this);
     message.content = content.dump();
-    message.endpoint = Poco::format("/guilds/%Lu/channels", guildid);
+    message.endpoint = fmt::format("/guilds/{0}/channels", guildid);
     message.method = "POST";
     if (callback)
         message.callback = callback;
@@ -369,7 +367,7 @@ void Guild::createVoice(json content, uint64_t guildid, ABMessageCallback callba
 void Guild::leave(ABMessageCallback callback)
 {
     ABMessage message(this);
-    message.endpoint = Poco::format("/users/@me/guilds/%Lu", id);
+    message.endpoint = fmt::format("/users/@me/guilds/{0}", id);
     message.method = "DELETE";
     if (callback)
         message.callback = callback;
