@@ -80,7 +80,7 @@ install:
   ############################################################################
   # Install Boost.Build
   ############################################################################
-  - if [[ -z "$(ls -A ${BOOST_DIR})/stage" ]]; then
+  - if [[ -z "$(ls -A ${BOOST_DIR})/stage/lib/libboost_log.so" ]]; then
       (cd ${BOOST_DIR} && ./bootstrap.sh && ./b2 toolset=${BOOST_C} --with-thread --with-system --with-program_options --with-date_time --with-test --with-log)
     fi
 
@@ -118,7 +118,7 @@ install:
     POCO_URL="https://pocoproject.org/releases/poco-${POCO_VERSION}/poco-${POCO_VERSION}-all.tar.gz"
     mkdir -p ${POCO_DIR}
     travis_retry wget --quiet -O - ${POCO_URL}      | tar --strip-components=1 -xz -C ${POCO_DIR}
-    if [[ -z "$(ls -A ${POCO_DIR})" ]]; then
+    if [[ -z "$(ls -A ${POCO_DIR}/lib/libPocoFoundation.so)" ]]; then
         if [[ "${LLVM_VERSION}" != "" ]]; then
           (cd ${POCO_DIR} && cmake . -DCMAKE_CXX_COMPILER=${COMPILER} && make)
         else
