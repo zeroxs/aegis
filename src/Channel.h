@@ -34,7 +34,6 @@
 
 using json = nlohmann::json;
 
-class ABMessage;
 class Guild;
 class Channel;
 class Member;
@@ -44,6 +43,32 @@ struct ABCallbackOptions
 {
     bool enabled = true;// false;
     uint16_t level = 0;//1;
+};
+
+
+class ABMessage
+{
+public:
+    ABMessage(Channel * channel);
+    ABMessage(Channel * channel, Member * member);
+    ABMessage(Guild * guild);
+    uint64_t message_id = 0;
+    Guild & guild() { return *_guild; }
+    Channel & channel() { return *_channel; }
+    Member & member() { return *_member; }
+    string content;
+    string cmd;
+    string method;
+    string endpoint;
+    string query;
+    std::function<void(ABMessage&)> callback;
+    json obj;
+    AegisBot & bot;
+
+private:
+    Channel * _channel;
+    Member * _member;
+    Guild * _guild;
 };
 
 //TODO:
@@ -93,28 +118,3 @@ private:
     Guild * _guild;
 };
 
-
-class ABMessage
-{
-public:
-    ABMessage(Channel * channel);
-    ABMessage(Channel * channel, Member * member);
-    ABMessage(Guild * guild);
-    uint64_t message_id = 0;
-    Guild & guild() { return *_guild; }
-    Channel & channel() { return *_channel; }
-    Member & member() { return *_member; }
-    string content;
-    string cmd;
-    string method;
-    string endpoint;
-    string query;
-    ABMessageCallback callback;
-    json obj;
-    AegisBot & bot;
-
-private:
-    Channel * _channel;
-    Member * _member;
-    Guild * _guild;
-};
