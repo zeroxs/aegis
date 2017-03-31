@@ -117,7 +117,6 @@ enum severity_level
 {
     trace,
     normal,
-    notification,
     warning,
     error,
     critical

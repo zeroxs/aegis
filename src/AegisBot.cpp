@@ -64,7 +64,6 @@ inline std::basic_ostream< CharT, TraitsT >& operator<< (std::basic_ostream< Cha
     {
         "trace",
         "normal",
-        "notification",
         "warning",
         "error",
         "critical"
@@ -1313,12 +1312,12 @@ void AegisBot::setupLogging()
         typedef sinks::synchronous_sink< sinks::text_ostream_backend > sink_t;
         boost::shared_ptr< sink_t > sink(new sink_t(backend));
 
-        sink->set_filter(severity >= normal);
+        sink->set_filter(severity >= trace);
 
 
         logging::formatter fmt = expr::stream
             << "[" << expr::format_date_time< boost::posix_time::ptime >("TimeStamp", "%Y-%m-%d %H:%M:%S") << "] : "
-            << "<" << severity << ">\t"
+            << "<" << std::setw(8) << severity << ">\t"
             << expr::smessage;
 
         sink->set_formatter(fmt);
