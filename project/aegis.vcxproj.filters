@@ -91,5 +91,8 @@
     <ClInclude Include="..\src\AegisModule.h">
       <Filter>src</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\ABMessage.h">
+      <Filter>src</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -27,10 +27,6 @@
 #include "AegisBot.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
-#include "AegisAdmin.h"
-#include "AegisOfficial.h"
-#include "AuctionBot.h"
-#include "ExampleBot.h"
 
 
 Guild::Guild(AegisBot & bot, uint64_t id)

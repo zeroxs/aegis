@@ -34,7 +34,7 @@
 #include <mutex>
 #include <iostream>
 
-class ABMessage;
+#include "ABMessage.h"
 
 class RateLimits
 {

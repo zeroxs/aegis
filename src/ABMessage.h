@@ -1,5 +1,5 @@
 //
-// Channel.h
+// ABMessage.h
 // aegisbot
 //
 // Copyright (c) 2017 Zero (zero at xandium dot net)
@@ -25,61 +25,52 @@
 
 #pragma once
 
-#include "Permission.h"
-#include <string>
-#include "RateLimits.h"
-#include <boost/optional.hpp>
-#include <iostream>
-#include <json.hpp>
-#include "ABMessage.h"
 
-using json = nlohmann::json;
+#include <string>
+#include <stdint.h>
+#include <functional>
+#include "../lib/json/src/json.hpp"
 
 class Guild;
 class Channel;
 class Member;
 class AegisBot;
-using std::string;
+class ABMessage;
 
-enum class ChannelType
+using std::string;
+using json = nlohmann::json;
+
+struct ABCallbackOptions
 {
-    TEXT = 0,
-    VOICE = 2
+    bool enabled = true;// false;
+    uint16_t level = 0;//1;
 };
 
-class Channel : public Permission
+//TODO:
+typedef std::function<void(ABMessage&)> ABMessageCallback;
+typedef std::pair<ABCallbackOptions, std::function<void(ABMessage&)>> ABCallbackPair;
+
+class ABMessage
 {
 public:
-    Channel(Guild * guild) : _guild(guild) {}
-    ~Channel() {};
-
+    ABMessage(Channel * channel);
+    ABMessage(Channel * channel, Member * member);
+    ABMessage(Guild * guild);
+    uint64_t message_id = 0;
     Guild & guild() { return *_guild; }
- 
-    void getMessages(uint64_t messageid, ABMessageCallback callback = ABMessageCallback());
-    void sendMessage(string content, ABMessageCallback callback = ABMessageCallback());
-    void sendMessageEmbed(json content, json embed, ABMessageCallback callback = ABMessageCallback());
-    void bulkDelete(std::vector<string> messages, ABMessageCallback callback = ABMessageCallback());
-    void deleteChannel(ABMessageCallback callback = ABMessageCallback());
-
-
-    uint64_t id = 0;
-    uint64_t last_message_id = 0;
-    string name;
-    string topic;
-    uint32_t position = 0;
-    ChannelType type = ChannelType::TEXT;// 0 = text, 2 = voice
-
-    uint32_t bitrate = 0;
-    uint32_t user_limit = 0;
-
-    RateLimits ratelimits;
-
-    Permission overrides;
-
-    //TODO: track all the overrides. not just our own. possible use-case?
-    //std::pair<Role, Permission> overrides
+    Channel & channel() { return *_channel; }
+    Member & member() { return *_member; }
+    string content;
+    string cmd;
+    string method;
+    string endpoint;
+    string query;
+    ABMessageCallback callback;
+    json obj;
+    AegisBot & bot;
 
 private:
+    Channel * _channel;
+    Member * _member;
     Guild * _guild;
 };
-

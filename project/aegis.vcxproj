@@ -38,6 +38,7 @@
   <ItemGroup>
     <ClInclude Include="..\src\ABCache.h" />
     <ClInclude Include="..\src\ABMemoryCache.h" />
+    <ClInclude Include="..\src\ABMessage.h" />
     <ClInclude Include="..\src\ABRedisCache.h" />
     <ClInclude Include="..\src\AegisBot.h" />
     <ClInclude Include="..\src\AegisModule.h" />
