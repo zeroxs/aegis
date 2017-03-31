@@ -1,22 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug|ARM">
-      <Configuration>Debug</Configuration>
-      <Platform>ARM</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|ARM">
-      <Configuration>Release</Configuration>
-      <Platform>ARM</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Debug|x86">
-      <Configuration>Debug</Configuration>
-      <Platform>x86</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|x86">
-      <Configuration>Release</Configuration>
-      <Platform>x86</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
@@ -81,21 +65,9 @@
     <ApplicationTypeRevision>1.0</ApplicationTypeRevision>
     <TargetLinuxPlatform>Generic</TargetLinuxPlatform>
     <LinuxProjectType>{D51BCBC9-82E9-4017-911E-C93873C4EA2B}</LinuxProjectType>
-    <ProjectName>aegisbot</ProjectName>
+    <ProjectName>aegis</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
-    <UseDebugLibraries>true</UseDebugLibraries>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'" Label="Configuration">
-    <UseDebugLibraries>false</UseDebugLibraries>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'" Label="Configuration">
-    <UseDebugLibraries>true</UseDebugLibraries>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'" Label="Configuration">
-    <UseDebugLibraries>false</UseDebugLibraries>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <UseDebugLibraries>true</UseDebugLibraries>
   </PropertyGroup>
@@ -108,30 +80,29 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>lib/poco-1.7.8/Foundation/include;lib/poco-1.7.8/Net/include;lib/poco-1.7.8/NetSSL/include;lib/poco-1.7.8/NetSSL_OpenSSL/include;lib/poco-1.7.8/Crypto/include;lib/json/src;lib/redisclient/src;lib/websocketpp;lib/boost-1.63.0;lib/fmt;$(IncludePath)</IncludePath>
+    <IncludePath>lib/json/src;lib/redisclient/src;lib/websocketpp;lib/boost-1.63.0;lib/fmt;$(IncludePath)</IncludePath>
     <TargetExt />
     <SourcePath>
     </SourcePath>
-    <RemoteCppCompileToolExe>g++-5</RemoteCppCompileToolExe>
-    <LibraryPath>lib/poco-1.7.8/lib;lib/boost-1.63.0/stage/lib;lib/fmt/fmt</LibraryPath>
-    <RemoteCCompileToolExe>g++-5</RemoteCCompileToolExe>
-    <RemoteLdToolExe>g++-5</RemoteLdToolExe>
+    <RemoteCppCompileToolExe>g++-6</RemoteCppCompileToolExe>
+    <LibraryPath>lib/boost-1.63.0/stage/lib;lib/fmt/fmt</LibraryPath>
+    <RemoteCCompileToolExe>g++-6</RemoteCCompileToolExe>
+    <RemoteLdToolExe>g++-6</RemoteLdToolExe>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>lib/poco-1.7.8/Foundation/include;lib/poco-1.7.8/Net/include;lib/poco-1.7.8/NetSSL/include;lib/poco-1.7.8/NetSSL_OpenSSL/include;lib/poco-1.7.8/Crypto/include;lib/json/src;lib/redisclient/src;lib/websocketpp;lib/boost-1.63.0;lib/fmt;$(IncludePath)</IncludePath>
     <TargetExt />
     <LibraryPath>lib/poco-1.7.8/lib;lib/boost-1.63.0/stage/lib;lib/fmt/fmt</LibraryPath>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
-    <TargetExt />
+    <RemoteCCompileToolExe>g++-5</RemoteCCompileToolExe>
+    <RemoteCppCompileToolExe>g++-5</RemoteCppCompileToolExe>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>
-      <LibraryDependencies>pthread;PocoUtil;PocoNet;PocoNetSSL;PocoData;PocoFoundation;ssl;crypto;boost_thread;boost_system;boost_program_options;fmt;%(LibraryDependencies)</LibraryDependencies>
-      <AdditionalOptions> -L /home/zero/projects/aegisbot/lib/boost-1.63.0/stage/lib/ -L /home/zero/projects/aegisbot/lib/poco-1.7.8/lib %(AdditionalOptions)</AdditionalOptions>
+      <LibraryDependencies>PocoFoundation;PocoNet;PocoNetSSL;boost_log;boost_log_setup;boost_thread;boost_system;pthread;ssl;crypto;fmt;%(LibraryDependencies)</LibraryDependencies>
+      <AdditionalOptions> -L lib/boost-1.63.0/stage/lib/ %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ClCompile>
-      <PreprocessorDefinitions>SELFBOT;_DEBUG;BOOST_DYN_LINK_ALL;USE_REDIS;ROOTADMIN=171000788183678976LL;TEST_GID=287048029524066334LL;CONTROL_CHANNEL=288707540844412928LL;BOOST_THREAD_PROVIDES_FUTURE;BOOST_THREAD_VERSION=4</PreprocessorDefinitions>
+      <PreprocessorDefinitions>BOOST_ALL_DYN_LINK;_DEBUG;USE_REDIS;ROOTADMIN=171000788183678976LL;TEST_GID=287048029524066334LL;CONTROL_CHANNEL=288707540844412928LL</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(StlIncludeDirectories);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>
       </AdditionalOptions>
@@ -147,6 +118,11 @@
       <LibraryDependencies>pthread;PocoJSON;PocoUtil;PocoNet;PocoNetSSL;PocoData;PocoFoundation;ssl;crypto;boost_system;boost_program_options;fmt;%(LibraryDependencies)</LibraryDependencies>
       <AdditionalOptions> -L /home/zero/projects/aegisbot/lib/boost-1.63.0/stage/lib/ -L /home/zero/projects/aegisbot/lib/poco-1.7.8/lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
+    <ClCompile>
+      <CppLanguageStandard>c++1y</CppLanguageStandard>
+      <CAdditionalWarning />
+      <CppAdditionalWarning />
+    </ClCompile>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

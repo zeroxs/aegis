@@ -43,6 +43,15 @@ public:
     AegisOfficial(AegisBot & bot, Guild & guild);
     ~AegisOfficial() {};
 
+    virtual AegisModule * CreateModule(AegisBot & bot, Guild & guild)
+    {
+        return reinterpret_cast<AegisModule*>(new AegisOfficial(bot, guild));
+    }
+    virtual void DestroyModule(AegisModule * mem)
+    {
+        delete reinterpret_cast<AegisOfficial*>(mem);
+    }
+
     void initialize();
     void remove();
 

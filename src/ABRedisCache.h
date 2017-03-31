@@ -51,6 +51,11 @@ public:
     string eval(string script);
     string run(string command);
 
+    //hashmap cache storage
+    string hset(string key, string value);
+    string hget(string key, string value);
+    string hvals(string key);
+
 private:
     RedisSyncClient redis;
 };

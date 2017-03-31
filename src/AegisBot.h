@@ -54,7 +54,10 @@
 #include <boost/tokenizer.hpp>
 #include <boost/thread/future.hpp>
 
+#include <boost/log/core.hpp>
+#include <boost/log/sources/logger.hpp>
 #include <boost/log/trivial.hpp>
+
 
 #include "ABCache.h"
 
@@ -66,6 +69,9 @@
 #include "Role.h"
 #include "RateLimits.h"
 #include "../lib/fmt/fmt/ostream.h"
+
+
+
 
 
 #if defined(_WIN32)
@@ -100,11 +106,22 @@ using Poco::URI;
 using std::string;
 
 class Guild;
+class AegisModule;
 
 #ifdef _DEBUG
 #define DEBUG_OUTPUT
 #define _TRACE
 #endif
+
+enum severity_level
+{
+    trace,
+    normal,
+    notification,
+    warning,
+    error,
+    critical
+};
 
 class AegisBot
 {
@@ -116,10 +133,13 @@ public:
     Member & getMember(uint64_t id);
     Channel & getChannel(uint64_t id);
 
+    static void setupLogging();
+
     static std::pair<bool, string> call(string url, string obj = "", RateLimits * endpoint = nullptr, string method = "GET", string query = "");
 
     static void setupCache(ABCache * in);
     static void startShards();
+    static AegisBot & getShard(uint16_t shard) { return *shards[shard]; };
     static void threads();
     static void cleanup();
     static string gatewayurl;
@@ -140,6 +160,7 @@ public:
     static bool mfa_enabled;
     static string mention;
     static string tokenstr;
+    //static std::map<string, <>> baseModules;
 
     //stats
     static uint64_t eventsSeen;
@@ -159,7 +180,7 @@ public:
     //Guild tracking (Servers)
     static std::map<uint64_t, Guild*> guildlist;
 
-    static std::vector<std::unique_ptr<AegisBot>> shards;
+    static std::vector<AegisBot*> shards;
     static boost::asio::io_service io_service;
 
     Member * self;
@@ -197,6 +218,7 @@ public:
 
 
     void run();
+    void log(string message, severity_level level = severity_level::normal);
 
     /*TODO:
     * Add sharding support. Have bot start a new process per shard and enable
@@ -313,6 +335,7 @@ public:
     }
     //////////////////////////////////////////////////////////////////////////
 
+protected:
 
 private:
     void onMessage(websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg);
@@ -330,5 +353,6 @@ private:
     void loadRole(json & role, Guild & guild);
     void loadEmoji(json & emoji, Guild & guild);
     void loadPresence(json & presence, Guild & guild);
+    boost::log::sources::severity_logger< severity_level > slg;
 };
 

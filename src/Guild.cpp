@@ -42,19 +42,7 @@ Guild::Guild(AegisBot & bot, uint64_t id)
 
 Guild::~Guild()
 {
-    for (auto mod = modules.begin(); mod != modules.end(); ++mod)
-    {
-        if ((*mod)->name == "default")
-            delete static_cast<AegisOfficial*>(*mod);
-#ifdef AB_AUCTION
-        else if ((*mod)->name == "auction")
-            delete static_cast<AuctionBot*>(*mod);
-#endif
-        else if ((*mod)->name == "example")
-            delete static_cast<ExampleBot*>(*mod);
-        else if ((*mod)->name == "admin")
-            delete static_cast<AegisAdmin*>(*mod);
-    }
+
 }
 
 void Guild::processMessage(json obj)
@@ -84,10 +72,8 @@ void Guild::processMessage(json obj)
     //bool pinned = obj["pinned"];
 
     //if message came from a bot, ignore
-    if (!AegisBot::memberlist.count(userid) || AegisBot::memberlist[userid]->isbot == true)
-        return;
-
-
+//     if (!AegisBot::memberlist.count(userid) || AegisBot::memberlist[userid]->isbot == true)
+//         return;
 
 
 
@@ -129,7 +115,7 @@ void Guild::processMessage(json obj)
             if (cmd == "exit")
             {
                 //TODO: add some core bot management
-                poco_critical_f3(*bot.log, "Bot shutdown g[%Lu] c[%Lu] u[%Lu]", id, channel_id, userid);
+                bot.getChannel(1).sendMessage(fmt::format("Bot shutdown g[{0}] c[{1}] u[{2}]", id, channel_id, userid));
                 channellist[channel_id]->sendMessage("Bot shutting down.");
                 std::this_thread::sleep_for(std::chrono::seconds(2));
                 bot.ws.close(bot.hdl, 1001, "");
@@ -170,43 +156,6 @@ void Guild::processMessage(json obj)
                         channellist[channel_id]->sendMessage(fmt::format("Prefix successfully set to `{0}`", setprefix));
 
                         //TODO: set this in a persistent DB to maintain across restarts
-                    }
-                }
-                else if (cmd == "enablemodule")
-                {
-                    string modulename = *(token++);
-
-                    if (modulename == "admin" && userid != ROOTADMIN)
-                    {
-                        channellist[channel_id]->sendMessage("Not authorized.");
-                        return;
-                    }
-
-                    switch (addModule(modulename))
-                    {
-                        case -1:
-                            channellist[channel_id]->sendMessage(fmt::format("Error adding module [{0}] already enabled.", modulename));
-                            return;
-                        case 0:
-                            channellist[channel_id]->sendMessage(fmt::format("Error adding module [{0}] does not exist.", modulename));
-                            return;
-                        case 1:
-                            channellist[channel_id]->sendMessage(fmt::format("[{0}] successfully enabled.", modulename));
-                            return;
-                    }
-                }
-                else if (cmd == "disablemodule")
-                {
-                    string modulename = *(token++);
-                    if (removeModule(modulename))
-                    {
-                        channellist[channel_id]->sendMessage(fmt::format("Module [{0}] successfully disabled.", modulename));
-                        return;
-                    }
-                    else
-                    {
-                        channellist[channel_id]->sendMessage(fmt::format("Error removing module [{0}] not enabled.", modulename));
-                        return;
                     }
                 }
                 else if (cmd == "commands")
@@ -374,75 +323,3 @@ void Guild::leave(ABMessageCallback callback)
 
     ratelimits.putMessage(std::move(message));
 }
-
-int Guild::addModule(string modName)
-{
-    //modules are hardcoded until I design a system to use SOs to load them.
-
-    for (auto & m : modules)
-    {
-        if (m->name == modName)
-        {
-            return -1;
-        }
-    }
-
-
-    //TODO: throw these into a list elsewhere instead to clean this up
-    if (modName == "default")
-    {
-        AegisOfficial * mod = new AegisOfficial(bot, *this);
-        modules.push_back(mod);
-        mod->initialize();
-        return 1;
-    }
-#ifdef AB_AUCTION
-    else if (modName == "auction")
-    {
-        AuctionBot * mod = new AuctionBot(bot, *this);
-        modules.push_back(mod);
-        mod->initialize();
-        return 1;
-    }
-#endif
-    else if (modName == "example")
-    {
-        ExampleBot * mod = new ExampleBot(bot, *this);
-        modules.push_back(mod);
-        mod->initialize();
-        return 1;
-    }
-    else if (modName == "admin")
-    {
-        AegisAdmin * mod = new AegisAdmin(bot, *this);
-        modules.push_back(mod);
-        mod->initialize();
-        return 1;
-    }
-    return 0;
-}
-
-bool Guild::removeModule(string modName)
-{
-    for (auto mod = modules.begin(); mod != modules.end(); ++mod)
-    {
-        if ((*mod)->name == modName)
-        {
-            (*mod)->remove();
-            modules.erase(mod);
-            if (modName == "default")
-                delete static_cast<AegisOfficial*>(*mod);
-#ifdef AB_AUCTION
-            else if (modName == "auction")
-                delete static_cast<AuctionBot*>(*mod);
-#endif
-            else if (modName == "example")
-                delete static_cast<ExampleBot*>(*mod);
-            else if (modName == "admin")
-                delete static_cast<AegisAdmin*>(*mod);
-            return true;
-        }
-    }
-    return false;
-}
-

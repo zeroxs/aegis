@@ -45,6 +45,15 @@ public:
     AuctionBot(AegisBot & bot, Guild & guild);
     ~AuctionBot() {};
 
+    static AuctionBot * CreateModule(AegisBot & bot, Guild & guild)
+    {
+        return new AuctionBot(bot, guild);
+    }
+    static void DestroyModule(AegisModule * mem)
+    {
+        delete reinterpret_cast<AuctionBot*>(mem);
+    }
+
     struct Team
     {
         int id;

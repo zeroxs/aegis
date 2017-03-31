@@ -40,7 +40,7 @@ class AegisBot;
 using std::string;
 using json = nlohmann::json;
 
-class Guild : public Permission, public std::enable_shared_from_this<Guild>
+class Guild : public Permission
 {
 public:
     Guild(AegisBot & bot, uint64_t id);
@@ -59,9 +59,6 @@ public:
     void createVoice(json content, uint64_t guildid, ABMessageCallback callback = ABMessageCallback());
 
     void leave(ABMessageCallback callback = ABMessageCallback());
-
-    int addModule(string modName);
-    bool removeModule(string modName);
 
     //id, <object, accesslevel>
     std::map<uint64_t, std::pair<Member*, uint16_t>> memberlist;
@@ -113,7 +110,5 @@ public:
     //for more than just simple responses
     std::map<std::string, ABCallbackPair> cmdlist = {};
     ABCallbackPair attachmenthandler;
-
-    std::vector<AegisModule*> modules;
 };
 

@@ -102,7 +102,7 @@ void AegisOfficial::createVoice(ABMessage & message)
         { "bitrate", 64000 }
     };
     message.channel().guild().createVoice(create, message.channel().guild().id, std::bind(&AegisOfficial::moveAfterCreate, this, std::placeholders::_1, message.member().id));
-    message.channel().sendMessage(Poco::format("Channel created [%s]", name));
+    message.channel().sendMessage(fmt::format("Channel created [{0}]", name));
 }
 
 void AegisOfficial::moveAfterCreate(ABMessage & message, uint64_t member_id)
@@ -183,7 +183,7 @@ void AegisOfficial::info(ABMessage & message)
     json t = {
         { "title", "AegisBot" },
         { "description", stats },
-        { "color", 10599460 },
+        { "color", rand()%0xFFFFFF },//10599460 },
         { "fields",
         json::array(
     {
@@ -197,7 +197,7 @@ void AegisOfficial::info(ABMessage & message)
     }
             )
         },
-        { "footer",{ { "icon_url", "https://cdn.discordapp.com/attachments/288707540844412928/289572000391888906/cpp.png" },{ "text", "Made in c++ running aegisbot library" } } }
+        { "footer",{ { "icon_url", "https://cdn.discordapp.com/emojis/289276304564420608.png" },{ "text", "Made in c++ running aegisbot library" } } }
     };
     message.channel().sendMessageEmbed(json(), t);
 }
