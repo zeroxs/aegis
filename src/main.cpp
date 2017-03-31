@@ -30,10 +30,8 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/tuple/tuple.hpp>
-#include "ExampleBot.h"
-#include "AuctionBot.h"
-#include "AegisOfficial.h"
-#include "AegisAdmin.h"
+
+string uptime();
 
 int main(int argc, char * argv[])
 {
@@ -86,23 +84,245 @@ int main(int argc, char * argv[])
             });
         });
 
-        //Add the default module along with all the default commands
+        myguild.addCommand("echo", [&bot](ABMessage & message)
+        {
+            message.channel().sendMessage(message.content.substr(message.cmd.size() + message.channel().guild().prefix.size()));
+        });
 
-        std::unique_ptr<AegisOfficial> officialmodule = std::make_unique<AegisOfficial>(bot, myguild);
-        officialmodule->initialize();
-        std::unique_ptr<ExampleBot> examplemodule = std::make_unique<ExampleBot>(bot, myguild);
-        examplemodule->initialize();
-        std::unique_ptr<AegisAdmin> adminmodule = std::make_unique<AegisAdmin>(bot, myguild);
-        adminmodule->initialize();
+        myguild.addCommand("info", [&bot](ABMessage & message)
+        {
+            uint64_t guild_count = AegisBot::guildlist.size();
+            uint64_t member_count = 0;
+            uint64_t member_count_unique = AegisBot::memberlist.size();
+            uint64_t member_online_count = 0;
+            uint64_t member_dnd_count = 0;
+            uint64_t channel_count = AegisBot::channellist.size();
+            uint64_t channel_text_count = 0;
+            uint64_t channel_voice_count = 0;
+            uint64_t member_count_active = 0;
+
+            uint64_t eventsseen = 0;
+
+            {
+                std::lock_guard<std::recursive_mutex> lock(AegisBot::m);
+
+                for (auto & bot : AegisBot::shards)
+                    eventsseen += bot->sequence;
+
+                for (auto & member : AegisBot::memberlist)
+                {
+                    if (member.second->status == MEMBER_STATUS::ONLINE)
+                        member_online_count++;
+                    else if (member.second->status == MEMBER_STATUS::DND)
+                        member_dnd_count++;
+                }
+
+                for (auto & channel : AegisBot::channellist)
+                {
+                    if (channel.second->type == ChannelType::TEXT)
+                        channel_text_count++;
+                    else
+                        channel_voice_count++;
+                }
+
+                for (auto & guild : AegisBot::guildlist)
+                    member_count_active += guild.second->memberlist.size();
+
+                member_count = message.bot.memberlist.size();
+            }
+
+            string members = fmt::format("{0} seen\n{1} total\n{2} unique\n{3} online\n{4} dnd", member_count, member_count_active, member_count_unique, member_online_count, member_dnd_count);
+            string channels = fmt::format("{0} total\n{1} text\n{2} voice", channel_count, channel_text_count, channel_voice_count);
+            string guilds = fmt::format("{0}", guild_count);
+            string events = fmt::format("{0}", eventsseen);
+            string misc = fmt::format("I am shard {0} of {1}", message.channel().guild().bot.shardid + 1, message.channel().guild().bot.shardidmax);
+
+            fmt::MemoryWriter w;
+            w << "[Latest bot source](https://github.com/zeroxs/aegis)\n[Official Bot Server](https://discord.gg/w7Y3Bb8)\n\nMemory usage: "
+                << double(AegisBot::getCurrentRSS()) / (1024 * 1024) << "MB\nMax Memory: "
+                << double(AegisBot::getPeakRSS()) / (1024 * 1024) << "MB";
+            string stats = w.str();
+
+            message.content = "";
+            json t = {
+                { "title", "AegisBot" },
+                { "description", stats },
+                { "color", rand() % 0xFFFFFF },//10599460 },
+                { "fields",
+                json::array(
+            {
+                { { "name", "Members" },{ "value", members },{ "inline", true } },
+                { { "name", "Channels" },{ "value", channels },{ "inline", true } },
+                { { "name", "Uptime test" },{ "value", uptime() },{ "inline", true } },
+                { { "name", "Guilds" },{ "value", guilds },{ "inline", true } },
+                { { "name", "Events Seen" },{ "value", events },{ "inline", true } },
+                { { "name", "_" },{ "value", "_" },{ "inline", true } },
+                { { "name", "misc" },{ "value", misc },{ "inline", false } }
+            }
+                    )
+                },
+                { "footer",{ { "icon_url", "https://cdn.discordapp.com/emojis/289276304564420608.png" },{ "text", "Made in c++ running aegis library" } } }
+            };
+            message.channel().sendMessageEmbed(json(), t);
+        });
+
+        myguild.addCommand("clearchat", [&bot](ABMessage & message)
+        {
+            message.channel().getMessages(message.message_id, [](ABMessage & message)
+            {
+                try
+                {
+                    uint64_t epoch = ((std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - (14 * 24 * 60 * 60 * 1000)) - 1420070400000) << 22;
+                    std::vector<string> delmessages;
+                    for (auto & m : message.obj)
+                    {
+                        if (std::stoull(m["id"].get<string>()) > epoch)
+                        {
+                            delmessages.push_back(m["id"].get<string>());
+                        }
+                    }
+                    message.channel().bulkDelete(delmessages);
+                }
+                catch (std::exception & e)
+                {
+                    std::cout << "Error: " << e.what() << std::endl;
+                }
+            });
+        });
+
+        myguild.addCommand("disc", [&bot](ABMessage & message)
+        {
+            std::vector<string> tokens;
+            boost::split(tokens, message.content, boost::is_any_of(" "));
+
+            fmt::MemoryWriter w;
+            int i = 0;
+
+            for (auto & m : AegisBot::memberlist)
+            {
+                if (m.second->discriminator == std::stoi(tokens[1]))
+                {
+                    ++i;
+                    w << m.second->getFullName() << "\n";
+                }
+            }
+            if (i > 0)
+                message.channel().sendMessage(w.str());
+            else
+                message.channel().sendMessage("None");
+        });
+
+        myguild.addCommand("serverlist", [&bot](ABMessage & message)
+        {
+            fmt::MemoryWriter w;
+            for (auto & g : message.channel().guild().bot.guildlist)
+            {
+                w << "*" << g.second->name << "*  :  " << g.second->id << "\n";
+            }
 
 
+            json t = {
+                { "title", "Server List" },
+                { "description", w.str() },
+                { "color", 10599460 }
+            };
+            message.channel().sendMessageEmbed(json(), t);
+        });
 
-#ifdef SELFBOT
-/*
-        std::unique_ptr<SelfBot> officialmodule = std::make_unique<SelfBot>(bot, myguild);
-        officialmodule->initialize();
-*/
-#endif
+        myguild.addCommand("leaveserver", [&bot](ABMessage & message)
+        {
+            std::vector<string> tokens;
+            boost::split(tokens, message.content, boost::is_any_of(" "));
+
+            uint64_t guildid = std::stoull(tokens[1]);
+
+            if (tokens.size() >= 2)
+            {
+                try
+                {
+                    string guildname = message.bot.getGuild(guildid).name;
+                    message.channel().sendMessage(fmt::format("Leaving **{1}** [{0}]", tokens[1], message.bot.getGuild(guildid).name));
+                    message.bot.getGuild(guildid).leave(std::bind([](ABMessage & message, string id, string guildname, Channel * channel)
+                    {
+                        channel->sendMessage(fmt::format("Successfully left **{1}** [{0}]", id, guildname));
+                    }, std::placeholders::_1, tokens[1], guildname, &message.channel()));
+                }
+                catch (std::domain_error & e)
+                {
+                    message.channel().sendMessage(string(e.what()));
+                }
+            }
+            else
+            {
+                message.channel().sendMessage("Invalid guild id.");
+            }
+        });
+
+        myguild.addCommand("serverinfo", [&bot](ABMessage & message)
+        {
+            std::vector<string> tokens;
+            boost::split(tokens, message.content, boost::is_any_of(" "));
+
+            uint64_t guildid = std::stoull(tokens[1]);
+
+            if (tokens.size() >= 2)
+            {
+                try
+                {
+                    Guild & guild = message.bot.getGuild(guildid);
+                    string title;
+
+                    title = fmt::format("Server: **{0}**", guild.name);
+
+                    uint64_t botcount = 0;
+                    for (auto & m : guild.memberlist)
+                        if (m.second.first->isbot)
+                            botcount++;
+                    //TODO: may break until full member chunk is obtained on connect
+
+                    //TODO:2 this should be getMember
+                    Member & owner = guild.bot.createMember(guild.owner_id);
+                    fmt::MemoryWriter w;
+                    w << "Owner name: " << owner.getFullName() << " [" << owner.getName(guild.id).value_or("") << "]\n"
+                        << "Owner id: " << guild.owner_id << "\n"
+                        << "Member count: " << guild.memberlist.size() << "\n"
+                        << "Channel count: " << guild.channellist.size() << "\n"
+                        << "Bot count: " << botcount << "\n"
+                        << "";
+
+
+                    json t = {
+                        { "title", title },
+                        { "description", w.str() },
+                        { "color", 10599460 }
+                    };
+                    message.channel().sendMessageEmbed(json(), t);
+                }
+                catch (std::domain_error & e)
+                {
+                    message.channel().sendMessage(string(e.what()));
+                }
+            }
+            else
+            {
+                message.channel().sendMessage("Invalid guild id.");
+            }
+        });
+
+        myguild.addCommand("setgame", [&bot](ABMessage & message)
+        {
+            string gamestr = message.content.substr(message.channel().guild().prefix.size() + 8);
+            AegisBot::io_service.post([game = std::move(gamestr), &bot = message.channel().guild().bot]()
+            {
+                json obj;
+                obj["op"] = 3;
+                obj["d"]["idle_since"] = nullptr;
+
+                obj["d"]["game"] = { { "name", game } };
+
+                bot.wssend(obj.dump());
+            });
+        });
 
 
         AegisBot::threads();
@@ -115,3 +335,28 @@ int main(int argc, char * argv[])
     }
     return 0;
 }
+
+
+string uptime()
+{
+    std::stringstream ss;
+    std::chrono::steady_clock::time_point timenow = std::chrono::steady_clock::now();
+
+    int64_t ms = std::chrono::duration_cast<std::chrono::milliseconds>(timenow - AegisBot::starttime).count();
+
+    uint32_t seconds = (ms / 1000) % 60;
+    uint32_t minutes = (((ms / 1000) - seconds) / 60) % 60;
+    uint32_t hours = (((((ms / 1000) - seconds) / 60) - minutes) / 60) % 24;
+    uint32_t days = (((((((ms / 1000) - seconds) / 60) - minutes) / 60) - hours) / 24);
+
+    if (days > 0)
+        ss << days << "d ";
+    if (hours > 0)
+        ss << hours << "h ";
+    if (minutes > 0)
+        ss << minutes << "m ";
+    if (seconds > 0)
+        ss << seconds << "s";
+    return ss.str();
+}
+

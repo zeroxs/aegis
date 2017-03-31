@@ -56,18 +56,6 @@
     <ClCompile Include="..\src\AegisBot.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\AuctionBot.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\ExampleBot.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\AegisOfficial.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\AegisAdmin.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\Channel.h">
@@ -100,19 +88,7 @@
     <ClInclude Include="..\src\AegisBot.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\ExampleBot.h">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\AuctionBot.h">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\AegisOfficial.h">
-      <Filter>src</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\AegisModule.h">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\AegisAdmin.h">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
