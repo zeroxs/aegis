@@ -1,22 +1,20 @@
-[![Build Status](https://travis-ci.org/zeroxs/aegisbot.svg?branch=master)](https://travis-ci.org/zeroxs/aegisbot) [![Discord](https://discordapp.com/api/guilds/287048029524066334/widget.png)](https://discord.gg/w7Y3Bb8) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/zeroxs/aegisbot/blob/master/LICENSE)
+[![Build Status](https://travis-ci.org/zeroxs/aegis.svg?branch=master)](https://travis-ci.org/zeroxs/aegis) [![Discord](https://discordapp.com/api/guilds/287048029524066334/widget.png)](https://discord.gg/w7Y3Bb8) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/zeroxs/aegis/blob/master/LICENSE)
 
 
 AegisBot
 =======
 
-C++11 implementation of the [Discord API](https://discordapp.com/developers/docs/intro)
+C++14 implementation of the [Discord API](https://discordapp.com/developers/docs/intro)
 
 # License #
 
-This project is licensed under the MIT license. See [LICENSE](https://github.com/zeroxs/aegisbot/blob/master/LICENSE)
+This project is licensed under the MIT license. See [LICENSE](https://github.com/zeroxs/aegis/blob/master/LICENSE)
 
 # Installation instructions #
 This is just the public repository of the AegisBot. If you'd like an instance in your server,
 an easy link can be found [here](https://discordapp.com/oauth2/authorize?client_id=288063163729969152&scope=bot&permissions=2146958463) .
 Please note, this link gives the bot full admin. Please refine it further if you wish to limit its abilities.
 
-
-This project is a WIP
 
 
 Libraries used:
@@ -26,5 +24,3 @@ Libraries used:
 - [RedisClient](https://github.com/nekipelov/redisclient)
 - [JSON for Modern C++](https://github.com/nlohmann/json)
 
-
-Inspiration drawn from [discordpp](https://github.com/Aidoboy/discordpp)
