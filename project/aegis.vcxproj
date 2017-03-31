@@ -92,7 +92,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>
-      <LibraryDependencies>PocoFoundation;PocoNet;PocoNetSSL;boost_log;boost_log_setup;boost_thread;boost_system;pthread;ssl;crypto;fmt;%(LibraryDependencies)</LibraryDependencies>
+      <LibraryDependencies>z;PocoFoundation;PocoNet;PocoNetSSL;boost_log;boost_log_setup;boost_iostreams;boost_thread;boost_system;pthread;ssl;crypto;fmt;%(LibraryDependencies)</LibraryDependencies>
       <AdditionalOptions> -L lib/boost-1.63.0/stage/lib/ %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ClCompile>
@@ -109,7 +109,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Link>
-      <LibraryDependencies>PocoFoundation;PocoNet;PocoNetSSL;boost_log;boost_log_setup;boost_thread;boost_system;pthread;ssl;crypto;fmt;%(LibraryDependencies)</LibraryDependencies>
+      <LibraryDependencies>z;PocoFoundation;PocoNet;PocoNetSSL;boost_log;boost_log_setup;boost_iostreams;boost_thread;boost_system;pthread;ssl;crypto;fmt;%(LibraryDependencies)</LibraryDependencies>
       <AdditionalOptions> -L /home/zero/projects/aegisbot/lib/boost-1.63.0/stage/lib/ -L /home/zero/projects/aegisbot/lib/poco-1.7.8/lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ClCompile>

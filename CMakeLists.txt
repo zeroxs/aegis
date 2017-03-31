@@ -25,4 +25,4 @@ MESSAGE( STATUS "Boost_INCLUDE_DIR:  " ${Boost_INCLUDE_DIR} )
 MESSAGE( STATUS "Boost_LIBRARY_DIR:  " ${Boost_LIBRARY_DIR} )
 MESSAGE( STATUS "Poco_LIBRARY_DIR:   " ${Poco_LIBRARY_DIR} )
 
-target_link_libraries(aegisbot pthread ${Poco_LIBRARY_DIR}/libPocoNet.so ${Poco_LIBRARY_DIR}/libPocoNetSSL.so ${Poco_LIBRARY_DIR}/libPocoFoundation.so ssl crypto ${Boost_LIBRARY_DIR}/libboost_log_setup.so ${Boost_LIBRARY_DIR}/libboost_log.so ${Boost_LIBRARY_DIR}/libboost_thread.so ${Boost_LIBRARY_DIR}/libboost_system.so ${CMAKE_SOURCE_DIR}/lib/fmt/fmt/libfmt.a)
+target_link_libraries(aegisbot pthread ${Poco_LIBRARY_DIR}/libPocoNet.so ${Poco_LIBRARY_DIR}/libPocoNetSSL.so ${Poco_LIBRARY_DIR}/libPocoFoundation.so ssl crypto ${Boost_LIBRARY_DIR}/libboost_log_setup.so ${Boost_LIBRARY_DIR}/libboost_log.so ${Boost_LIBRARY_DIR}/libboost_iostreams.so ${Boost_LIBRARY_DIR}/libboost_thread.so ${Boost_LIBRARY_DIR}/libboost_system.so ${CMAKE_SOURCE_DIR}/lib/fmt/fmt/libfmt.a)

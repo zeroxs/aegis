@@ -88,7 +88,7 @@ if [[ "${LLVM_VERSION}" != "" ]]; then
 fi
 ${CXX} --version
 
-(cd ${BOOST_DIR} && ./bootstrap.sh && ./b2 toolset=${CC} --with-thread --with-system --with-program_options --with-date_time --with-test --with-log)
+(cd ${BOOST_DIR} && ./bootstrap.sh && ./b2 toolset=${CC} --with-thread --with-system --with-program_options --with-date_time --with-test --with-log --with-iostreams)
 
 POCO_DIR=${DEPS_DIR}/poco-${POCO_VERSION}
 POCO_URL="https://pocoproject.org/releases/poco-${POCO_VERSION}/poco-${POCO_VERSION}-all.tar.gz"

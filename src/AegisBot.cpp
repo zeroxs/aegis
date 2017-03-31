@@ -52,6 +52,10 @@
 #include <boost/log/support/date_time.hpp>
 #include <boost/core/null_deleter.hpp>
 
+#include <boost/iostreams/filtering_streambuf.hpp>
+#include <boost/iostreams/copy.hpp>
+#include <boost/iostreams/filter/zlib.hpp>
+#include <boost/iostreams/device/back_inserter.hpp>
 
 #ifdef USE_REDIS
 #include "ABRedisCache.h"
@@ -207,13 +211,6 @@ void AegisBot::setupCache(ABCache * in)
 bool AegisBot::initialize(uint64_t shardid)
 {
     this->shardid = shardid;
-    
-
-//     if (token == "")
-//     {
-//         std::cout << "Bot token is not set." << std::endl;
-//         return false;
-//     }
 
     //ws.set_access_channels(websocketpp::log::alevel::all);
     //ws.clear_access_channels(websocketpp::log::alevel::frame_payload);
@@ -439,7 +436,24 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
 {
     try
     {
-        json result = json::parse(msg->get_payload());
+        //TODO: do something about this mess
+        string payload = msg->get_payload();
+
+        if (payload[0] == (char)0x78 && (payload[1] == (char)0x01 || payload[1] == (char)0x9C || payload[1] == (char)0xDA))
+        {
+            boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
+            std::stringstream origin(payload);
+            in.push(boost::iostreams::zlib_decompressor());
+            //in.push(boost::make_iterator_range(payload));
+            in.push(origin);
+            payload.clear();
+            //boost::iostreams::copy(in, boost::iostreams::back_inserter(payload));
+            std::stringstream ss;
+            boost::iostreams::copy(in, ss);
+            payload = ss.str();
+        }
+ 
+        json result = json::parse(std::move(payload));
 
         //poco_trace_f1(*log, "Received JSON: %s", msg->get_payload());
 
@@ -621,13 +635,13 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                             { "properties",
                                 {
                                     { "$os", "linux" },
-                                    { "$browser", "aegisbot" },
-                                    { "$device", "aegisbot" },
+                                    { "$browser", "aegis" },
+                                    { "$device", "aegis" },
                                     { "$referrer", "" },
                                     { "$referring_domain", "" }
                                 }
                             },
-                            { "compress", false },
+                            { "compress", true },
                             { "large_threshhold", 250 }
                         }
                     }
@@ -773,13 +787,13 @@ void AegisBot::onConnect(websocketpp::connection_hdl hdl)
                         "properties",
                         {
                             { "$os", "linux" },
-                            { "$browser", "aegisbot" },
-                            { "$device", "aegisbot" },
+                            { "$browser", "aegis" },
+                            { "$device", "aegis" },
                             { "$referrer", "" },
                             { "$referring_domain", "" }
                         }
                     },
-                    { "compress", false },
+                    { "compress", true },
                     { "large_threshhold", 250 }
                 }
             }
