@@ -27,14 +27,15 @@ matrix:
     - env: TRAVIS_EMPTY_JOB_WORKAROUND=true
   include:
     # Clang 3.9
-    - os: linux
-      env: LLVM_VERSION=3.9.0 BOOST_C=clang-3.9 BOOST_VERSION=1.63.0 POCO_VERSION=1.7.8
-      compiler: clang
-      packages: libcrypto++-dev
+    # Fix this some time.
+#    - os: linux
+#      env: LLVM_VERSION=3.9.0 COMPILER=clang-3.9 COMPILERGCC=clang-3.9 BOOST_VERSION=1.63.0 POCO_VERSION=1.7.8
+#      compiler: clang
+#      packages: libcrypto++-dev
 
     # GCC 6
     - os: linux
-      env: COMPILER=g++-6 COMPILERGCC=gcc-6 BOOST_C=gcc-6 BOOST_VERSION=1.63.0 POCO_VERSION=1.7.8
+      env: COMPILER=g++-6 COMPILERGCC=gcc-6 BOOST_VERSION=1.63.0 POCO_VERSION=1.7.8
       compiler: gcc
       packages: libcrypto++-dev
 
@@ -81,35 +82,35 @@ install:
   # Install Boost
   ############################################################################
   - if [ ! -f "${BOOST_DIR})/stage/lib/libboost_log.so" ]; then
-      (cd ${BOOST_DIR} && ./bootstrap.sh && ./b2 toolset=${BOOST_C} --with-thread --with-system --with-program_options --with-date_time --with-test --with-log)
+      (cd ${BOOST_DIR} && ./bootstrap.sh && ./b2 toolset=${COMPILERGCC} --with-thread --with-system --with-program_options --with-date_time --with-test --with-log)
     fi
 
   ############################################################################
   # Install Clang, libc++ and libc++abi
-  ############################################################################
-  - |
-    if [[ "${LLVM_VERSION}" != "" ]]; then
-      LLVM_DIR=${DEPS_DIR}/llvm-${LLVM_VERSION}
-      if [[ -z "$(ls -A ${LLVM_DIR})" ]]; then
-        LLVM_URL="http://llvm.org/releases/${LLVM_VERSION}/llvm-${LLVM_VERSION}.src.tar.xz"
-        LIBCXX_URL="http://llvm.org/releases/${LLVM_VERSION}/libcxx-${LLVM_VERSION}.src.tar.xz"
-        LIBCXXABI_URL="http://llvm.org/releases/${LLVM_VERSION}/libcxxabi-${LLVM_VERSION}.src.tar.xz"
-        CLANG_URL="http://llvm.org/releases/${LLVM_VERSION}/clang+llvm-${LLVM_VERSION}-x86_64-linux-gnu-ubuntu-14.04.tar.xz"
-        mkdir -p ${LLVM_DIR} ${LLVM_DIR}/build ${LLVM_DIR}/projects/libcxx ${LLVM_DIR}/projects/libcxxabi ${LLVM_DIR}/clang
-        travis_retry wget --quiet -O - ${LLVM_URL}      | tar --strip-components=1 -xJ -C ${LLVM_DIR}
-        travis_retry wget --quiet -O - ${LIBCXX_URL}    | tar --strip-components=1 -xJ -C ${LLVM_DIR}/projects/libcxx
-        travis_retry wget --quiet -O - ${LIBCXXABI_URL} | tar --strip-components=1 -xJ -C ${LLVM_DIR}/projects/libcxxabi
-        travis_retry wget --quiet -O - ${CLANG_URL}     | tar --strip-components=1 -xJ -C ${LLVM_DIR}/clang
-        (cd ${LLVM_DIR}/build && cmake .. -DCMAKE_INSTALL_PREFIX=${LLVM_DIR}/install -DCMAKE_CXX_COMPILER=${COMPILER})
-        (cd ${LLVM_DIR}/build/projects/libcxx && make install -j2)
-        (cd ${LLVM_DIR}/build/projects/libcxxabi && make install -j2)
-      fi
-      export CXXFLAGS="-isystem ${LLVM_DIR}/install/include/c++/v1"
-      export LDFLAGS="-L ${LLVM_DIR}/install/lib -l c++ -l c++abi"
-      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${LLVM_DIR}/install/lib"
-      export PATH="${LLVM_DIR}/clang/bin:${PATH}"
-    fi
-  - ${CXX} --version
+#  ############################################################################
+#  - |
+#    if [[ "${LLVM_VERSION}" != "" ]]; then
+#      LLVM_DIR=${DEPS_DIR}/llvm-${LLVM_VERSION}
+#      if [[ -z "$(ls -A ${LLVM_DIR})" ]]; then
+#        LLVM_URL="http://llvm.org/releases/${LLVM_VERSION}/llvm-${LLVM_VERSION}.src.tar.xz"
+#        LIBCXX_URL="http://llvm.org/releases/${LLVM_VERSION}/libcxx-${LLVM_VERSION}.src.tar.xz"
+#        LIBCXXABI_URL="http://llvm.org/releases/${LLVM_VERSION}/libcxxabi-${LLVM_VERSION}.src.tar.xz"
+#        CLANG_URL="http://llvm.org/releases/${LLVM_VERSION}/clang+llvm-${LLVM_VERSION}-x86_64-linux-gnu-ubuntu-14.04.tar.xz"
+#        mkdir -p ${LLVM_DIR} ${LLVM_DIR}/build ${LLVM_DIR}/projects/libcxx ${LLVM_DIR}/projects/libcxxabi ${LLVM_DIR}/clang
+#        travis_retry wget --quiet -O - ${LLVM_URL}      | tar --strip-components=1 -xJ -C ${LLVM_DIR}
+#        travis_retry wget --quiet -O - ${LIBCXX_URL}    | tar --strip-components=1 -xJ -C ${LLVM_DIR}/projects/libcxx
+#        travis_retry wget --quiet -O - ${LIBCXXABI_URL} | tar --strip-components=1 -xJ -C ${LLVM_DIR}/projects/libcxxabi
+#        travis_retry wget --quiet -O - ${CLANG_URL}     | tar --strip-components=1 -xJ -C ${LLVM_DIR}/clang
+#        (cd ${LLVM_DIR}/build && cmake .. -DCMAKE_INSTALL_PREFIX=${LLVM_DIR}/install -DCMAKE_CXX_COMPILER=${COMPILER})
+#        (cd ${LLVM_DIR}/build/projects/libcxx && make install -j2)
+#        (cd ${LLVM_DIR}/build/projects/libcxxabi && make install -j2)
+#      fi
+#      export CXXFLAGS="-isystem ${LLVM_DIR}/install/include/c++/v1"
+#      export LDFLAGS="-L ${LLVM_DIR}/install/lib -l c++ -l c++abi"
+#      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${LLVM_DIR}/install/lib"
+#      export PATH="${LLVM_DIR}/clang/bin:${PATH}"
+#    fi
+#  - ${CXX} --version
   ############################################################################
   # Install Poco
   ############################################################################
