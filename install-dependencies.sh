@@ -18,7 +18,7 @@ fi
 
 COMPILER_PARAM="${1}"
 
-if [ ${1} =~ "gcc" ]]
+if [[ ${1} =~ "gcc" ]]
 then
   export CXX=g++
   export CC=gcc
@@ -31,6 +31,8 @@ then
 elif [[ ${1} =~ "clang" ]]
 then
   export LLVM_VERSION=3.9.0
+  export CC=clang
+  export CXX=clang
   export COMPILER=clang3.9
 fi
 
@@ -86,16 +88,20 @@ if [[ "${LLVM_VERSION}" != "" ]]; then
 fi
 ${CXX} --version
 
-(cd ${BOOST_DIR} && ./bootstrap.sh && ./b2 toolset=${COMPILER} --with-program_options --with-date_time --with-thread --with-system)
+(cd ${BOOST_DIR} && ./bootstrap.sh && ./b2 toolset=${CC} --with-thread --with-system --with-program_options --with-date_time --with-test --with-log)
 
 POCO_DIR=${DEPS_DIR}/poco-${POCO_VERSION}
 POCO_URL="https://pocoproject.org/releases/poco-${POCO_VERSION}/poco-${POCO_VERSION}-all.tar.gz"
 mkdir -p ${POCO_DIR}
 wget --quiet -O - ${POCO_URL}      | tar --strip-components=1 -xz -C ${POCO_DIR}
 if [[ "${LLVM_VERSION}" != "" ]]; then
-    (cd ${POCO_DIR} && cmake . -DCMAKE_CXX_COMPILER=${COMPILER} && make)
+    (cd ${POCO_DIR} && cmake . -DCMAKE_CXX_COMPILER=${CXX} && make)
 else
-    (cd ${POCO_DIR} && cmake . -DCMAKE_CXX_COMPILER=${COMPILER} && make)
+    (cd ${POCO_DIR} && cmake . -DCMAKE_CXX_COMPILER=${CXX} && make)
+fi
+
+if [ ! -f "${DEPS_DIR}/fmt/fmt/libfmt.a" ]; then
+    (cd ${DEPS_DIR}/fmt && cmake . && make)
 fi
 
 cd ${BASE_DIR}
