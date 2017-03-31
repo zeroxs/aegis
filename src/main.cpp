@@ -33,15 +33,15 @@
 #include "ExampleBot.h"
 #include "AuctionBot.h"
 #include "AegisOfficial.h"
-
-//#define _DEBUGTOKEN
-
-
+#include "AegisAdmin.h"
 
 int main(int argc, char * argv[])
 {
-#ifdef _DEBUGTOKEN
+    srand(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+#if defined( _DEBUGTOKEN )
     AegisBot::tokenstr = "config:token";
+#elif defined( SELFBOT )
+    AegisBot::tokenstr = "config:token-self";
 #else
     AegisBot::tokenstr = "config:token-prod";
 #endif
@@ -50,85 +50,63 @@ int main(int argc, char * argv[])
     {
         boost::asio::io_service::work work(AegisBot::io_service);
 
-        //TODO: remove for boost::logging
-        {
-            AegisBot::pFC = new FormattingChannel(new PatternFormatter("%p:%T %t"));
-            AegisBot::pFC->setChannel(new ConsoleChannel);
-            AegisBot::pFC->open();
+        AegisBot::setupLogging();
 
-            File f("log/");
-            if (!f.exists())
-            {
-                f.createDirectory();
-            }
-            else if (f.isFile())
-            {
-                throw std::runtime_error("Error creating log directory!");
-            }
-
-            AegisBot::pFCf = new FormattingChannel(new PatternFormatter("%Y-%m-%d %H:%M:%S.%c | %s:%q:%t"));
-            AegisBot::pFCf->setChannel(new FileChannel("log/console.log"));
-            AegisBot::pFCf->setProperty("rotation", "daily");
-            AegisBot::pFCf->setProperty("times", "local");
-            AegisBot::pFCf->open();
-            AegisBot::logf = &Poco::Logger::create("fileLogger", AegisBot::pFCf, Message::PRIO_TRACE);
-            AegisBot::log = &Poco::Logger::create("consoleLogger", AegisBot::pFC, Message::PRIO_TRACE);
-        }
-
-
-#ifdef USE_REDIS
+#if defined USE_REDIS
         ABRedisCache cache(AegisBot::io_service);
         cache.address = "127.0.0.1";
         cache.port = 6379;
         cache.password = "";
+#elif define USE_MEMORY
+        ABMemoryCache cache(AegisBot::io_service);
 #endif
+
         if (!cache.initialize())
         {
             //error with cache
+            std::cerr << "Unable to initialize cache" << std::endl;
             return -1;
         }
         AegisBot::setupCache(&cache);
-
-        AegisBot::loadConfigs();
 
         //create our Bot object and cache and configure the basic settings
         AegisBot::startShards();
 
 
-        //Grab shard0 for setting up
-        const auto & bot = AegisBot::shards[0];
-
-        //this is temporary
-#ifdef USE_MEMORY
-        string token = "yourtokenhere";
-#endif
-#ifdef SELFBOT
-        string token = "yourtokenhere";
-#endif
-
+        //Grab shard0 for setting up single/few server bot
+        auto & bot = AegisBot::getShard(0);
 
         //add unique commands to a specific guild. no other guilds can access these
-        Guild & myguild = bot->createGuild(287048029524066334LL);
+        Guild & myguild = bot.createGuild(287048029524066334LL);
         myguild.addCommand("custom_command", [&bot](ABMessage & message)
         {
             message.channel().sendMessage("unique command for this guild.", [](ABMessage & message)
             {
-                //response from whatever that is
+                //continuation from whatever that is
             });
         });
 
         //Add the default module along with all the default commands
-        myguild.addModule("default");
-        myguild.addModule("example");
-        myguild.addModule("admin");
 
+        std::unique_ptr<AegisOfficial> officialmodule = std::make_unique<AegisOfficial>(bot, myguild);
+        officialmodule->initialize();
+        std::unique_ptr<ExampleBot> examplemodule = std::make_unique<ExampleBot>(bot, myguild);
+        examplemodule->initialize();
+        std::unique_ptr<AegisAdmin> adminmodule = std::make_unique<AegisAdmin>(bot, myguild);
+        adminmodule->initialize();
+
+
+
+#ifdef SELFBOT
+/*
+        std::unique_ptr<SelfBot> officialmodule = std::make_unique<SelfBot>(bot, myguild);
+        officialmodule->initialize();
+*/
+#endif
 
 
         AegisBot::threads();
         AegisBot::workthread.join();
-        Poco::Logger::shutdown();
-        AegisBot::pFCf->close();
-        AegisBot::pFC->close();
     }
     catch (std::exception & e)
     {

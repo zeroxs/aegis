@@ -42,17 +42,7 @@ Guild::Guild(AegisBot & bot, uint64_t id)
 
 Guild::~Guild()
 {
-    for (auto mod = modules.begin(); mod != modules.end(); ++mod)
-    {
-        if ((*mod)->name == "default")
-            delete static_cast<AegisOfficial*>(*mod);
-        else if ((*mod)->name == "auction")
-            delete static_cast<AuctionBot*>(*mod);
-        else if ((*mod)->name == "example")
-            delete static_cast<ExampleBot*>(*mod);
-        else if ((*mod)->name == "admin")
-            delete static_cast<AegisAdmin*>(*mod);
-    }
+
 }
 
 void Guild::processMessage(json obj)
@@ -61,8 +51,13 @@ void Guild::processMessage(json obj)
     uint64_t userid = std::stoll(author["id"].get<string>());
 
     //if this is my own message, ignore
+#ifndef SELFBOT
     if (userid == AegisBot::userId)
         return;
+#else
+    if (userid != AegisBot::userId)
+        return;
+#endif
 
     string avatar = author["avatar"].is_string()?author["avatar"]:"";
     string username = author["username"];
@@ -77,15 +72,9 @@ void Guild::processMessage(json obj)
     //bool pinned = obj["pinned"];
 
     //if message came from a bot, ignore
-    if (!AegisBot::memberlist.count(userid) || AegisBot::memberlist[userid]->isbot == true)
-        return;
+//     if (!AegisBot::memberlist.count(userid) || AegisBot::memberlist[userid]->isbot == true)
+//         return;
 
-
-
-#ifdef SELFBOT
-    if (userid != ROOTADMIN)
-        return;
-#endif
 
 
     if (userid == ROOTADMIN)
@@ -115,7 +104,7 @@ void Guild::processMessage(json obj)
                 else
                 {
                     prefix = setprefix;
-                    channellist[channel_id]->sendMessage(Poco::format("Prefix successfully set to `%s`", setprefix));
+                    channellist[channel_id]->sendMessage(fmt::format("Prefix successfully set to `{0}`", setprefix));
 
                     //TODO: set this in a persistent DB to maintain across restarts
                 }
@@ -126,7 +115,7 @@ void Guild::processMessage(json obj)
             if (cmd == "exit")
             {
                 //TODO: add some core bot management
-                poco_critical_f3(*bot.log, "Bot shutdown g[%Lu] c[%Lu] u[%Lu]", id, channel_id, userid);
+                bot.getChannel(1).sendMessage(fmt::format("Bot shutdown g[{0}] c[{1}] u[{2}]", id, channel_id, userid));
                 channellist[channel_id]->sendMessage("Bot shutting down.");
                 std::this_thread::sleep_for(std::chrono::seconds(2));
                 bot.ws.close(bot.hdl, 1001, "");
@@ -164,46 +153,9 @@ void Guild::processMessage(json obj)
                     else
                     {
                         prefix = setprefix;
-                        channellist[channel_id]->sendMessage(Poco::format("Prefix successfully set to `%s`", setprefix));
+                        channellist[channel_id]->sendMessage(fmt::format("Prefix successfully set to `{0}`", setprefix));
 
                         //TODO: set this in a persistent DB to maintain across restarts
-                    }
-                }
-                else if (cmd == "enablemodule")
-                {
-                    string modulename = *(token++);
-
-                    if (modulename == "admin" && userid != ROOTADMIN)
-                    {
-                        channellist[channel_id]->sendMessage("Not authorized.");
-                        return;
-                    }
-
-                    switch (addModule(modulename))
-                    {
-                        case -1:
-                            channellist[channel_id]->sendMessage(Poco::format("Error adding module [%s] already enabled.", modulename));
-                            return;
-                        case 0:
-                            channellist[channel_id]->sendMessage(Poco::format("Error adding module [%s] does not exist.", modulename));
-                            return;
-                        case 1:
-                            channellist[channel_id]->sendMessage(Poco::format("[%s] successfully enabled.", modulename));
-                            return;
-                    }
-                }
-                else if (cmd == "disablemodule")
-                {
-                    string modulename = *(token++);
-                    if (removeModule(modulename))
-                    {
-                        channellist[channel_id]->sendMessage(Poco::format("Module [%s] successfully disabled.", modulename));
-                        return;
-                    }
-                    else
-                    {
-                        channellist[channel_id]->sendMessage(Poco::format("Error removing module [%s] not enabled.", modulename));
-                        return;
                     }
                 }
                 else if (cmd == "commands")
@@ -214,7 +166,7 @@ void Guild::processMessage(json obj)
                         ss << " " << c.first;
                     }
                     ss << " ";
-                    channellist[channel_id]->sendMessage(Poco::format("Command list: `%s`.", ss.str()));
+                    channellist[channel_id]->sendMessage(fmt::format("Command list: `{0}`.", ss.str()));
                 }
                 return;
             }
@@ -238,9 +190,9 @@ void Guild::processMessage(json obj)
     //vs
     //string cmd = (*(token++)).substr(prefix.size());
 
-
     if (tok.begin() == tok.end())
         return;
+
     auto token = tok.begin();
     string cmd = (*(token++)).substr(prefix.size());
 
@@ -335,11 +287,10 @@ void Guild::modifyMember(json content, uint64_t guildid, uint64_t memberid, ABMe
 {
     //if (!canSendMessages())
     //    return;
-    poco_trace(*(AegisBot::log), "modifyMember() goes through");
 
     ABMessage message(this);
     message.content = content.dump();
-    message.endpoint = Poco::format("/guilds/%Lu/members/%Lu", guildid, memberid);
+    message.endpoint = fmt::format("/guilds/%Lu/members/{0}", guildid, memberid);
     message.method = "PATCH";
     if (callback)
         message.callback = callback;
@@ -351,11 +302,10 @@ void Guild::createVoice(json content, uint64_t guildid, ABMessageCallback callba
 {
     //if (!canSendMessages())
     //    return;
-    poco_trace(*(AegisBot::log), "createVoice() goes through");
 
     ABMessage message(this);
     message.content = content.dump();
-    message.endpoint = Poco::format("/guilds/%Lu/channels", guildid);
+    message.endpoint = fmt::format("/guilds/{0}/channels", guildid);
     message.method = "POST";
     if (callback)
         message.callback = callback;
@@ -366,78 +316,10 @@ void Guild::createVoice(json content, uint64_t guildid, ABMessageCallback callba
 void Guild::leave(ABMessageCallback callback)
 {
     ABMessage message(this);
-    message.endpoint = Poco::format("/users/@me/guilds/%Lu", id);
+    message.endpoint = fmt::format("/users/@me/guilds/{0}", id);
     message.method = "DELETE";
     if (callback)
         message.callback = callback;
 
     ratelimits.putMessage(std::move(message));
 }
-
-int Guild::addModule(string modName)
-{
-    //modules are hardcoded until I design a system to use SOs to load them.
-
-    for (auto & m : modules)
-    {
-        if (m->name == modName)
-        {
-            return -1;
-        }
-    }
-
-
-    //TODO: throw these into a list elsewhere instead to clean this up
-    if (modName == "default")
-    {
-        AegisOfficial * mod = new AegisOfficial(bot, *this);
-        modules.push_back(mod);
-        mod->initialize();
-        return 1;
-    }
-    else if (modName == "auction")
-    {
-        AuctionBot * mod = new AuctionBot(bot, *this);
-        modules.push_back(mod);
-        mod->initialize();
-        return 1;
-    }
-    else if (modName == "example")
-    {
-        ExampleBot * mod = new ExampleBot(bot, *this);
-        modules.push_back(mod);
-        mod->initialize();
-        return 1;
-    }
-    else if (modName == "admin")
-    {
-        AegisAdmin * mod = new AegisAdmin(bot, *this);
-        modules.push_back(mod);
-        mod->initialize();
-        return 1;
-    }
-    return 0;
-}
-
-bool Guild::removeModule(string modName)
-{
-    for (auto mod = modules.begin(); mod != modules.end(); ++mod)
-    {
-        if ((*mod)->name == modName)
-        {
-            (*mod)->remove();
-            modules.erase(mod);
-            if (modName == "default")
-                delete static_cast<AegisOfficial*>(*mod);
-            else if (modName == "auction")
-                delete static_cast<AuctionBot*>(*mod);
-            else if (modName == "example")
-                delete static_cast<ExampleBot*>(*mod);
-            else if (modName == "admin")
-                delete static_cast<AegisAdmin*>(*mod);
-            return true;
-        }
-    }
-    return false;
-}
-

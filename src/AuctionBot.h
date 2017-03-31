@@ -25,6 +25,8 @@
 
 #pragma once
 
+#ifdef AB_AUCTION
+
 #include <string>
 #include <stdint.h>
 #include <vector>
@@ -43,6 +45,15 @@ public:
     AuctionBot(AegisBot & bot, Guild & guild);
     ~AuctionBot() {};
 
+    static AuctionBot * CreateModule(AegisBot & bot, Guild & guild)
+    {
+        return new AuctionBot(bot, guild);
+    }
+    static void DestroyModule(AegisModule * mem)
+    {
+        delete reinterpret_cast<AuctionBot*>(mem);
+    }
+
     struct Team
     {
         int id;
@@ -60,7 +71,7 @@ public:
     uint16_t defaultfunds = 0;
     int direction = 1;
     uint16_t lastteam = 0;
-    uint16_t currentteam = 0;
+    int16_t currentteam = 0;
     bool auctioninprogress = false;
     string currentnom;
     std::vector<std::pair<uint32_t, uint32_t>> bids;//team id, bid amount
@@ -116,3 +127,4 @@ public:
     void Debug(ABMessage & message);
 };
 
+#endif

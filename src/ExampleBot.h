@@ -37,6 +37,15 @@ public:
     ExampleBot(AegisBot & bot, Guild & guild);
     ~ExampleBot();
 
+    virtual AegisModule * CreateModule(AegisBot & bot, Guild & guild)
+    {
+        return reinterpret_cast<AegisModule*>(new ExampleBot(bot, guild));
+    }
+    virtual void DestroyModule(AegisModule * mem)
+    {
+        delete reinterpret_cast<ExampleBot*>(mem);
+    }
+
     void initialize();
     void remove();
 

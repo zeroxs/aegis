@@ -40,6 +40,9 @@ public:
     AegisModule(AegisModule && m) : bot(m.bot), name(std::move(m.name)), guild(m.guild) { };
     virtual ~AegisModule() {};
 
+    virtual AegisModule * CreateModule(AegisBot & bot, Guild & guild) = 0;
+    virtual void DestroyModule(AegisModule * mem) = 0;
+
     virtual void initialize() = 0;
     virtual void remove() = 0;
 

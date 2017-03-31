@@ -39,11 +39,19 @@ public:
     AegisAdmin(AegisBot & bot, Guild & guild);
     ~AegisAdmin() {};
 
+    virtual AegisModule * CreateModule(AegisBot & bot, Guild & guild)
+    {
+        return reinterpret_cast<AegisModule*>(new AegisAdmin(bot, guild));
+    }
+    virtual void DestroyModule(AegisModule * mem)
+    {
+        delete reinterpret_cast<AegisAdmin*>(mem);
+    }
+
     void initialize();
     void remove();
 
     void reload(ABMessage & message);
-    void rates(ABMessage & message);
     void setGame(ABMessage & message);
     void deletechannel(ABMessage & message);
     void test(ABMessage & message);

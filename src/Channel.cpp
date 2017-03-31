@@ -27,6 +27,7 @@
 #include "Guild.h"
 #include "AegisBot.h"
 #include "Member.h"
+#include "../lib/fmt/fmt/ostream.h"
 
 ABMessage::ABMessage(Channel * channel)
     : bot(channel->guild().bot)
@@ -57,12 +58,11 @@ void Channel::getMessages(uint64_t messageid, ABMessageCallback callback)
 {
     //if (!canReadHistory())
     //    return;
-    poco_trace(*(AegisBot::log), "getMessages() goes through");
 
     ABMessage message(this);
-    message.endpoint = Poco::format("/channels/%Lu/messages", id);
+    message.endpoint = fmt::format("/channels/{0}/messages", id);
     message.method = "GET";
-    message.query = Poco::format("?before=%Lu&limit=100", messageid);
+    message.query = fmt::format("?before={0}&limit=100", messageid);
     if (callback)
         message.callback = callback;
 
@@ -73,7 +73,7 @@ void Channel::sendMessage(string content, ABMessageCallback callback)
 {
     //if (!canSendMessages())
     //    return;
-    poco_trace(*(AegisBot::log), "sendMessage() goes through");
+
     json obj;
     if (guild().preventbotparse)
         obj["content"] = "\u200B" + content;
@@ -82,7 +82,7 @@ void Channel::sendMessage(string content, ABMessageCallback callback)
 
     ABMessage message(this);
     message.content = obj.dump();
-    message.endpoint = Poco::format("/channels/%Lu/messages", id);
+    message.endpoint = fmt::format("/channels/{0}/messages", id);
     message.method = "POST";
     if (callback)
         message.callback = callback;
@@ -94,17 +94,15 @@ void Channel::sendMessageEmbed(json content, json embed, ABMessageCallback callb
 {
     //if (!canSendMessages() || !canEmbed())
     //    return;
-    poco_trace(*(AegisBot::log), "sendMessageEmbed() goes through");
+
     json obj;
     if (!content.empty())
         obj["content"] = content;
     obj["embed"] = embed;
 
-    poco_trace(*(AegisBot::log), obj.dump());
-
     ABMessage message(this);
     message.content = obj.dump();
-    message.endpoint = Poco::format("/channels/%Lu/messages", id);
+    message.endpoint = fmt::format("/channels/{0}/messages", id);
     message.method = "POST";
     if (callback)
         message.callback = callback;
@@ -116,14 +114,14 @@ void Channel::bulkDelete(std::vector<string> messages, ABMessageCallback callbac
 {
     //if (!canManageMessages())
     //    return;
-    poco_trace(*(AegisBot::log), "bulkDelete() goes through");
+
     json arr(messages);
     json obj;
     obj["messages"] = arr;
 
     ABMessage message(this);
     message.content = obj.dump();
-    message.endpoint = Poco::format("/channels/%Lu/messages/bulk-delete", id);
+    message.endpoint = fmt::format("/channels/{0}/messages/bulk-delete", id);
     message.method = "POST";
     if (callback)
         message.callback = callback;
@@ -135,10 +133,9 @@ void Channel::deleteChannel(ABMessageCallback callback)
 {
     //if (!canManageServer())
     //    return;
-    poco_trace(*(AegisBot::log), "deleteChannel() goes through");
 
     ABMessage message(this);
-    message.endpoint = Poco::format("/channels/%Lu", id);
+    message.endpoint = fmt::format("/channels/{0}", id);
     message.method = "DELETE";
     if (callback)
         message.callback = callback;

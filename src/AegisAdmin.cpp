@@ -42,7 +42,6 @@ AegisAdmin::AegisAdmin(AegisBot & bot, Guild & guild)
 void AegisAdmin::initialize()
 {
     guild.addCommand("reload", std::bind(&AegisAdmin::reload, this, std::placeholders::_1));
-    guild.addCommand("rates", std::bind(&AegisAdmin::rates, this, std::placeholders::_1));
     guild.addCommand("setgame", std::bind(&AegisAdmin::setGame, this, std::placeholders::_1));
     guild.addCommand("deletechannel", std::bind(&AegisAdmin::deletechannel, this, std::placeholders::_1));
     guild.addCommand("test", std::bind(&AegisAdmin::test, this, std::placeholders::_1));
@@ -55,7 +54,6 @@ void AegisAdmin::initialize()
 void AegisAdmin::remove()
 {
     guild.removeCommand("reload");
-    guild.removeCommand("rates");
     guild.removeCommand("setgame");
     guild.removeCommand("deletechannel");
     guild.removeCommand("test");
@@ -149,7 +147,6 @@ void AegisAdmin::leaveServer(ABMessage & message)
     {
         try
         {
-            //static auto & channel = message.channel();
             string guildname = message.bot.getGuild(guildid).name;
             message.channel().sendMessage(fmt::format("Leaving **{1}** [{0}]", tokens[1], message.bot.getGuild(guildid).name));
             message.bot.getGuild(guildid).leave(std::bind([](ABMessage & message, string id, string guildname, Channel * channel)
@@ -205,35 +202,12 @@ void AegisAdmin::reload(ABMessage & message)
 {
     if (message.member().id)
     {
-        bot.loadConfigs();
         message.channel().sendMessage("Configs reloaded.");
     }
     else
     {
         message.channel().sendMessage("Not authorized.");
     }
-}
-
-void AegisAdmin::rates(ABMessage & message)
-{
-    uint32_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-
-    json t = {
-        { "title", "AegisBot" },
-        { "description", "" },
-        { "color", 10599460 },
-        { "fields",
-        json::array(
-    {
-        { { "name", "Memory Usage" },{ "value", Poco::format("[Latest bot source](https://github.com/zeroxs/aegisbot)\n[Official Bot Server](https://discord.gg/w7Y3Bb8)\n\nMemory usage: %.2fMB\nMax Memory: %.2fMB", double(AegisBot::getCurrentRSS()) / (1024 * 1024), double(AegisBot::getPeakRSS()) / (1024 * 1024)) } },
-        { { "name", "Rates" },{ "value", Poco::format("Content: %s\nLimit: %u\nRemain: %u\nReset: %u\nEpoch: %u\nDiff: %u", message.content, message.channel().ratelimits.rateLimit()
-        , message.channel().ratelimits.rateRemaining(), message.channel().ratelimits.rateReset(), epoch, message.channel().ratelimits.rateReset() - epoch) } }
-    }
-            )
-        },
-        { "footer",{ { "icon_url", "https://cdn.discordapp.com/attachments/288707540844412928/289572000391888906/cpp.png" },{ "text", "Made in c++ running aegisbot library" } } }
-    };
-    message.channel().sendMessageEmbed(json(), t);
 }
 
 void AegisAdmin::setGame(ABMessage & message)
