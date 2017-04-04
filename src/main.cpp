@@ -31,11 +31,23 @@
 #include <boost/tokenizer.hpp>
 #include <boost/tuple/tuple.hpp>
 
+#ifdef WIN32
+#define WIN32_PAUSE system("pause");
+#else
+#define WIN32_PAUSE
+#endif
+
+
 string uptime();
 
 int main(int argc, char * argv[])
 {
     srand(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+
+#ifdef WIN32
+    Poco::Crypto::OpenSSLInitializer::initialize();
+#endif
+
 #if defined( _DEBUGTOKEN )
     AegisBot::tokenstr = "config:token";
 #elif defined( SELFBOT )
@@ -52,7 +64,11 @@ int main(int argc, char * argv[])
 
 #if defined USE_REDIS
         ABRedisCache cache(AegisBot::io_service);
+#ifdef WIN32
+        cache.address = "192.168.184.136";
+#else
         cache.address = "127.0.0.1";
+#endif
         cache.port = 6379;
         cache.password = "";
 #elif define USE_MEMORY
@@ -63,6 +79,7 @@ int main(int argc, char * argv[])
         {
             //error with cache
             std::cerr << "Unable to initialize cache" << std::endl;
+            WIN32_PAUSE
             return -1;
         }
         AegisBot::setupCache(&cache);
@@ -331,6 +348,7 @@ int main(int argc, char * argv[])
     catch (std::exception & e)
     {
         std::cout << e.what() << std::endl;
+        WIN32_PAUSE
         return -1;
     }
     return 0;

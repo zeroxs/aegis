@@ -67,6 +67,7 @@ inline std::basic_ostream< CharT, TraitsT >& operator<< (std::basic_ostream< Cha
     static const char* const str[] =
     {
         "trace",
+        "debug",
         "normal",
         "warning",
         "error",
@@ -741,9 +742,7 @@ void AegisBot::keepAlive(const boost::system::error_code& error, const uint64_t 
         obj["d"] = sequence;
         obj["op"] = 1;
 
-#ifdef _TRACE
         log(fmt::format("Sending Heartbeat: {0}", obj.dump()), severity_level::trace);
-#endif
         ws.send(connection, obj.dump(), websocketpp::frame::opcode::text);
 
         log(fmt::format("Heartbeat timer added: {0} ms", ms), severity_level::trace);
@@ -813,7 +812,12 @@ std::pair<bool,string> AegisBot::call(string url, string obj, RateLimits * endpo
         URI uri("https://discordapp.com/api/v6" + url);
         std::string path(uri.getPathAndQuery());
 
+#ifdef WIN32
+        Context::Ptr context = new Context(Context::CLIENT_USE, "", "", "", Context::VERIFY_NONE, 9, false, "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH");
+        HTTPSClientSession session(uri.getHost(), uri.getPort(), context);
+#else
         HTTPSClientSession session(uri.getHost(), uri.getPort());
+#endif
         HTTPRequest request(HTTPRequest::HTTP_GET, path, HTTPMessage::HTTP_1_1);
 #ifdef SELFBOT
         request.set("Authorization", cache->get(tokenstr));
@@ -1214,7 +1218,7 @@ void AegisBot::loadMember(json & member, Guild & guild)
     try
     {
         Member & checkmember = createMember(member_id);
-        log(fmt::format("Member[{0}] created for guild[{1}]", member_id, guild_id), severity_level::normal);
+        log(fmt::format("Member[{0}] created for guild[{1}]", member_id, guild_id), severity_level::trace);
         guild.memberlist[member_id] = std::pair<Member*, uint16_t>(&checkmember, 0);
 
         checkmember.avatar = GET_NULL(user, "avatar");
@@ -1326,7 +1330,7 @@ void AegisBot::setupLogging()
         typedef sinks::synchronous_sink< sinks::text_ostream_backend > sink_t;
         boost::shared_ptr< sink_t > sink(new sink_t(backend));
 
-        sink->set_filter(severity >= trace);
+        sink->set_filter(severity >= debug);
 
 
         logging::formatter fmt = expr::stream

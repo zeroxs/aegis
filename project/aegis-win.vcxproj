@@ -22,13 +22,9 @@
     <ClInclude Include="..\src\ABCache.h" />
     <ClInclude Include="..\src\ABMemoryCache.h" />
     <ClInclude Include="..\src\ABRedisCache.h" />
-    <ClInclude Include="..\src\AegisAdmin.h" />
     <ClInclude Include="..\src\AegisBot.h" />
     <ClInclude Include="..\src\AegisModule.h" />
-    <ClInclude Include="..\src\AegisOfficial.h" />
-    <ClInclude Include="..\src\AuctionBot.h" />
     <ClInclude Include="..\src\Channel.h" />
-    <ClInclude Include="..\src\ExampleBot.h" />
     <ClInclude Include="..\src\Guild.h" />
     <ClInclude Include="..\src\Member.h" />
     <ClInclude Include="..\src\Permission.h" />
@@ -38,12 +34,8 @@
   <ItemGroup>
     <ClCompile Include="..\src\ABMemoryCache.cpp" />
     <ClCompile Include="..\src\ABRedisCache.cpp" />
-    <ClCompile Include="..\src\AegisAdmin.cpp" />
     <ClCompile Include="..\src\AegisBot.cpp" />
-    <ClCompile Include="..\src\AegisOfficial.cpp" />
-    <ClCompile Include="..\src\AuctionBot.cpp" />
     <ClCompile Include="..\src\Channel.cpp" />
-    <ClCompile Include="..\src\ExampleBot.cpp" />
     <ClCompile Include="..\src\Guild.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\Member.cpp" />
@@ -73,7 +65,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -102,7 +94,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <LibraryPath>..\boost_1_63_0\stage\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>..\..\boost_1_63_0\stage\lib;..\..\poco-1.7.8-all\lib\Debug;..\lib\fmt\fmt\Debug;..\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
@@ -119,11 +111,13 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>BOOST_ALL_DYN_LINK;_WIN32_WINNT=0x0501;_DEBUG;USE_REDIS;ROOTADMIN=171000788183678976LL;TEST_GID=287048029524066334LL;CONTROL_CHANNEL=288707540844412928LL;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\headers;C:\headers\openssl</AdditionalIncludeDirectories>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>PocoFoundation;PocoNet;PocoNetSSL;boost_log;boost_log_setup;boost_thread;boost_system;ssl;crypto;fmt;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>PocoFoundationd.lib;PocoNetd.lib;PocoNetSSLd.lib;libboost_log-vc140-mt-gd-1_63.lib;libboost_log_setup-vc140-mt-gd-1_63.lib;libboost_thread-vc140-mt-gd-1_63.lib;libboost_system-vc140-mt-gd-1_63.lib;fmt.lib;libeay32.lib;ssleay32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -162,12 +156,13 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>BOOST_ALL_DYN_LINK;_WIN32_WINNT=0x0501;NDEBUG;USE_REDIS;ROOTADMIN=171000788183678976LL;TEST_GID=287048029524066334LL;CONTROL_CHANNEL=288707540844412928LL;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>PocoFoundationd.lib;PocoNetd.lib;PocoNetSSLd.lib;libboost_log-vc140-mt-gd-1_63.lib;libboost_log_setup-vc140-mt-gd-1_63.lib;libboost_thread-vc140-mt-gd-1_63.lib;libboost_system-vc140-mt-gd-1_63.lib;fmt.lib;libeay32.lib;ssleay32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -116,6 +116,7 @@ class AegisModule;
 enum severity_level
 {
     trace,
+    debug,
     normal,
     warning,
     error,
