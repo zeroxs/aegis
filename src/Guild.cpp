@@ -114,7 +114,7 @@ void Guild::processMessage(json obj)
                 bot.getChannel(1).sendMessage(fmt::format("Bot shutdown g[{0}] c[{1}] u[{2}]", id, channel_id, userid));
                 channellist[channel_id]->sendMessage("Bot shutting down.");
                 std::this_thread::sleep_for(std::chrono::seconds(2));
-                bot.ws.close(bot.hdl, 1001, "");
+                bot.ws.close(bot.hdl, 1000, "");
                 bot.io_service.stop();
                 bot.isrunning = false;
                 bot.active = false;

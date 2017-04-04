@@ -1,4 +1,4 @@
-//
+﻿//
 // main.cpp
 // aegisbot
 //
@@ -106,11 +106,29 @@ int main(int argc, char * argv[])
             message.channel().sendMessage(message.content.substr(message.cmd.size() + message.channel().guild().prefix.size()));
         });
 
+        myguild.addCommand("events", [&bot](ABMessage & message)
+        {
+            uint64_t eventsseen = 0;
+            std::stringstream ss;
+
+            for (auto & bot : AegisBot::shards)
+                eventsseen += bot->sequence;
+
+            ss << "```Total: " << eventsseen;
+
+            for (auto & evt : AegisBot::eventCount)
+                ss << " [" << evt.first << "]:" << evt.second;
+
+            ss << "```";
+
+            message.channel().sendMessage(ss.str());
+        });
+
         myguild.addCommand("info", [&bot](ABMessage & message)
         {
             uint64_t guild_count = AegisBot::guildlist.size();
-            uint64_t member_count = 0;
-            uint64_t member_count_unique = AegisBot::memberlist.size();
+            uint64_t member_count = AegisBot::memberlist.size();
+            uint64_t member_count_unique = 0;
             uint64_t member_online_count = 0;
             uint64_t member_dnd_count = 0;
             uint64_t channel_count = AegisBot::channellist.size();
@@ -173,7 +191,7 @@ int main(int argc, char * argv[])
                 { { "name", "Uptime test" },{ "value", uptime() },{ "inline", true } },
                 { { "name", "Guilds" },{ "value", guilds },{ "inline", true } },
                 { { "name", "Events Seen" },{ "value", events },{ "inline", true } },
-                { { "name", "_" },{ "value", "_" },{ "inline", true } },
+                { { "name", "\u200b" },{ "value", "\u200b" },{ "inline", true } },
                 { { "name", "misc" },{ "value", misc },{ "inline", false } }
             }
                     )

@@ -219,23 +219,11 @@ public:
 
     void run();
     void log(string message, severity_level level = severity_level::normal);
-
-    /*TODO:
-    * Add sharding support. Have bot start a new process per shard and enable
-    * * synchronizing between them to overcome the DM issue where only shard0
-    * * receives DMs. This could be done by AMQP or Redis pub/sub.
-    * Data dump to Redis of all cached data to allow for a restart for code
-    * * changes while still making use of the gateway resume function?
-    * Code eval. Compile a source with a template that could return the result
-    * * of a function call as a string. This would just be to show off and
-    * * mimic the ability of some languages to JIT eval. Could be extended
-    * * to allow deferring execution of some commands to an 'updated' version
-    * * without having to restart the bot.
-    * Add zlib support
-    */
+    uint64_t convertDateToInt64(std::string timestamp);
 
 
 
+    static std::map<string, uint64_t> eventCount;
 
 
 

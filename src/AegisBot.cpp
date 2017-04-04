@@ -120,6 +120,7 @@ uint16_t AegisBot::shardidmax;
 string AegisBot::mention;
 string AegisBot::tokenstr;
 //std::map<string, <>> AegisBot::baseModules;
+std::map<string, uint64_t> AegisBot::eventCount;
 
 AegisBot::AegisBot()
     : keepalive_timer_(io_service)
@@ -212,6 +213,38 @@ void AegisBot::setupCache(ABCache * in)
 bool AegisBot::initialize(uint64_t shardid)
 {
     this->shardid = shardid;
+
+    eventCount =
+    {
+        { "TYPING_START", 0 },
+        { "MESSAGE_CREATE", 0 },
+        { "MESSAGE_UPDATE", 0 },
+        { "GUILD_CREATE", 0 },
+        { "GUILD_UPDATE", 0 },
+        { "GUILD_DELETE", 0 },
+        { "MESSAGE_DELETE", 0 },
+        { "MESSAGE_DELETE_BULK", 0 },
+        { "USER_SETTINGS_UPDATE", 0 },
+        { "USER_UPDATE", 0 },
+        { "VOICE_STATE_UPDATE", 0 },
+        { "READY", 0 },
+        { "CHANNEL_CREATE", 0 },
+        { "CHANNEL_UPDATE", 0 },
+        { "CHANNEL_DELETE", 0 },
+        { "GUILD_BAN_ADD", 0 },
+        { "GUILD_BAN_REMOVE", 0 },
+        { "GUILD_EMOJIS_UPDATE", 0 },
+        { "GUILD_INTEGRATIONS_UPDATE", 0 },
+        { "GUILD_MEMBER_ADD", 0 },
+        { "GUILD_MEMBER_REMOVE", 0 },
+        { "GUILD_MEMBER_UPDATE", 0 },
+        { "GUILD_MEMBER_CHUNK", 0 },
+        { "GUILD_ROLE_CREATE", 0 },
+        { "GUILD_ROLE_UPDATE", 0 },
+        { "GUILD_ROLE_DELETE", 0 },
+        { "PRESENCE_UPDATE", 0 },
+        { "VOICE_SERVER_UPDATE", 0 }
+    };
 
     //ws.set_access_channels(websocketpp::log::alevel::all);
     //ws.clear_access_channels(websocketpp::log::alevel::frame_payload);
@@ -464,6 +497,8 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
             {
                 string cmd = result["t"];
                 //poco_trace_f1(*log, "Processing: %s", cmd);
+
+                ++eventCount[cmd];
 
                 if (cmd == "TYPING_START")
                 {
@@ -1354,3 +1389,20 @@ void AegisBot::log(string message, severity_level level)
         slg.push_record(boost::move(rec));
     }
 }
+
+uint64_t AegisBot::convertDateToInt64(std::string timestamp)
+{
+    boost::posix_time::ptime pt;
+    std::stringstream ss;
+    ss.imbue(std::locale(std::locale::classic(), new boost::posix_time::time_input_facet("%Y-%m-%dT%H:%M:%S")));
+    ss << timestamp;
+    ss >> pt;
+    if (pt != boost::posix_time::ptime())
+    {
+        boost::posix_time::ptime timet_start(boost::gregorian::date(1970, 1, 1));
+        boost::posix_time::time_duration diff = pt - timet_start;
+        return diff.ticks() / boost::posix_time::time_duration::rep_type::ticks_per_second;
+    }
+    return 0;
+}
+
