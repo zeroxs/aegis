@@ -27,6 +27,8 @@
 
 #include <string>
 #include <stdint.h>
+#include <map>
+#include "Permission.h"
 
 using std::string;
 
@@ -41,5 +43,7 @@ public:
     string name;
     uint64_t permissions;
     uint16_t position = 0;
+
+    std::map<uint64_t, Override> overrides;//channel, struct
 };
 

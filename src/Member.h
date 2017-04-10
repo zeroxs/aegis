@@ -65,6 +65,8 @@ public:
 
     std::map<uint64_t, stGuildInfo> guilds;
     std::vector<uint64_t> channels;
+    std::vector<uint64_t> roles;
+    std::map<uint64_t, Override> overrides;//channel, struct
 
     std::queue<uint64_t> msghistory;
 

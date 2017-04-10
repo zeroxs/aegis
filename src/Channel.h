@@ -77,7 +77,8 @@ public:
     Permission overrides;
 
     //TODO: track all the overrides. not just our own. possible use-case?
-    //std::pair<Role, Permission> overrides
+    //<Role, Permission>
+    //std::vector<Override> overrides;
 
 private:
     Guild * _guild;
