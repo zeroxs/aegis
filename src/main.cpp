@@ -93,20 +93,28 @@ int main(int argc, char * argv[])
 
         //add unique commands to a specific guild. no other guilds can access these
         Guild & myguild = bot.createGuild(287048029524066334LL);
-        myguild.addCommand("custom_command", [&bot](ABMessage & message)
+        Guild & dbots = bot.createGuild(110373943822540800LL);
+        Guild & dapi = bot.createGuild(81384788765712384LL);
+        
+
+
+
+        auto SetGame = [&bot](ABMessage & message)
         {
-            message.channel().sendMessage("unique command for this guild.", [](ABMessage & message)
+            string gamestr = message.content.substr(message.channel().guild().prefix.size() + 8);
+            AegisBot::io_service.post([game = std::move(gamestr), &bot = message.channel().guild().bot]()
             {
-                //continuation from whatever that is
+                json obj;
+                obj["op"] = 3;
+                obj["d"]["idle_since"] = nullptr;
+
+                obj["d"]["game"] = { { "name", game } };
+
+                bot.wssend(obj.dump());
             });
-        });
+        };
 
-        myguild.addCommand("echo", [&bot](ABMessage & message)
-        {
-            message.channel().sendMessage(message.content.substr(message.cmd.size() + message.channel().guild().prefix.size()));
-        });
-
-        myguild.addCommand("events", [&bot](ABMessage & message)
+        auto Events = [&bot](ABMessage & message)
         {
             uint64_t eventsseen = 0;
             std::stringstream ss;
@@ -122,9 +130,9 @@ int main(int argc, char * argv[])
             ss << "```";
 
             message.channel().sendMessage(ss.str());
-        });
+        };
 
-        myguild.addCommand("info", [&bot](ABMessage & message)
+        auto Info = [&bot](ABMessage & message)
         {
             uint64_t guild_count = AegisBot::guildlist.size();
             uint64_t member_count = AegisBot::memberlist.size();
@@ -199,7 +207,31 @@ int main(int argc, char * argv[])
                 { "footer",{ { "icon_url", "https://cdn.discordapp.com/emojis/289276304564420608.png" },{ "text", "Made in c++ running aegis library" } } }
             };
             message.channel().sendMessageEmbed(json(), t);
+        };
+
+
+
+
+        myguild.addCommand("custom_command", [&bot](ABMessage & message)
+        {
+            message.channel().sendMessage("unique command for this guild.", [](ABMessage & message)
+            {
+                //continuation from whatever that is
+            });
         });
+
+        myguild.addCommand("echo", [&bot](ABMessage & message)
+        {
+            message.channel().sendMessage(message.content.substr(message.cmd.size() + message.channel().guild().prefix.size()));
+        });
+
+        myguild.addCommand("events", Events);
+        dbots.addCommand("events", Events);
+        dapi.addCommand("events", Events);
+
+        myguild.addCommand("info", Info);
+        dbots.addCommand("info", Info);
+        dapi.addCommand("info", Info);
 
         myguild.addCommand("clearchat", [&bot](ABMessage & message)
         {
@@ -344,20 +376,14 @@ int main(int argc, char * argv[])
             }
         });
 
-        myguild.addCommand("setgame", [&bot](ABMessage & message)
-        {
-            string gamestr = message.content.substr(message.channel().guild().prefix.size() + 8);
-            AegisBot::io_service.post([game = std::move(gamestr), &bot = message.channel().guild().bot]()
-            {
-                json obj;
-                obj["op"] = 3;
-                obj["d"]["idle_since"] = nullptr;
+        myguild.addCommand("setgame", SetGame);
+        dbots.addCommand("setgame", SetGame);
 
-                obj["d"]["game"] = { { "name", game } };
+        dbots.activeChannels.push_back(132632676225122304LL);
+        dbots.activeChannels.push_back(113743192305827841LL);
+        dapi.activeChannels.push_back(81402706320699392LL);
 
-                bot.wssend(obj.dump());
-            });
-        });
+        myguild.activeChannels.push_back(288707540844412928LL);
 
 
         AegisBot::threads();
