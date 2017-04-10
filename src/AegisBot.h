@@ -183,6 +183,8 @@ public:
     static std::vector<AegisBot*> shards;
     static boost::asio::io_service io_service;
 
+    static std::map<string, uint64_t> eventCount;
+
     Member * self;
 
     static uint16_t shardidmax;
@@ -192,16 +194,6 @@ public:
     ~AegisBot();
 
     bool initialize(uint64_t shardid);
-
-    //Websockets
-    websocketpp::client<websocketpp::config::asio_tls_client> ws;
-    websocketpp::config::asio_client::message_type::ptr message;
-    websocketpp::client<websocketpp::config::asio_tls_client>::connection_type::ptr connection;
-    boost::asio::steady_timer keepalive_timer_;
-    websocketpp::connection_hdl hdl;
-
-    //better organize timers?
-    boost::asio::steady_timer prunemessages;
 
     uint32_t _rate_limit = 120;
     uint32_t _rate_remaining = 60;
@@ -220,14 +212,6 @@ public:
     void run();
     void log(string message, severity_level level = severity_level::normal);
     uint64_t convertDateToInt64(std::string timestamp);
-
-
-
-    static std::map<string, uint64_t> eventCount;
-
-
-
-
 
 
 
@@ -323,7 +307,10 @@ public:
     }
     //////////////////////////////////////////////////////////////////////////
 
+    friend Guild;
 protected:
+    websocketpp::client<websocketpp::config::asio_tls_client> ws;
+    websocketpp::connection_hdl hdl;
 
 private:
     void onMessage(websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg);
@@ -342,5 +329,14 @@ private:
     void loadEmoji(json & emoji, Guild & guild);
     void loadPresence(json & presence, Guild & guild);
     boost::log::sources::severity_logger< severity_level > slg;
+
+    //Websockets
+    websocketpp::config::asio_client::message_type::ptr message;
+    websocketpp::client<websocketpp::config::asio_tls_client>::connection_type::ptr connection;
+    boost::asio::steady_timer ratelimit_queue;
+    boost::asio::steady_timer keepalive_timer_;
+
+    //better organize timers?
+    boost::asio::steady_timer prunemessages;
 };
 
