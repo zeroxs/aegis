@@ -1140,37 +1140,86 @@ void AegisBot::loadGuild(json & obj)
         guild.unavailable = obj.count("unavailable")?obj["unavailable"].get<bool>():true;
         guild.member_count = obj["member_count"];
         json voice_states = obj["voice_states"];
-        json members = obj["members"];
-        json channels = obj["channels"];
-        json presences = obj["presences"];
-        json roles = obj["roles"];
-        json emojis = obj["emojis"];
-        json features = obj["features"];
 
-        for (auto & channel : channels)
+        if (obj.count("roles"))
         {
-            loadChannel(channel, id);
+            json roles = obj["roles"];
+
+            for (auto & role : roles)
+            {
+                loadRole(role, guild);
+            }
         }
 
-        for (auto & member : members)
+        if (obj.count("members"))
         {
-            loadMember(member, guild);
+            json members = obj["members"];
+
+            for (auto & member : members)
+            {
+                loadMember(member, guild);
+            }
         }
 
-        for (auto & role : roles)
+        if (obj.count("channels"))
         {
-            loadRole(role, guild);
+            json channels = obj["channels"];
+
+            for (auto & channel : channels)
+            {
+                loadChannel(channel, id);
+            }
         }
 
-        for (auto & presence : presences)
+        if (obj.count("presences"))
         {
-            loadPresence(presence, guild);
+            json presences = obj["presences"];
+
+            for (auto & presence : presences)
+            {
+                loadPresence(presence, guild);
+            }
         }
 
-        for (auto & emoji : emojis)
+        if (obj.count("emojis"))
         {
-            loadEmoji(emoji, guild);
+            json emojis = obj["emojis"];
+
+            for (auto & emoji : emojis)
+            {
+                loadEmoji(emoji, guild);
+            }
         }
+
+        if (obj.count("features"))
+        {
+            json features = obj["features"];
+
+        }
+
+
+        {
+            uint64_t perms = 0;
+            for (auto & r : guild.memberlist[userId].first->roles)
+            {
+                perms |= guild.rolelist[r].permissions;
+            }
+            guild.updatePerms(perms);
+        }
+
+        for (auto & c : guild.channellist)
+        {
+            uint64_t perms = 0;
+            for (auto & r : guild.memberlist[userId].first->roles)
+            {
+                perms |= guild.rolelist[r].permissions;
+            }
+            c.second->updatePerms(perms);
+        }
+
+
+
+
 
 /*
         for (auto & feature : features)
@@ -1224,17 +1273,29 @@ void AegisBot::loadChannel(json & channel, uint64_t guild_id)
         }
 
 
-/*
         json permission_overwrites = channel["permission_overwrites"];
         for (auto & permission : permission_overwrites)
         {
-/ *
             uint32_t allow = permission["allow"];
             uint32_t deny = permission["deny"];
-            uint64_t p_id = std::stoll(permission["id"].get<string>());
-            string p_role = GET_NULL(permission, "role");* /
-            //TODO: implement
-        }*/
+            uint64_t p_id = std::stoull(permission["id"].get<string>());
+            string p_type = GET_NULL(permission, "type");
+
+            if (p_type == "role")
+            {
+                guild.rolelist[p_id].overrides[channel_id].allow = allow;
+                guild.rolelist[p_id].overrides[channel_id].deny = deny;
+                guild.rolelist[p_id].overrides[channel_id].id = channel_id;
+                guild.rolelist[p_id].overrides[channel_id].type = Override::ORType::ROLE;
+            }
+            else
+            {
+                guild.rolelist[p_id].overrides[channel_id].allow = allow;
+                guild.rolelist[p_id].overrides[channel_id].deny = deny;
+                guild.rolelist[p_id].overrides[channel_id].id = channel_id;
+                guild.rolelist[p_id].overrides[channel_id].type = Override::ORType::USER;
+            }
+        }
 
         guild.channellist.insert(std::pair<uint64_t, Channel*>(checkchannel.id, &checkchannel));
     }
@@ -1268,7 +1329,7 @@ void AegisBot::loadMember(json & member, Guild & guild)
 
         json roles = member["roles"];
         for (auto & r : roles)
-            checkmember.guilds[guild_id].roles.push_back(std::stoll(r.get<string>()));
+            checkmember.roles.push_back(std::stoull(r.get<string>()));
 
         checkmember.guilds[guild_id].guild = &getGuild(guild_id);
     }

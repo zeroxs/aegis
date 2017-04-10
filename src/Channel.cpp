@@ -56,8 +56,13 @@ ABMessage::ABMessage(Guild * guild)
 
 void Channel::getMessages(uint64_t messageid, ABMessageCallback callback)
 {
-    //if (!canReadHistory())
-    //    return;
+    if (!canReadHistory())
+    {
+        if (guild().silentperms)
+            return;
+        else
+            throw no_permission("READ_HISTORY");
+    }
 
     ABMessage message(this);
     message.endpoint = fmt::format("/channels/{0}/messages", id);
@@ -71,8 +76,8 @@ void Channel::getMessages(uint64_t messageid, ABMessageCallback callback)
 
 void Channel::sendMessage(string content, ABMessageCallback callback)
 {
-    //if (!canSendMessages())
-    //    return;
+    if (!canSendMessages())
+        return;
 
     json obj;
     if (guild().preventbotparse)
@@ -92,8 +97,16 @@ void Channel::sendMessage(string content, ABMessageCallback callback)
 
 void Channel::sendMessageEmbed(json content, json embed, ABMessageCallback callback /*= ABMessageCallback()*/)
 {
-    //if (!canSendMessages() || !canEmbed())
-    //    return;
+    if (!canSendMessages())
+        return;
+
+    if (!canEmbed())//does this count for embed messages? or just links? :shrug:
+    {
+        if (guild().silentperms)
+            return;
+        else
+            throw no_permission("EMBED_LINKS");
+    }
 
     json obj;
     if (!content.empty())
@@ -112,8 +125,13 @@ void Channel::sendMessageEmbed(json content, json embed, ABMessageCallback callb
 
 void Channel::bulkDelete(std::vector<string> messages, ABMessageCallback callback)
 {
-    //if (!canManageMessages())
-    //    return;
+    if (!canManageMessages())
+    {
+        if (guild().silentperms)
+            return;
+        else
+            throw no_permission("MANAGE_MESSAGES");
+    }
 
     json arr(messages);
     json obj;
@@ -131,8 +149,13 @@ void Channel::bulkDelete(std::vector<string> messages, ABMessageCallback callbac
 
 void Channel::deleteChannel(ABMessageCallback callback)
 {
-    //if (!canManageServer())
-    //    return;
+    if (!canManageServer())
+    {
+        if (guild().silentperms)
+            return;
+        else
+            throw no_permission("MANAGE_SERVER");
+    }
 
     ABMessage message(this);
     message.endpoint = fmt::format("/channels/{0}", id);

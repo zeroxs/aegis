@@ -281,8 +281,43 @@ void Guild::removeAttachmentHandler()
 
 void Guild::modifyMember(json content, uint64_t guildid, uint64_t memberid, ABMessageCallback callback)
 {
-    //if (!canSendMessages())
-    //    return;
+    //TODO: also needs to check perm for connecting to channel
+    if (content.count("channel_id") && !canVoiceMove())
+    {
+        if (silentperms)
+            return;
+        else
+            throw no_permission("MOVE_MEMBERS");
+    }
+    if (content.count("nick") && !canManageNames())
+    {
+        if (silentperms)
+            return;
+        else
+            throw no_permission("MANAGE_NICKNAMES");
+    }
+    if (content.count("roles") && !canManageRoles())
+    {
+        if (silentperms)
+            return;
+        else
+            throw no_permission("MANAGE_ROLES");
+    }
+    if (content.count("mute") && !canVoiceMute())
+    {
+        if (silentperms)
+            return;
+        else
+            throw no_permission("MUTE_MEMBERS");
+    }
+    if (content.count("deaf") && !canVoiceDeafen())
+    {
+        if (silentperms)
+            return;
+        else
+            throw no_permission("DEAFEN_MEMBERS");
+    }
+
 
     ABMessage message(this);
     message.content = content.dump();
@@ -296,8 +331,13 @@ void Guild::modifyMember(json content, uint64_t guildid, uint64_t memberid, ABMe
 
 void Guild::createVoice(json content, uint64_t guildid, ABMessageCallback callback)
 {
-    //if (!canSendMessages())
-    //    return;
+    if (!canManageGuild())
+    {
+        if (silentperms)
+            return;
+        else
+            throw no_permission("MANAGE_SERVER");
+    }
 
     ABMessage message(this);
     message.content = content.dump();
