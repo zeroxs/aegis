@@ -44,7 +44,7 @@ Guild::~Guild()
 void Guild::processMessage(json obj)
 {
     json author = obj["author"];
-    uint64_t userid = std::stoll(author["id"].get<string>());
+    uint64_t userid = std::stoull(author["id"].get<string>());
 
     //if this is my own message, ignore
 #ifndef SELFBOT
@@ -57,11 +57,11 @@ void Guild::processMessage(json obj)
 
     string avatar = author["avatar"].is_string()?author["avatar"]:"";
     string username = author["username"];
-    //uint16_t discriminator = std::stoll(author["discriminator"].get<string>());
+    //uint16_t discriminator = std::stoi(author["discriminator"].get<string>());
 
-    uint64_t channel_id = std::stoll(obj["channel_id"].get<string>());
-    uint64_t id = std::stoll(obj["id"].get<string>());
-    //uint64_t nonce = obj["nonce"].is_null()?0:std::stoll(obj["nonce"].get<string>());
+    uint64_t channel_id = std::stoull(obj["channel_id"].get<string>());
+    uint64_t id = std::stoull(obj["id"].get<string>());
+    //uint64_t nonce = obj["nonce"].is_null()?0:std::stoull(obj["nonce"].get<string>());
 
     string content = obj["content"];
     //bool tts = obj["tts"];

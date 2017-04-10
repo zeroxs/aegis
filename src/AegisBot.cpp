@@ -421,8 +421,8 @@ void AegisBot::processReady(json & d)
     json pchannels = d["private_channels"];
     for (auto & channel : pchannels)
     {
-        uint64_t channel_id = std::stoll(channel["id"].get<string>());
-        //uint64_t last_message_id = channel["last_message_id"].is_null()?0:std::stoll(channel["last_message_id"].get<string>());
+        uint64_t channel_id = std::stoull(channel["id"].get<string>());
+        //uint64_t last_message_id = channel["last_message_id"].is_null()?0:std::stoull(channel["last_message_id"].get<string>());
         //int32_t channelType = channel["type"];
         json recipients = channel["recipients"];
       
@@ -433,9 +433,9 @@ void AegisBot::processReady(json & d)
         for (auto & recipient : recipients)
         {
             string recipientAvatar = recipient["avatar"].is_null()?"":recipient["avatar"];
-            uint16_t recipientDiscriminator = std::stoll(recipient["discriminator"].get<string>());
+            uint16_t recipientDiscriminator = std::stoi(recipient["discriminator"].get<string>());
             string recipientName = recipient["username"];
-            uint64_t recipientId = std::stoll(recipient["id"].get<string>());
+            uint64_t recipientId = std::stoull(recipient["id"].get<string>());
 
             //Member & rec = privateChat.recipients[recipientId];
             privateChat.recipients.push_back(recipientId);
@@ -717,11 +717,11 @@ void AegisBot::userMessage(json & obj)
 {
     json author = obj["author"];
 
-    uint64_t userid = std::stoll(author["id"].get<string>());
+    uint64_t userid = std::stoull(author["id"].get<string>());
     string username = author["username"];
 
-    uint64_t channel_id = std::stoll(obj["channel_id"].get<string>());
-    uint64_t id = std::stoll(obj["id"].get<string>());
+    uint64_t channel_id = std::stoull(obj["channel_id"].get<string>());
+    uint64_t id = std::stoull(obj["id"].get<string>());
     string content = obj["content"];
 
     //process chat
@@ -1110,7 +1110,7 @@ void AegisBot::loadGuild(json & obj)
     std::lock_guard<std::recursive_mutex> lock(m);
 
     //uint64_t application_id = obj->get("application_id").convert<uint64_t>();
-    uint64_t id = std::stoll(obj["id"].get<string>());
+    uint64_t id = std::stoull(obj["id"].get<string>());
 
 
     Guild & guild = createGuild(id);
@@ -1126,9 +1126,9 @@ void AegisBot::loadGuild(json & obj)
         guild.name = GET_NULL(obj, "name");
         guild.icon = GET_NULL(obj, "icon");
         guild.splash = GET_NULL(obj, "splash");
-        guild.owner_id = std::stoll(obj["owner_id"].get<string>());
+        guild.owner_id = std::stoull(obj["owner_id"].get<string>());
         guild.region = obj["region"];
-        guild.afk_channel_id = obj["afk_channel_id"].is_null() ? 0 : std::stoll(obj["afk_channel_id"].get<string>());
+        guild.afk_channel_id = obj["afk_channel_id"].is_null() ? 0 : std::stoull(obj["afk_channel_id"].get<string>());
         guild.afk_timeout = obj["afk_timeout"];//in seconds
         guild.embed_enabled = obj.count("embed_enabled") ? obj["embed_enabled"].get<bool>() : false;
         //guild.embed_channel_id = obj->get("embed_channel_id").convert<uint64_t>();
@@ -1243,23 +1243,19 @@ void AegisBot::loadGuild(json & obj)
 
 void AegisBot::loadChannel(json & channel, uint64_t guild_id)
 {
-    uint64_t channel_id = std::stoll(channel["id"].get<string>());
+    uint64_t channel_id = std::stoull(channel["id"].get<string>());
     Guild & guild = getGuild(guild_id);
 
     try
     {
         //does channel exist?
-        //TODO: these 'leak' memory in the sense that they create a shared_ptr entry set to empty
-        //doesn't really hurt, and shouldn't really add up to anything to be concerned about, but maybe
-        //do a check for .count() on all the checks instead?
         Channel & checkchannel = createChannel(channel_id, guild_id);
         log(fmt::format("Channel[{0}] created for guild[{1}]", channel_id, guild_id), severity_level::trace);
         checkchannel.name = GET_NULL(channel, "name");
         checkchannel.position = channel["position"];
         checkchannel.type = (ChannelType)channel["type"].get<int>();// 0 = text, 2 = voice
 
-                                                                     //voice channels
-
+        //voice channels
         if (channel.find("bitrate") != channel.end())
         {
             checkchannel.bitrate = channel["bitrate"];
@@ -1269,7 +1265,7 @@ void AegisBot::loadChannel(json & channel, uint64_t guild_id)
         {
             //not a voice channel, so has a topic field and last message id
             checkchannel.topic = GET_NULL(channel, "topic");
-            checkchannel.last_message_id = (channel["last_message_id"].is_null()) ? 0 : std::stoll(channel["last_message_id"].get<string>());
+            checkchannel.last_message_id = (channel["last_message_id"].is_null()) ? 0 : std::stoull(channel["last_message_id"].get<string>());
         }
 
 
@@ -1310,7 +1306,7 @@ void AegisBot::loadMember(json & member, Guild & guild)
     uint64_t guild_id = guild.id;
 
     json user = member["user"];
-    uint64_t member_id = std::stoll(user["id"].get<string>());
+    uint64_t member_id = std::stoull(user["id"].get<string>());
     try
     {
         Member & checkmember = createMember(member_id);
@@ -1318,7 +1314,7 @@ void AegisBot::loadMember(json & member, Guild & guild)
         guild.memberlist[member_id] = std::pair<Member*, uint16_t>(&checkmember, 0);
 
         checkmember.avatar = GET_NULL(user, "avatar");
-        checkmember.discriminator = std::stoll(user["discriminator"].get<string>());
+        checkmember.discriminator = std::stoi(user["discriminator"].get<string>());
         checkmember.name = GET_NULL(user, "username");
 
         checkmember.deaf = member["deaf"];
@@ -1344,7 +1340,7 @@ void AegisBot::loadRole(json & role, Guild & guild)
     uint64_t guild_id = guild.id;
 
     Role _role;
-    uint64_t role_id = std::stoll(role["id"].get<string>());
+    uint64_t role_id = std::stoull(role["id"].get<string>());
     try
     {
         _role.hoist = role["hoist"];
