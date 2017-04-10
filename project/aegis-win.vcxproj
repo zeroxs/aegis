@@ -104,6 +104,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
+    <LibraryPath>..\..\boost_1_63_0\stage\lib;..\..\poco-1.7.8-all\lib\Release;..\lib\fmt\fmt\Release;..\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -111,7 +112,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>BOOST_ALL_DYN_LINK;_WIN32_WINNT=0x0501;_DEBUG;USE_REDIS;ROOTADMIN=171000788183678976LL;TEST_GID=287048029524066334LL;CONTROL_CHANNEL=288707540844412928LL;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>BOOST_ALL_DYN_LINK;_WIN32_WINNT=0x0600;_DEBUG;USE_REDIS;ROOTADMIN=171000788183678976LL;TEST_GID=287048029524066334LL;CONTROL_CHANNEL=288707540844412928LL;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>C:\headers;C:\headers\openssl</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -156,13 +157,14 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>BOOST_ALL_DYN_LINK;_WIN32_WINNT=0x0501;NDEBUG;USE_REDIS;ROOTADMIN=171000788183678976LL;TEST_GID=287048029524066334LL;CONTROL_CHANNEL=288707540844412928LL;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>BOOST_ALL_DYN_LINK;_WIN32_WINNT=0x0600;NDEBUG;USE_REDIS;ROOTADMIN=171000788183678976LL;TEST_GID=287048029524066334LL;CONTROL_CHANNEL=288707540844412928LL;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\headers;C:\headers\openssl</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>PocoFoundationd.lib;PocoNetd.lib;PocoNetSSLd.lib;libboost_log-vc140-mt-gd-1_63.lib;libboost_log_setup-vc140-mt-gd-1_63.lib;libboost_thread-vc140-mt-gd-1_63.lib;libboost_system-vc140-mt-gd-1_63.lib;fmt.lib;libeay32.lib;ssleay32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>PocoFoundation.lib;PocoNet.lib;PocoNetSSL.lib;libboost_log-vc140-mt-1_63.lib;libboost_log_setup-vc140-mt-1_63.lib;libboost_thread-vc140-mt-1_63.lib;libboost_system-vc140-mt-1_63.lib;fmt.lib;libeay32.lib;ssleay32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
