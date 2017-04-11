@@ -154,6 +154,11 @@ void Guild::processMessage(json obj)
                         //TODO: set this in a persistent DB to maintain across restarts
                     }
                 }
+                else if (cmd == "help")
+                {
+                    channellist[channel_id]->sendMessage("This bot is in development. If you'd like more information on it, please join the discord server https://discord.gg/w7Y3Bb8");
+                    return;
+                }
                 else if (cmd == "wl")
                 {
                     try
