@@ -76,8 +76,10 @@ void Channel::getMessages(uint64_t messageid, ABMessageCallback callback)
 
 void Channel::sendMessage(string content, ABMessageCallback callback)
 {
-    if (!canSendMessages())
-        return;
+    //ignore permissions in hopes the bot has it as it uses sendMessage() to report other
+    //permission errors and failures if enabled
+//     if (!canSendMessages())
+//         return;
 
     json obj;
     if (guild().preventbotparse)
@@ -97,16 +99,8 @@ void Channel::sendMessage(string content, ABMessageCallback callback)
 
 void Channel::sendMessageEmbed(json content, json embed, ABMessageCallback callback /*= ABMessageCallback()*/)
 {
-    if (!canSendMessages())
-        return;
-
-    if (!canEmbed())//does this count for embed messages? or just links? :shrug:
-    {
-        if (guild().silentperms)
-            return;
-        else
-            throw no_permission("EMBED_LINKS");
-    }
+     if (!canSendMessages())
+         return;
 
     json obj;
     if (!content.empty())
@@ -149,7 +143,7 @@ void Channel::bulkDelete(std::vector<string> messages, ABMessageCallback callbac
 
 void Channel::deleteChannel(ABMessageCallback callback)
 {
-    if (!canManageServer())
+    if (!canManageGuild())
     {
         if (guild().silentperms)
             return;
@@ -165,3 +159,12 @@ void Channel::deleteChannel(ABMessageCallback callback)
 
     ratelimits.putMessage(std::move(message));
 }
+
+/*
+if (!canEmbed())
+{
+    if (guild().silentperms)
+        return;
+    else
+        throw no_permission("EMBED_LINKS");
+}*/
