@@ -123,7 +123,8 @@ string AegisBot::tokenstr;
 std::map<string, uint64_t> AegisBot::eventCount;
 
 AegisBot::AegisBot()
-    : keepalive_timer_(io_service)
+    : ratelimit_queue(io_service)
+    , keepalive_timer_(io_service)
     , prunemessages(io_service)
 {
 
