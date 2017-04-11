@@ -468,10 +468,12 @@ void AegisBot::processReady(json & d)
 
 void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg)
 {
+    json result;
+    string payload;
     try
     {
         //TODO: do something about this mess
-        string payload = msg->get_payload();
+        payload = msg->get_payload();
 
         if (payload[0] == (char)0x78 && (payload[1] == (char)0x01 || payload[1] == (char)0x9C || payload[1] == (char)0xDA))
         {
@@ -487,7 +489,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
             payload = ss.str();
         }
  
-        json result = json::parse(std::move(payload));
+        result = json::parse(std::move(payload));
 
         //poco_trace_f1(*log, "Received JSON: %s", msg->get_payload());
 
@@ -702,6 +704,11 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
 //     {
 //         BOOST_LOG_TRIVIAL(error) << "BadCastException: " << e.what();
 //     }
+    catch (no_permission & e)
+    {
+        AegisBot::channellist[std::stoull(result["d"]["channel_id"].get<string>())]->sendMessage(fmt::format("No permission: [{0}]", e.what()));
+        log(fmt::format("No permission: [{0}]", e.what()), severity_level::warning);
+    }
     catch (std::exception& e)
     {
         log(fmt::format("Failed to process object: {0}", e.what()), severity_level::error);
