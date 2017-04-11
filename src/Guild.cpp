@@ -154,8 +154,50 @@ void Guild::processMessage(json obj)
                         //TODO: set this in a persistent DB to maintain across restarts
                     }
                 }
+                else if (cmd == "wl")
+                {
+                    try
+                    {
+                        uint64_t channel = stoull(*(token++));
+                        activeChannels.push_back(channel);
+                        channellist[channel_id]->sendMessage(fmt::format("Channel [{0}] added to whitelist", channel));
+                    }
+                    catch (std::exception&e)
+                    {
+                        activeChannels.push_back(channel_id);
+                        channellist[channel_id]->sendMessage(fmt::format("Channel [{0}] added to whitelist", channel_id));
+                    }
+                    return;
+                }
+                else if (cmd == "bl")
+                {
+                    try
+                    {
+                        uint64_t channel = stoull(*(token++));
+                        auto it = std::find(activeChannels.begin(), activeChannels.end(), channel);
+                        if (it != activeChannels.end())
+                        {
+                            activeChannels.erase(it);
+                            channellist[channel_id]->sendMessage(fmt::format("Channel [{0}] removed from whitelist", channel));
+                            return;
+                        }
+                    }
+                    catch (std::exception&e)
+                    {
+                        auto it = std::find(activeChannels.begin(), activeChannels.end(), channel_id);
+                        if (it != activeChannels.end())
+                        {
+                            activeChannels.erase(it);
+                            channellist[channel_id]->sendMessage(fmt::format("Channel [{0}] removed from whitelist", channel_id));
+                            return;
+                        }
+                    }
+                    return;
+                }
                 else if (cmd == "commands")
                 {
+                    if (std::find(activeChannels.begin(), activeChannels.end(), channel_id) == activeChannels.end())
+                        return;
                     std::stringstream ss;
                     for (auto & c : cmdlist)
                     {
@@ -174,6 +216,8 @@ void Guild::processMessage(json obj)
         }
     }
 
+    if (std::find(activeChannels.begin(), activeChannels.end(), channel_id) == activeChannels.end())
+        return;
 
     if (content.size() == 1 || content.size() - prefix.size() == 0 || content.substr(0, prefix.size()) != prefix)
         return;

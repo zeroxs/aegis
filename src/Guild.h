@@ -106,6 +106,8 @@ public:
     bool silentperms = false;
     bool preventbotparse = false;
 
+    std::vector<uint64_t> activeChannels;
+
     //extendable command list. this list allows you to place c++ functions in matching to a command
     //for more than just simple responses
     std::map<std::string, ABCallbackPair> cmdlist = {};
