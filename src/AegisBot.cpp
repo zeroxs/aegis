@@ -571,6 +571,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                 }
                 else if (cmd == "GUILD_UPDATE")
                 {
+                    loadGuild(result["d"]);
                 }
                 else if (cmd == "GUILD_DELETE")
                 {
