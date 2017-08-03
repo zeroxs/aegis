@@ -262,6 +262,7 @@ bool AegisBot::initialize(uint64_t shardid)
     ws.set_message_handler(std::bind(&AegisBot::onMessage, this, std::placeholders::_1, std::placeholders::_2));
     ws.set_open_handler(std::bind(&AegisBot::onConnect, this, std::placeholders::_1));
     ws.set_close_handler(std::bind(&AegisBot::onClose, this, std::placeholders::_1));
+    ws.set_fail_handler(std::bind(&AegisBot::onClose, this, std::placeholders::_1));
 
     websocketpp::lib::error_code ec;
     log(fmt::format("Connecting to gateway at {0}", gatewayurl), severity_level::normal);
@@ -287,8 +288,6 @@ void AegisBot::startShards()
     active = false;
     mfa_enabled = false;
     rate_global = false;
-    string res;
-    bool success;
 
     boost::asio::signal_set signals(io_service, SIGINT, SIGTERM);
     signals.async_wait([&](const boost::system::error_code &error, int signal_number)
@@ -383,6 +382,23 @@ void AegisBot::onClose(websocketpp::connection_hdl hdl)
 {
     keepalive_timer_.cancel();
     log("Connection closed. Reconnecting.", severity_level::warning);
+
+    int64_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+
+    if (epoch < wsfailtime)
+    {
+        if (wsfail >= 5)
+        {
+            //rate of failure is too damn high
+            std::this_thread::sleep_for(std::chrono::milliseconds(20000));
+        }
+        else
+        {
+            ++wsfail;
+            std::this_thread::sleep_for(std::chrono::milliseconds(2000 * wsfail));
+        }
+    }
+
     if (isrunning)
         connectWS();
 }
@@ -822,6 +838,8 @@ void AegisBot::onConnect(websocketpp::connection_hdl hdl)
     this->hdl = hdl;
     log("Connection established.", severity_level::normal);
 
+    wsfail = 0;
+
     json obj;
 
     if (sessionId.size() > 0)
@@ -868,9 +886,9 @@ void AegisBot::onConnect(websocketpp::connection_hdl hdl)
     ws.send(hdl, obj.dump(), websocketpp::frame::opcode::text);
 }
 
-std::pair<bool,string> AegisBot::call(string url, string obj, RateLimits * endpoint /*= nullptr*/, string method /*= "GET"*/, string query /*= ""*/)
+boost::optional<std::string> AegisBot::call(std::string url, std::string obj, RateLimits * endpoint /*= nullptr*/, std::string method /*= "GET"*/, std::string query /*= ""*/)
 {
-    uint64_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    int64_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
     try
     {
@@ -951,7 +969,7 @@ std::pair<bool,string> AegisBot::call(string url, string obj, RateLimits * endpo
                 rate_global = false;
                 if (status == 429)
                 {
-                    return { false, "" };
+                    return boost::none;
                 }
             }
             else
@@ -965,13 +983,13 @@ std::pair<bool,string> AegisBot::call(string url, string obj, RateLimits * endpo
 
                 if (status == 429)
                 {
-                    return { false, "" };
+                    return boost::none;
                 }
                 BOOST_LOG_SEV(slg, trace) << fmt::format("Rates: {0}:{1} resets in: {2}s", endpoint->rateLimit(), endpoint->rateRemaining(), (endpoint->rateReset() > 0) ? (endpoint->rateReset() - epoch) : 0);
             }
         }
 
-        return { true, result };
+        return result;
     }
     catch (std::exception&e)
     {
@@ -980,8 +998,14 @@ std::pair<bool,string> AegisBot::call(string url, string obj, RateLimits * endpo
     }
 
 
-    return { false, "" };
+    return boost::none;
 }
+
+void AegisBot::AddCallback(std::string name, std::function<void(json &)> fn)
+{
+    
+}
+
 
 void AegisBot::pruneMsgHistory(const boost::system::error_code& error)
 {
@@ -1019,7 +1043,7 @@ void AegisBot::run()
 {
     while (isrunning)
     {
-
+        //io_service.post([]() {});
 
 
 
@@ -1044,16 +1068,23 @@ void AegisBot::run()
 
                             //Channel api calls
                             auto message = channel.second->ratelimits.getMessage();
-                            bool success = false;
-
-
+                            boost::optional<std::string> res;
                             {
                                 //lock and pop when success
                                 //std::lock_guard<std::recursive_mutex> lock(channel.second.ratelimits.m);
 
-                                boost::tie(success, message.content) = call(message.endpoint, message.content, &message.channel().ratelimits, message.method, message.query);
+                                res = call(message.endpoint, message.content, &message.channel().ratelimits, message.method, message.query);
+                                
+                                if (res == boost::none)
+                                {
+                                    //rate limit hit
+                                    log(fmt::format("Rate Limit hit or connection error - requeuing message [{0}] [{1}] [{2}] [{3}]", message.channel().guild().name, message.channel().guild().id, message.channel().name, message.channel().id), severity_level::error);
+                                    continue;
+                                }
+
                                 try
                                 {
+                                    message.content = std::move(res.get());
                                     if (message.content.size() != 0)
                                         message.obj = json::parse(message.content);
                                 }
@@ -1062,12 +1093,6 @@ void AegisBot::run()
                                     //dummy catch on empty or malformed responses
                                 }
 
-                                if (!success)
-                                {
-                                    //rate limit hit
-                                    log(fmt::format("Rate Limit hit or connection error - requeuing message [{0}] [{1}] [{2}] [{3}]", message.channel().guild().name, message.channel().guild().id, message.channel().name, message.channel().id), severity_level::error);
-                                    continue;
-                                }
                                 //message success, pop
                                 message.channel().ratelimits.outqueue.pop();
                             }
@@ -1092,12 +1117,21 @@ void AegisBot::run()
 
                         //Guild api calls
                         auto & message = guild.second->ratelimits.getMessage();
-                        bool success = false;
+                        boost::optional<std::string> res;
                         {
                             //std::lock_guard<std::recursive_mutex> lock(guild.second->ratelimits.m);
-                            boost::tie(success, message.content) = call(message.endpoint, message.content, &guild.second->ratelimits, message.method, message.query);
+                            res = call(message.endpoint, message.content, &guild.second->ratelimits, message.method, message.query);
+
+                            if (res == boost::none)
+                            {
+                                //rate limit hit
+                                log(fmt::format("Rate Limit hit or connection error - requeuing message [{0}] [{1}] [{2}] [{3}]", message.channel().guild().name, message.channel().guild().id, message.channel().name, message.channel().id), severity_level::error);
+                                continue;
+                            }
+
                             try
                             {
+                                message.content = std::move(res.get());
                                 if (message.content.size() != 0)
                                     message.obj = json::parse(message.content);
                             }
@@ -1106,12 +1140,6 @@ void AegisBot::run()
                                 //dummy catch on empty or malformed responses
                             }
 
-                            if (!success)
-                            {
-                                //rate limit hit
-                                log(fmt::format("Rate Limit hit or connection error - requeuing message [{0}] [{1}] [{2}] [{3}]", message.channel().guild().name, message.channel().guild().id, message.channel().name, message.channel().id), severity_level::error);
-                                continue;
-                            }
                             guild.second->ratelimits.outqueue.pop();
                         }
                         log(fmt::format("Message sent: [{0}] [{1}]", message.endpoint, message.content), severity_level::trace);

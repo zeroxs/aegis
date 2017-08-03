@@ -123,17 +123,17 @@ int main(int argc, char * argv[])
             uint64_t eventsseen = 0;
             std::stringstream ss;
 
-            for (auto & bot : AegisBot::shards)
-                eventsseen += bot->sequence;
-
-            ss << "```Total: " << eventsseen;
+            ss << "```Total: {0}";
 
             for (auto & evt : AegisBot::eventCount)
+            {
                 ss << " [" << evt.first << "]:" << evt.second;
+                eventsseen += evt.second;
+            }
 
             ss << "```";
 
-            message.channel().sendMessage(ss.str());
+            message.channel().sendMessage(fmt::format(ss.str(), eventsseen));
         };
 
         auto Info = [&bot](ABMessage & message)

@@ -129,7 +129,7 @@ public:
 
     static void setupLogging();
 
-    static std::pair<bool, string> call(string url, string obj = "", RateLimits * endpoint = nullptr, string method = "GET", string query = "");
+    static boost::optional<std::string> call(std::string url, std::string obj = "", RateLimits * endpoint = nullptr, std::string method = "GET", std::string query = "");
 
     static void setupCache(ABCache * in);
     static void startShards();
@@ -154,7 +154,10 @@ public:
     static bool mfa_enabled;
     static std::string mention;
     static std::string tokenstr;
+    static std::map<uint64_t, std::function<void(json &)>> ws_callbacks;
     //static std::map<string, <>> baseModules;
+
+    static void AddCallback(std::string name, std::function<void(json &)> fn);
 
     //stats
     static uint64_t eventsSeen;
@@ -166,6 +169,7 @@ public:
         uint64_t id;
         uint64_t last_message_id;
         std::vector<uint64_t> recipients;
+        RateLimits ratelimits;
     };
     static std::map<uint64_t, PrivateChat> private_channels;
     static std::map<uint64_t, Channel*> channellist;
@@ -332,5 +336,7 @@ private:
 
     //better organize timers?
     boost::asio::steady_timer prunemessages;
+    uint8_t wsfail = 0;
+    uint64_t wsfailtime = 0;
 };
 

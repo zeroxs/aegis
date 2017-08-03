@@ -51,6 +51,7 @@ class Channel : public Permission
 {
 public:
     Channel(Guild * guild) : _guild(guild) {}
+    Channel() {}
     ~Channel() {};
 
     Guild & guild() { return *_guild; }
@@ -81,6 +82,6 @@ public:
     //std::vector<Override> overrides;
 
 private:
-    Guild * _guild;
+    Guild * _guild = nullptr;
 };
 
