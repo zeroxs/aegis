@@ -34,9 +34,6 @@
 class AegisBot;
 class Guild;
 
-using std::string;
-
-
 enum class MEMBER_STATUS
 {
     OFFLINE,
@@ -48,7 +45,7 @@ enum class MEMBER_STATUS
 struct stGuildInfo
 {
     std::vector<uint64_t> roles;
-    string nickname;
+    std::string nickname;
     Guild * guild;
 };
 
@@ -56,12 +53,12 @@ class Member : public Permission
 {
 public:
     Member() {};
-    Member(uint64_t id, string name, uint16_t discriminator, string avatar);
+    Member(uint64_t id, std::string name, uint16_t discriminator, std::string avatar);
     ~Member();
 
     std::vector<Guild*> getGuilds();
-    boost::optional<string> getName(uint64_t guildid);
-    string getFullName();
+    boost::optional<std::string> getName(uint64_t guildid);
+    std::string getFullName();
 
     std::map<uint64_t, stGuildInfo> guilds;
     std::vector<uint64_t> channels;
@@ -74,13 +71,13 @@ public:
     static std::mutex m;
 
     uint64_t id = 0;
-    string name;
+    std::string name;
     uint16_t discriminator = 0;
-    string avatar;
+    std::string avatar;
     bool isbot = false;
     bool deaf = false;
     bool mute = false;
-    string joined_at;
+    std::string joined_at;
     MEMBER_STATUS status = MEMBER_STATUS::OFFLINE;
 
 

@@ -1,4 +1,4 @@
-//
+﻿//
 // AegisBot.cpp
 // aegisbot
 //
@@ -53,7 +53,7 @@
 #include <boost/core/null_deleter.hpp>
 
 #include <boost/iostreams/filtering_streambuf.hpp>
-#include <boost/iostreams/copy.hpp>
+#include <boost/iostreams/copy.hpp> 
 #include <boost/iostreams/filter/zlib.hpp>
 #include <boost/iostreams/device/back_inserter.hpp>
 
@@ -95,19 +95,19 @@ BOOST_LOG_ATTRIBUTE_KEYWORD(timestamp, "TimeStamp", uint64_t)
 BOOST_LOG_ATTRIBUTE_KEYWORD(severity, "Severity", severity_level)
 BOOST_LOG_ATTRIBUTE_KEYWORD(tag_attr, "Tag", std::string)
 
-string AegisBot::gatewayurl;
+std::string AegisBot::gatewayurl;
 bool AegisBot::isrunning;
 bool AegisBot::active;
 std::recursive_mutex AegisBot::m;
 std::vector<std::thread> AegisBot::threadPool;
 std::thread AegisBot::workthread;
-string AegisBot::token;
+std::string AegisBot::token;
 std::chrono::steady_clock::time_point AegisBot::starttime;
 ABCache * AegisBot::cache;
-string AegisBot::username;
+std::string AegisBot::username;
 bool AegisBot::rate_global;
 uint16_t AegisBot::discriminator;
-string AegisBot::avatar;
+std::string AegisBot::avatar;
 uint64_t AegisBot::userId;
 bool AegisBot::mfa_enabled;
 std::map<uint64_t, AegisBot::PrivateChat> AegisBot::private_channels;
@@ -117,10 +117,10 @@ std::map<uint64_t, Guild*> AegisBot::guildlist;
 std::vector<AegisBot*> AegisBot::shards;
 boost::asio::io_service AegisBot::io_service;
 uint16_t AegisBot::shardidmax;
-string AegisBot::mention;
-string AegisBot::tokenstr;
+std::string AegisBot::mention;
+std::string AegisBot::tokenstr;
 //std::map<string, <>> AegisBot::baseModules;
-std::map<string, uint64_t> AegisBot::eventCount;
+std::map<std::string, uint64_t> AegisBot::eventCount;
 
 AegisBot::AegisBot()
     : ratelimit_queue(io_service)
@@ -229,6 +229,7 @@ bool AegisBot::initialize(uint64_t shardid)
         { "USER_UPDATE", 0 },
         { "VOICE_STATE_UPDATE", 0 },
         { "READY", 0 },
+        { "RESUMED", 0 },
         { "CHANNEL_CREATE", 0 },
         { "CHANNEL_UPDATE", 0 },
         { "CHANNEL_DELETE", 0 },
@@ -301,11 +302,17 @@ void AegisBot::startShards()
     });
 
 #ifdef SELFBOT
-    boost::tie(success, res) = call("/gateway");
+    boost::optional<std::string> res = call("/gateway");
 #else
-    boost::tie(success, res) = call("/gateway/bot");
+    boost::optional<std::string> res = call("/gateway/bot");
 #endif
-    json ret = json::parse(res);
+
+    if (res == boost::none)
+    {
+        throw std::runtime_error("Error retrieving gateway.");
+    }
+
+    json ret = json::parse(res.get());
     gatewayurl = ret["url"];
 
 #ifndef SELFBOT
@@ -386,7 +393,7 @@ void AegisBot::processReady(json & d)
     json guilds = d["guilds"];
     for (auto & guildobj : guilds)
     {
-        uint64_t id = std::stoull(guildobj["id"].get<string>());
+        uint64_t id = std::stoull(guildobj["id"].get<std::string>());
 
         bool unavailable = false;
         if (guildobj.count("unavailable"))
@@ -401,12 +408,12 @@ void AegisBot::processReady(json & d)
 
             {
                 //temporary. This won't work when the bot is in over 120 guilds due to ratelimits over websocket
-                json obj;
-                obj["op"] = 8;
-                obj["d"]["guild_id"] = id;
-                obj["d"]["query"] = "";
-                obj["d"]["limit"] = 0;
-                wssend(obj.dump());
+//                 json obj;
+//                 obj["op"] = 8;
+//                 obj["d"]["guild_id"] = id;
+//                 obj["d"]["query"] = "";
+//                 obj["d"]["limit"] = 0;
+//                 wssend(obj.dump());
             }
         }
     }
@@ -422,7 +429,7 @@ void AegisBot::processReady(json & d)
     json pchannels = d["private_channels"];
     for (auto & channel : pchannels)
     {
-        uint64_t channel_id = std::stoull(channel["id"].get<string>());
+        uint64_t channel_id = std::stoull(channel["id"].get<std::string>());
         //uint64_t last_message_id = channel["last_message_id"].is_null()?0:std::stoull(channel["last_message_id"].get<string>());
         //int32_t channelType = channel["type"];
         json recipients = channel["recipients"];
@@ -433,10 +440,10 @@ void AegisBot::processReady(json & d)
         
         for (auto & recipient : recipients)
         {
-            string recipientAvatar = recipient["avatar"].is_null()?"":recipient["avatar"];
-            uint16_t recipientDiscriminator = std::stoi(recipient["discriminator"].get<string>());
-            string recipientName = recipient["username"];
-            uint64_t recipientId = std::stoull(recipient["id"].get<string>());
+            std::string recipientAvatar = recipient["avatar"].is_null()?"":recipient["avatar"];
+            uint16_t recipientDiscriminator = std::stoi(recipient["discriminator"].get<std::string>());
+            std::string recipientName = recipient["username"];
+            uint64_t recipientId = std::stoull(recipient["id"].get<std::string>());
 
             //Member & rec = privateChat.recipients[recipientId];
             privateChat.recipients.push_back(recipientId);
@@ -451,8 +458,8 @@ void AegisBot::processReady(json & d)
     sessionId = d["session_id"];
     json & userdata = d["user"];
     avatar = userdata["avatar"];
-    discriminator = std::stoi(userdata["discriminator"].get<string>());
-    userId = std::stoull(userdata["id"].get<string>());
+    discriminator = std::stoi(userdata["discriminator"].get<std::string>());
+    userId = std::stoull(userdata["id"].get<std::string>());
 
     if (AegisBot::mention.size() == 0)
     {
@@ -465,6 +472,15 @@ void AegisBot::processReady(json & d)
     username = userdata["username"];
     mfa_enabled = userdata["mfa_enabled"];
     active = true;
+
+
+    json obj;
+    obj["op"] = 3;
+    obj["d"]["idle_since"] = nullptr;
+
+    obj["d"]["game"] = { { "name", "@​Aegis help" } };
+
+    wssend(obj.dump()); 
 }
 
 void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg)
@@ -492,13 +508,15 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
  
         result = json::parse(std::move(payload));
 
+        log(fmt::format("Received: {0}", payload), severity_level::trace);
+ 
         //poco_trace_f1(*log, "Received JSON: %s", msg->get_payload());
 
         if (!result.is_null())
         {
             if (!result["t"].is_null())
             {
-                string cmd = result["t"];
+                std::string cmd = result["t"];
                 //poco_trace_f1(*log, "Processing: %s", cmd);
 
                 ++eventCount[cmd];
@@ -606,7 +624,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                 //std::cout << result.dump() << std::endl;
                 if (result["d"].count("guild_id"))
                 {
-                    Guild & guild = getGuild(std::stoull(result["d"]["guild_id"].get<string>()));
+                    Guild & guild = getGuild(std::stoull(result["d"]["guild_id"].get<std::string>()));
                     if (cmd == "CHANNEL_CREATE")
                     {
                         loadChannel(result["d"], guild.id);//untested
@@ -674,7 +692,11 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                             { "token", cache->get(tokenstr) },
                             { "properties",
                                 {
+#ifdef WIN32
+                                    { "$os", "windows" },
+#else
                                     { "$os", "linux" },
+#endif
                                     { "$browser", "aegis" },
                                     { "$device", "aegis" },
                                     { "$referrer", "" },
@@ -708,7 +730,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
 //     }
     catch (no_permission & e)
     {
-        AegisBot::channellist[std::stoull(result["d"]["channel_id"].get<string>())]->sendMessage(fmt::format("No permission: [{0}]", e.what()));
+        AegisBot::channellist[std::stoull(result["d"]["channel_id"].get<std::string>())]->sendMessage(fmt::format("No permission: [{0}]", e.what()));
         log(fmt::format("No permission: [{0}]", e.what()), severity_level::warning);
     }
     catch (std::exception& e)
@@ -726,12 +748,12 @@ void AegisBot::userMessage(json & obj)
 {
     json author = obj["author"];
 
-    uint64_t userid = std::stoull(author["id"].get<string>());
-    string username = author["username"];
+    uint64_t userid = std::stoull(author["id"].get<std::string>());
+    std::string username = author["username"];
 
-    uint64_t channel_id = std::stoull(obj["channel_id"].get<string>());
-    uint64_t id = std::stoull(obj["id"].get<string>());
-    string content = obj["content"];
+    uint64_t channel_id = std::stoull(obj["channel_id"].get<std::string>());
+    uint64_t id = std::stoull(obj["id"].get<std::string>());
+    std::string content = obj["content"];
 
     //process chat
 
@@ -866,7 +888,7 @@ std::pair<bool,string> AegisBot::call(string url, string obj, RateLimits * endpo
 #ifdef SELFBOT
         request.set("Authorization", cache->get(tokenstr));
 #else
-        request.set("Authorization", string("Bot ") + cache->get(tokenstr));
+        request.set("Authorization", std::string("Bot ") + cache->get(tokenstr));
 #endif
         request.set("User-Agent", "DiscordBot (https://github.com/zeroxs/aegisbot 0.1)");
         request.set("Content-Type", "application/json");
@@ -969,7 +991,7 @@ void AegisBot::pruneMsgHistory(const boost::system::error_code& error)
 
         log("Starting message prune", severity_level::trace);
         //2 hour expiry
-        uint64_t epoch = ((std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - (2 * 60 * 60 * 1000)) - 1420070400000) << 22;
+        int64_t epoch = ((std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - (2 * 60 * 60 * 1000)) - 1420070400000) << 22;
         for (auto & member : memberlist)
         {
             if (member.second->msghistory.size() > 0 && member.second->msghistory.front() < epoch)
@@ -1101,11 +1123,11 @@ void AegisBot::run()
                 }
             }
         }
-        std::this_thread::sleep_for(std::chrono::microseconds(1));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 }
 
-void AegisBot::wssend(string obj)
+void AegisBot::wssend(std::string obj)
 {
     std::lock_guard<std::recursive_mutex> lock(wsq);
     //TODO check rate limits here and pop if send
@@ -1119,7 +1141,7 @@ void AegisBot::loadGuild(json & obj)
     std::lock_guard<std::recursive_mutex> lock(m);
 
     //uint64_t application_id = obj->get("application_id").convert<uint64_t>();
-    uint64_t id = std::stoull(obj["id"].get<string>());
+    uint64_t id = std::stoull(obj["id"].get<std::string>());
 
 
     Guild & guild = createGuild(id);
@@ -1130,25 +1152,31 @@ void AegisBot::loadGuild(json & obj)
         guild.id = id;
 
         //guild->cmdlist = defaultcmdlist;
+        json voice_states;
 
 #define GET_NULL(x,y) (x[y].is_null())?"":x[y]
         guild.name = GET_NULL(obj, "name");
         guild.icon = GET_NULL(obj, "icon");
         guild.splash = GET_NULL(obj, "splash");
-        guild.owner_id = std::stoull(obj["owner_id"].get<string>());
+        guild.owner_id = std::stoull(obj["owner_id"].get<std::string>());
         guild.region = obj["region"];
-        guild.afk_channel_id = obj["afk_channel_id"].is_null() ? 0 : std::stoull(obj["afk_channel_id"].get<string>());
+        guild.afk_channel_id = obj["afk_channel_id"].is_null() ? 0 : std::stoull(obj["afk_channel_id"].get<std::string>());
         guild.afk_timeout = obj["afk_timeout"];//in seconds
         guild.embed_enabled = obj.count("embed_enabled") ? obj["embed_enabled"].get<bool>() : false;
         //guild.embed_channel_id = obj->get("embed_channel_id").convert<uint64_t>();
         guild.verification_level = obj["verification_level"];
         guild.default_message_notifications = obj["default_message_notifications"];
         guild.mfa_level = obj["mfa_level"];
-        guild.joined_at = obj["joined_at"];
-        guild.large = obj["large"];
-        guild.unavailable = obj.count("unavailable")?obj["unavailable"].get<bool>():true;
-        guild.member_count = obj["member_count"];
-        json voice_states = obj["voice_states"];
+        if (obj.count("joined_at"))
+            guild.joined_at = obj["joined_at"];
+        if (obj.count("large"))
+            guild.large = obj["large"];
+        if (obj.count("unavailable"))
+            guild.unavailable = obj.count("unavailable") ? obj["unavailable"].get<bool>() : true;
+        if (obj.count("member_count"))
+            guild.member_count = obj["member_count"];
+        if (obj.count("voice_states"))
+            voice_states = obj["voice_states"];
 
         if (obj.count("roles"))
         {
@@ -1246,13 +1274,13 @@ void AegisBot::loadGuild(json & obj)
     }
     catch(std::exception&e)
     {
-        log(fmt::format("Error processing guild[{0}] {1}", id, (string)e.what()), severity_level::error);
+        log(fmt::format("Error processing guild[{0}] {1}", id, (std::string)e.what()), severity_level::error);
     }
 }
 
 void AegisBot::loadChannel(json & channel, uint64_t guild_id)
 {
-    uint64_t channel_id = std::stoull(channel["id"].get<string>());
+    uint64_t channel_id = std::stoull(channel["id"].get<std::string>());
     Guild & guild = getGuild(guild_id);
 
     try
@@ -1274,7 +1302,7 @@ void AegisBot::loadChannel(json & channel, uint64_t guild_id)
         {
             //not a voice channel, so has a topic field and last message id
             checkchannel.topic = GET_NULL(channel, "topic");
-            checkchannel.last_message_id = (channel["last_message_id"].is_null()) ? 0 : std::stoull(channel["last_message_id"].get<string>());
+            checkchannel.last_message_id = (channel["last_message_id"].is_null()) ? 0 : std::stoull(channel["last_message_id"].get<std::string>());
         }
 
 
@@ -1283,8 +1311,8 @@ void AegisBot::loadChannel(json & channel, uint64_t guild_id)
         {
             uint32_t allow = permission["allow"];
             uint32_t deny = permission["deny"];
-            uint64_t p_id = std::stoull(permission["id"].get<string>());
-            string p_type = GET_NULL(permission, "type");
+            uint64_t p_id = std::stoull(permission["id"].get<std::string>());
+            std::string p_type = GET_NULL(permission, "type");
 
             if (p_type == "role")
             {
@@ -1295,10 +1323,10 @@ void AegisBot::loadChannel(json & channel, uint64_t guild_id)
             }
             else
             {
-                guild.rolelist[p_id].overrides[channel_id].allow = allow;
-                guild.rolelist[p_id].overrides[channel_id].deny = deny;
-                guild.rolelist[p_id].overrides[channel_id].id = channel_id;
-                guild.rolelist[p_id].overrides[channel_id].type = Override::ORType::USER;
+//                 memberlist[p_id]->overrides[channel_id].allow = allow;
+//                 memberlist[p_id]->overrides[channel_id].deny = deny;
+//                 memberlist[p_id]->overrides[channel_id].id = channel_id;
+//                 memberlist[p_id]->overrides[channel_id].type = Override::ORType::USER;
             }
         }
 
@@ -1315,7 +1343,7 @@ void AegisBot::loadMember(json & member, Guild & guild)
     uint64_t guild_id = guild.id;
 
     json user = member["user"];
-    uint64_t member_id = std::stoull(user["id"].get<string>());
+    uint64_t member_id = std::stoull(user["id"].get<std::string>());
     try
     {
         Member & checkmember = createMember(member_id);
@@ -1323,7 +1351,7 @@ void AegisBot::loadMember(json & member, Guild & guild)
         guild.memberlist[member_id] = std::pair<Member*, uint16_t>(&checkmember, 0);
 
         checkmember.avatar = GET_NULL(user, "avatar");
-        checkmember.discriminator = std::stoi(user["discriminator"].get<string>());
+        checkmember.discriminator = std::stoi(user["discriminator"].get<std::string>());
         checkmember.name = GET_NULL(user, "username");
 
         checkmember.deaf = member["deaf"];
@@ -1334,7 +1362,7 @@ void AegisBot::loadMember(json & member, Guild & guild)
 
         json roles = member["roles"];
         for (auto & r : roles)
-            checkmember.roles.push_back(std::stoull(r.get<string>()));
+            checkmember.roles.push_back(std::stoull(r.get<std::string>()));
 
         checkmember.guilds[guild_id].guild = &getGuild(guild_id);
     }
@@ -1348,10 +1376,10 @@ void AegisBot::loadRole(json & role, Guild & guild)
 {
     uint64_t guild_id = guild.id;
 
-    Role _role;
-    uint64_t role_id = std::stoull(role["id"].get<string>());
+    uint64_t role_id = std::stoull(role["id"].get<std::string>());
     try
     {
+        Role & _role = guild.rolelist[role_id];
         _role.hoist = role["hoist"];
         _role.managed = role["managed"];
         _role.mentionable = role["mentionable"];
@@ -1359,10 +1387,10 @@ void AegisBot::loadRole(json & role, Guild & guild)
         _role.position = role["position"];
         _role.name = GET_NULL(role, "name");
         _role.color = role["color"];
-        guild.rolelist.insert(std::pair<uint64_t, Role>(role_id, std::move(_role)));
+        //guild.rolelist.insert(std::pair<uint64_t, Role>(role_id, std::move(_role)));
 
 
-//         for (auto & member : guild->clientlist)
+//         for (auto & member : guild.memberlist)
 //         {
 //             for (auto & role : member.second.first->roles)
 //             {
@@ -1444,7 +1472,7 @@ void AegisBot::setupLogging()
     }
 }
 
-void AegisBot::log(string message, severity_level level)
+void AegisBot::log(std::string message, severity_level level)
 {
     boost::log::record rec = slg.open_record(keywords::severity = level);
     if (rec)

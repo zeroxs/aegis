@@ -56,16 +56,16 @@ public:
     Guild & guild() { return *_guild; }
  
     void getMessages(uint64_t messageid, ABMessageCallback callback = ABMessageCallback());
-    void sendMessage(string content, ABMessageCallback callback = ABMessageCallback());
+    void sendMessage(std::string content, ABMessageCallback callback = ABMessageCallback());
     void sendMessageEmbed(json content, json embed, ABMessageCallback callback = ABMessageCallback());
-    void bulkDelete(std::vector<string> messages, ABMessageCallback callback = ABMessageCallback());
+    void bulkDelete(std::vector<std::string> messages, ABMessageCallback callback = ABMessageCallback());
     void deleteChannel(ABMessageCallback callback = ABMessageCallback());
 
 
     uint64_t id = 0;
     uint64_t last_message_id = 0;
-    string name;
-    string topic;
+    std::string name;
+    std::string topic;
     uint32_t position = 0;
     ChannelType type = ChannelType::TEXT;// 0 = text, 2 = voice
 

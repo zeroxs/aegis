@@ -70,10 +70,6 @@
 #include "RateLimits.h"
 #include "../lib/fmt/fmt/ostream.h"
 
-
-
-
-
 #if defined(_WIN32)
 #include <windows.h>
 #include <psapi.h>
@@ -102,8 +98,6 @@ using json = nlohmann::json;
 using namespace Poco::Net;
 using Poco::Dynamic::Var;
 using Poco::URI;
-
-using std::string;
 
 class Guild;
 class AegisModule;
@@ -142,24 +136,24 @@ public:
     static AegisBot & getShard(uint16_t shard) { return *shards[shard]; };
     static void threads();
     static void cleanup();
-    static string gatewayurl;
+    static std::string gatewayurl;
     static bool isrunning;
     static bool active;
     //default commands for guilds
     static std::recursive_mutex m;
     static std::vector<std::thread> threadPool;
     static std::thread workthread;
-    static string token;
+    static std::string token;
     static std::chrono::steady_clock::time_point starttime;
     static ABCache * cache;
-    static string username;
+    static std::string username;
     static bool rate_global;
     static uint16_t discriminator;
-    static string avatar;
+    static std::string avatar;
     static uint64_t userId;
     static bool mfa_enabled;
-    static string mention;
-    static string tokenstr;
+    static std::string mention;
+    static std::string tokenstr;
     //static std::map<string, <>> baseModules;
 
     //stats
@@ -183,9 +177,9 @@ public:
     static std::vector<AegisBot*> shards;
     static boost::asio::io_service io_service;
 
-    static std::map<string, uint64_t> eventCount;
+    static std::map<std::string, uint64_t> eventCount;
 
-    Member * self;
+    Member * self = nullptr;
 
     static uint16_t shardidmax;
     uint16_t shardid;
@@ -200,17 +194,17 @@ public:
     uint32_t _rate_reset = 0;
 
     std::recursive_mutex wsq;
-    void wssend(string obj);
+    void wssend(std::string obj);
 
     RateLimits ratelimits;
 
     //Authorization
     uint64_t sequence = 0;
-    string sessionId;
+    std::string sessionId;
 
 
     void run();
-    void log(string message, severity_level level = severity_level::normal);
+    void log(std::string message, severity_level level = severity_level::normal);
     uint64_t convertDateToInt64(std::string timestamp);
 
 

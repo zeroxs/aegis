@@ -51,9 +51,9 @@ public:
     }
 
     void rateRemaining(uint32_t rate) { _rate_remaining = rate; }
-    uint32_t rateRemaining()
+    uint8_t rateRemaining()
     {
-        uint64_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+        int64_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
         if (_rate_reset < epoch)
         {
             _rate_reset = 0;
@@ -67,13 +67,13 @@ public:
     uint32_t rateLimit() { return _rate_limit; }
     void rateRetry(uint32_t rate) { _retry_after = rate; }
     uint32_t rateRetry() { return _retry_after; }
-    void addFailure() { failures++; _lastfailure = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count(); }
+    void addFailure() { failures++; _lastfailure = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count(); }
     void resetFailure() { failures = 0; _lastfailure = 0; }
     bool isFailureTime()
     {
         if (failures > 10)
         {
-            uint64_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+            int64_t epoch = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
             if (_lastfailure + 30 < epoch)
             {
                 return true;
@@ -81,7 +81,7 @@ public:
         }
         if (failures > 3)
         {
-            uint64_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+            int64_t epoch = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
             if (_lastfailure + 5 < epoch)
             {
                 return true;
@@ -90,7 +90,7 @@ public:
         return false;
     }
 
-    void setRates(uint32_t limit, uint32_t remaining, uint32_t reset, uint32_t retry)
+    void setRates(uint8_t limit, uint8_t remaining, uint32_t reset, uint32_t retry)
     {
         _rate_limit = limit;
         _rate_remaining = remaining;
@@ -119,13 +119,13 @@ public:
 
     static bool rate_global;
 
-    uint64_t failures = 0;
+    uint8_t failures = 0;
     std::recursive_mutex m;
 private:
-    uint64_t _rate_limit = 10;
-    uint64_t _rate_remaining = 10;
-    uint64_t _rate_reset = 0;
-    uint64_t _retry_after = 0;
-    uint64_t _lastfailure = 0;
+    uint8_t _rate_limit = 10;
+    uint8_t _rate_remaining = 10;
+    uint32_t _rate_reset = 0;
+    uint32_t _retry_after = 0;
+    int64_t _lastfailure = 0;
 };
 

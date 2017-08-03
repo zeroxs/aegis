@@ -74,7 +74,7 @@ void Channel::getMessages(uint64_t messageid, ABMessageCallback callback)
     ratelimits.putMessage(std::move(message));
 }
 
-void Channel::sendMessage(string content, ABMessageCallback callback)
+void Channel::sendMessage(std::string content, ABMessageCallback callback)
 {
     //ignore permissions in hopes the bot has it as it uses sendMessage() to report other
     //permission errors and failures if enabled
@@ -117,7 +117,7 @@ void Channel::sendMessageEmbed(json content, json embed, ABMessageCallback callb
     ratelimits.putMessage(std::move(message));
 }
 
-void Channel::bulkDelete(std::vector<string> messages, ABMessageCallback callback)
+void Channel::bulkDelete(std::vector<std::string> messages, ABMessageCallback callback)
 {
     if (!canManageMessages())
     {

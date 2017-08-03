@@ -44,7 +44,7 @@ Guild::~Guild()
 void Guild::processMessage(json obj)
 {
     json author = obj["author"];
-    uint64_t userid = std::stoull(author["id"].get<string>());
+    uint64_t userid = std::stoull(author["id"].get<std::string>());
 
     //if this is my own message, ignore
 #ifndef SELFBOT
@@ -55,15 +55,15 @@ void Guild::processMessage(json obj)
         return;
 #endif
 
-    string avatar = author["avatar"].is_string()?author["avatar"]:"";
-    string username = author["username"];
+    std::string avatar = author["avatar"].is_string()?author["avatar"]:"";
+    std::string username = author["username"];
     //uint16_t discriminator = std::stoi(author["discriminator"].get<string>());
 
-    uint64_t channel_id = std::stoull(obj["channel_id"].get<string>());
-    uint64_t id = std::stoull(obj["id"].get<string>());
+    uint64_t channel_id = std::stoull(obj["channel_id"].get<std::string>());
+    uint64_t id = std::stoull(obj["id"].get<std::string>());
     //uint64_t nonce = obj["nonce"].is_null()?0:std::stoull(obj["nonce"].get<string>());
 
-    string content = obj["content"];
+    std::string content = obj["content"];
     //bool tts = obj["tts"];
     //bool pinned = obj["pinned"];
 
@@ -88,13 +88,13 @@ void Guild::processMessage(json obj)
 
             if (token == tok.end()) return;
 
-            string cmd = *(token++);
+            std::string cmd = *(token++);
 
 #ifdef _DEBUG
             if (cmd == "setprefix")
             {
                 if (token == tok.end()) return;
-                string setprefix = *(token++);
+                std::string setprefix = *(token++);
                 if (setprefix.size() == 0)
                     channellist[channel_id]->sendMessage("Invalid arguments. Prefix must have a length greater than 0");
                 else
@@ -139,11 +139,11 @@ void Guild::processMessage(json obj)
                 auto token = tok.begin();
 
                 token++;
-                string cmd = *(token++);
+                std::string cmd = *(token++);
 
                 if (cmd == "setprefix")
                 {
-                    string setprefix = *(token++);
+                    std::string setprefix = *(token++);
                     if (setprefix.size() == 0)
                         channellist[channel_id]->sendMessage("Invalid arguments. Prefix must have a length greater than 0");
                     else
@@ -165,12 +165,12 @@ void Guild::processMessage(json obj)
                     {
                         uint64_t channel = stoull(*(token++));
                         activeChannels.push_back(channel);
-                        channellist[channel_id]->sendMessage(fmt::format("Channel [{0}] added to whitelist", channel));
+                        channellist[channel_id]->sendMessage(fmt::format("Channel [<#{0}>] added to whitelist", channel));
                     }
                     catch (std::exception&e)
                     {
                         activeChannels.push_back(channel_id);
-                        channellist[channel_id]->sendMessage(fmt::format("Channel [{0}] added to whitelist", channel_id));
+                        channellist[channel_id]->sendMessage(fmt::format("Channel [<#{0}>] added to whitelist", channel_id));
                     }
                     return;
                 }
@@ -183,7 +183,7 @@ void Guild::processMessage(json obj)
                         if (it != activeChannels.end())
                         {
                             activeChannels.erase(it);
-                            channellist[channel_id]->sendMessage(fmt::format("Channel [{0}] removed from whitelist", channel));
+                            channellist[channel_id]->sendMessage(fmt::format("Channel [<#{0}>] removed from whitelist", channel));
                             return;
                         }
                     }
@@ -193,7 +193,7 @@ void Guild::processMessage(json obj)
                         if (it != activeChannels.end())
                         {
                             activeChannels.erase(it);
-                            channellist[channel_id]->sendMessage(fmt::format("Channel [{0}] removed from whitelist", channel_id));
+                            channellist[channel_id]->sendMessage(fmt::format("Channel [<#{0}>] removed from whitelist", channel_id));
                             return;
                         }
                     }
@@ -231,7 +231,7 @@ void Guild::processMessage(json obj)
     boost::tokenizer<boost::char_separator<char>> tok{ content, sep };
 
     //TODO: 
-    //boost::tokenizer<boost::char_separator<char>> tok{ content.substr(prefix.size(), sep };
+    //boost::tokenizer<boost::char_separator<char>> tok{ content.substr(prefix.size()), sep };
     //vs
     //string cmd = (*(token++)).substr(prefix.size());
 
@@ -239,7 +239,7 @@ void Guild::processMessage(json obj)
         return;
 
     auto token = tok.begin();
-    string cmd = (*(token++)).substr(prefix.size());
+    std::string cmd = (*(token++)).substr(prefix.size());
 
     //check if attachment exists
     if (obj.count("attachments") > 0)
@@ -294,17 +294,17 @@ void Guild::processMessage(json obj)
     }
 }
 
-void Guild::addCommand(string command, ABMessageCallback callback)
+void Guild::addCommand(std::string command, ABMessageCallback callback)
 {
     cmdlist[command] = ABCallbackPair(ABCallbackOptions(), callback);
 }
 
-void Guild::addCommand(string command, ABCallbackPair callback)
+void Guild::addCommand(std::string command, ABCallbackPair callback)
 {
     cmdlist[command] = callback;
 }
 
-void Guild::removeCommand(string command)
+void Guild::removeCommand(std::string command)
 {
     if (cmdlist.count(command) > 0)
     {

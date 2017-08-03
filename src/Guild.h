@@ -37,7 +37,6 @@
 
 class AegisBot;
 
-using std::string;
 using json = nlohmann::json;
 
 class Guild : public Permission
@@ -49,9 +48,9 @@ public:
     AegisBot & bot;
 
     void processMessage(json obj);
-    void addCommand(string command, ABMessageCallback callback);
-    void addCommand(string command, ABCallbackPair callback);
-    void removeCommand(string command);
+    void addCommand(std::string command, ABMessageCallback callback);
+    void addCommand(std::string command, ABCallbackPair callback);
+    void removeCommand(std::string command);
     void addAttachmentHandler(ABMessageCallback callback);
     void addAttachmentHandler(ABCallbackPair callback);
     void removeAttachmentHandler();
@@ -81,14 +80,14 @@ public:
 
     RateLimits ratelimits;
 
-    string prefix = "?";
+    std::string prefix = "?";
 
     uint64_t id = 0;
-    string name;
-    string icon;
-    string splash;
+    std::string name;
+    std::string icon;
+    std::string splash;
     uint64_t owner_id = 0;
-    string region;
+    std::string region;
     uint64_t afk_channel_id = 0;
     uint32_t afk_timeout = 0;//in seconds
     bool embed_enabled = false;
@@ -96,7 +95,7 @@ public:
     uint32_t verification_level = 0;
     uint32_t default_message_notifications = 0;
     uint32_t mfa_level = 0;
-    string joined_at;
+    std::string joined_at;
     bool large = false;
     bool unavailable = true;
     uint32_t member_count = 0;

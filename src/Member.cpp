@@ -29,7 +29,7 @@
 
 std::mutex Member::m;
 
-Member::Member(uint64_t id, string name, uint16_t discriminator, string avatar)
+Member::Member(uint64_t id, std::string name, uint16_t discriminator, std::string avatar)
     : id(id)
     , name(name)
     , discriminator(discriminator)
@@ -56,7 +56,7 @@ std::vector<Guild*> Member::getGuilds()
     return result;
 }
 
-boost::optional<string> Member::getName(uint64_t guildid)
+boost::optional<std::string> Member::getName(uint64_t guildid)
 {
     if (guilds[guildid].nickname.length() > 0)
     {
@@ -65,7 +65,7 @@ boost::optional<string> Member::getName(uint64_t guildid)
     return boost::none;
 }
 
-string Member::getFullName()
+std::string Member::getFullName()
 {
     std::stringstream fullname;
     fullname << name;

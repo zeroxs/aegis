@@ -118,7 +118,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>PocoFoundationd.lib;PocoNetd.lib;PocoNetSSLd.lib;libboost_log-vc140-mt-gd-1_63.lib;libboost_log_setup-vc140-mt-gd-1_63.lib;libboost_thread-vc140-mt-gd-1_63.lib;libboost_system-vc140-mt-gd-1_63.lib;fmt.lib;libeay32.lib;ssleay32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>PocoFoundationd.lib;PocoNetd.lib;PocoNetSSLd.lib;boost_log-vc140-mt-gd-1_63.lib;boost_log_setup-vc140-mt-gd-1_63.lib;boost_thread-vc140-mt-gd-1_63.lib;boost_system-vc140-mt-gd-1_63.lib;fmt.lib;libeay32.lib;ssleay32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

@@ -1,4 +1,4 @@
-﻿//
+//
 // main.cpp
 // aegisbot
 //
@@ -24,7 +24,11 @@
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "AegisBot.h"
+#if defined USE_REDIS
 #include "ABRedisCache.h"
+#elif defined USE_MEMORY
+#include "ABMemoryCache.h"
+#endif
 #include <boost/lexical_cast.hpp>
 #include <json.hpp>
 #include <boost/algorithm/string.hpp>
@@ -42,7 +46,7 @@ string uptime();
 
 int main(int argc, char * argv[])
 {
-    srand(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+    srand(static_cast<int32_t>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count()));
 
 #ifdef WIN32
     Poco::Crypto::OpenSSLInitializer::initialize();
@@ -61,7 +65,7 @@ int main(int argc, char * argv[])
         boost::asio::io_service::work work(AegisBot::io_service);
 
         AegisBot::setupLogging();
-
+        
 #if defined USE_REDIS
         ABRedisCache cache(AegisBot::io_service);
 #ifdef WIN32
@@ -71,7 +75,7 @@ int main(int argc, char * argv[])
 #endif
         cache.port = 6379;
         cache.password = "";
-#elif define USE_MEMORY
+#elif defined USE_MEMORY
         ABMemoryCache cache(AegisBot::io_service);
 #endif
 
@@ -196,10 +200,10 @@ int main(int argc, char * argv[])
             {
                 { { "name", "Members" },{ "value", members },{ "inline", true } },
                 { { "name", "Channels" },{ "value", channels },{ "inline", true } },
-                { { "name", "Uptime test" },{ "value", uptime() },{ "inline", true } },
+                { { "name", "Uptime" },{ "value", uptime() },{ "inline", true } },
                 { { "name", "Guilds" },{ "value", guilds },{ "inline", true } },
                 { { "name", "Events Seen" },{ "value", events },{ "inline", true } },
-                { { "name", "\u200b" },{ "value", "\u200b" },{ "inline", true } },
+                { { "name", u8"\u200b" },{ "value", u8"\u200b" },{ "inline", true } },
                 { { "name", "misc" },{ "value", misc },{ "inline", false } }
             }
                     )
@@ -239,7 +243,7 @@ int main(int argc, char * argv[])
             {
                 try
                 {
-                    uint64_t epoch = ((std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - (14 * 24 * 60 * 60 * 1000)) - 1420070400000) << 22;
+                    int64_t epoch = ((std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - (14 * 24 * 60 * 60 * 1000)) - 1420070400000) << 22;
                     std::vector<string> delmessages;
                     for (auto & m : message.obj)
                     {
@@ -330,45 +334,38 @@ int main(int argc, char * argv[])
             std::vector<string> tokens;
             boost::split(tokens, message.content, boost::is_any_of(" "));
 
-            uint64_t guildid = std::stoull(tokens[1]);
-
             if (tokens.size() >= 2)
             {
-                try
-                {
-                    Guild & guild = message.bot.getGuild(guildid);
-                    string title;
+                uint64_t guildid = std::stoull(tokens[1]);
+              
+                Guild & guild = message.bot.getGuild(guildid);
+                string title;
 
-                    title = fmt::format("Server: **{0}**", guild.name);
+                title = fmt::format("Server: **{0}**", guild.name);
 
-                    uint64_t botcount = 0;
-                    for (auto & m : guild.memberlist)
-                        if (m.second.first->isbot)
-                            botcount++;
-                    //TODO: may break until full member chunk is obtained on connect
+                uint64_t botcount = 0;
+                for (auto & m : guild.memberlist)
+                    if (m.second.first->isbot)
+                        botcount++;
+                //TODO: may break until full member chunk is obtained on connect
 
-                    //TODO:2 this should be getMember
-                    Member & owner = guild.bot.createMember(guild.owner_id);
-                    fmt::MemoryWriter w;
-                    w << "Owner name: " << owner.getFullName() << " [" << owner.getName(guild.id).value_or("") << "]\n"
-                        << "Owner id: " << guild.owner_id << "\n"
-                        << "Member count: " << guild.memberlist.size() << "\n"
-                        << "Channel count: " << guild.channellist.size() << "\n"
-                        << "Bot count: " << botcount << "\n"
-                        << "";
+                //TODO:2 this should be getMember
+                Member & owner = guild.bot.getMember(guild.owner_id);
+                fmt::MemoryWriter w;
+                w << "Owner name: " << owner.getFullName() << " [" << owner.getName(guild.id).value_or("") << "]\n"
+                    << "Owner id: " << guild.owner_id << "\n"
+                    << "Member count: " << guild.memberlist.size() << "\n"
+                    << "Channel count: " << guild.channellist.size() << "\n"
+                    << "Bot count: " << botcount << "\n"
+                    << "";
 
 
-                    json t = {
-                        { "title", title },
-                        { "description", w.str() },
-                        { "color", 10599460 }
-                    };
-                    message.channel().sendMessageEmbed(json(), t);
-                }
-                catch (std::domain_error & e)
-                {
-                    message.channel().sendMessage(string(e.what()));
-                }
+                json t = {
+                    { "title", title },
+                    { "description", w.str() },
+                    { "color", 10599460 }
+                };
+                message.channel().sendMessageEmbed(json(), t);
             }
             else
             {

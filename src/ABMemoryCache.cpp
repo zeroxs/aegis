@@ -46,6 +46,7 @@ ABMemoryCache::~ABMemoryCache()
 bool ABMemoryCache::initialize()
 {
     //nothing to do here
+    return true;
 }
 
 string ABMemoryCache::get(string key, bool useprefix)
@@ -63,6 +64,7 @@ bool ABMemoryCache::put(string key, string value, bool useprefix)
         memdata[prefix + key] = value;
     else
         memdata[key] = value;
+    return true;
 }
 
 void ABMemoryCache::expire(string key, int64_t value, bool useprefix)
