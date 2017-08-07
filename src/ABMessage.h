@@ -37,7 +37,6 @@ class Member;
 class AegisBot;
 class ABMessage;
 
-using std::string;
 using json = nlohmann::json;
 
 struct ABCallbackOptions
@@ -60,11 +59,11 @@ public:
     Guild & guild() { return *_guild; }
     Channel & channel() { return *_channel; }
     Member & member() { return *_member; }
-    string content;
-    string cmd;
-    string method;
-    string endpoint;
-    string query;
+    std::string content;
+    std::string cmd;
+    std::string method;
+    std::string endpoint;
+    std::string query;
     ABMessageCallback callback;
     json obj;
     AegisBot & bot;

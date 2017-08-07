@@ -46,7 +46,7 @@ ABRedisCache::~ABRedisCache()
 bool ABRedisCache::initialize()
 {
     boost::asio::ip::address connectaddress = boost::asio::ip::address::from_string(address);
-    string errmsg;
+    std::string errmsg;
     if (!redis.connect(connectaddress, port, errmsg))
     {
         std::cerr << "Can't connect to redis: " << errmsg << std::endl;
@@ -68,7 +68,7 @@ bool ABRedisCache::initialize()
     return true;
 }
 
-string ABRedisCache::run(string key)
+std::string ABRedisCache::run(std::string key)
 {
     RedisValue result;
     result = redis.command(key, {});
@@ -79,7 +79,7 @@ string ABRedisCache::run(string key)
         return "";
 }
 
-string ABRedisCache::get(string key, bool useprefix)
+std::string ABRedisCache::get(std::string key, bool useprefix)
 {
     RedisValue result;
     if (useprefix)
@@ -93,7 +93,7 @@ string ABRedisCache::get(string key, bool useprefix)
         return "";
 }
 
-bool ABRedisCache::put(string key, string value, bool useprefix)
+bool ABRedisCache::put(std::string key, std::string value, bool useprefix)
 {
     RedisValue result;
     if (useprefix)
@@ -107,7 +107,7 @@ bool ABRedisCache::put(string key, string value, bool useprefix)
         return false;
 }
 
-void ABRedisCache::expire(string key, int64_t value, bool useprefix)
+void ABRedisCache::expire(std::string key, int64_t value, bool useprefix)
 {
     RedisValue result;
     if (useprefix)
@@ -116,7 +116,7 @@ void ABRedisCache::expire(string key, int64_t value, bool useprefix)
         result = redis.command("EXPIRE", { key, boost::lexical_cast<std::string>(value) });
 }
 
-string ABRedisCache::getset(string key, string value, bool useprefix)
+std::string ABRedisCache::getset(std::string key, std::string value, bool useprefix)
 {
     RedisValue result;
     if (useprefix)
@@ -130,7 +130,7 @@ string ABRedisCache::getset(string key, string value, bool useprefix)
         return "";
 }
 
-string ABRedisCache::eval(string script)
+std::string ABRedisCache::eval(std::string script)
 {
     RedisValue result = redis.command("EVAL", { script });
 

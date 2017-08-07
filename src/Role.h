@@ -30,8 +30,6 @@
 #include <map>
 #include "Permission.h"
 
-using std::string;
-
 class Role
 {
 public:
@@ -40,7 +38,7 @@ public:
     uint64_t id;
     bool managed = false;
     bool mentionable = false;
-    string name;
+    std::string name;
     uint64_t permissions;
     uint16_t position = 0;
 

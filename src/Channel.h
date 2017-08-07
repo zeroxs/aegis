@@ -39,7 +39,6 @@ class Guild;
 class Channel;
 class Member;
 class AegisBot;
-using std::string;
 
 enum class ChannelType
 {

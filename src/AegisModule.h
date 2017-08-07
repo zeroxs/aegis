@@ -28,7 +28,6 @@
 #include <string>
 #include <memory>
 
-using std::string;
 
 class Guild;
 class AegisBot;
@@ -47,6 +46,6 @@ public:
     virtual void remove() = 0;
 
     AegisBot & bot;
-    string name;
+    std::string name;
     Guild & guild;
 };

@@ -41,8 +41,10 @@
 #define WIN32_PAUSE
 #endif
 
+#define _DEBUGTOKEN
 
-string uptime();
+
+std::string uptime();
 
 int main(int argc, char * argv[])
 {
@@ -87,6 +89,7 @@ int main(int argc, char * argv[])
             return -1;
         }
         AegisBot::setupCache(&cache);
+        //cache.put("config:token", "Mjg4MDYzMTYzNzI5OTY5MTUy.DC61AQ.s8gzSsMJbMl0eeh3gX3EDtu-6Sw");
 
         //create our Bot object and cache and configure the basic settings
         AegisBot::startShards();
@@ -96,16 +99,16 @@ int main(int argc, char * argv[])
         auto & bot = AegisBot::getShard(0);
 
         //add unique commands to a specific guild. no other guilds can access these
-        Guild & myguild = bot.createGuild(287048029524066334LL);
-        Guild & dbots = bot.createGuild(110373943822540800LL);
-        Guild & dapi = bot.createGuild(81384788765712384LL);
+        Guild & myguild = bot.getGuild(287048029524066334LL);
+        Guild & dbots = bot.getGuild(110373943822540800LL);
+        Guild & dapi = bot.getGuild(81384788765712384LL);
         
 
 
 
         auto SetGame = [&bot](ABMessage & message)
         {
-            string gamestr = message.content.substr(message.channel().guild().prefix.size() + 8);
+            std::string gamestr = message.content.substr(message.channel().guild().prefix.size() + 8);
             AegisBot::io_service.post([game = std::move(gamestr), &bot = message.channel().guild().bot]()
             {
                 json obj;
@@ -178,17 +181,17 @@ int main(int argc, char * argv[])
                 member_count = message.bot.memberlist.size();
             }
 
-            string members = fmt::format("{0} seen\n{1} total\n{2} unique\n{3} online\n{4} dnd", member_count, member_count_active, member_count_unique, member_online_count, member_dnd_count);
-            string channels = fmt::format("{0} total\n{1} text\n{2} voice", channel_count, channel_text_count, channel_voice_count);
-            string guilds = fmt::format("{0}", guild_count);
-            string events = fmt::format("{0}", eventsseen);
-            string misc = fmt::format("I am shard {0} of {1}", message.channel().guild().bot.shardid + 1, message.channel().guild().bot.shardidmax);
+            std::string members = fmt::format("{0} seen\n{1} total\n{2} unique\n{3} online\n{4} dnd", member_count, member_count_active, member_count_unique, member_online_count, member_dnd_count);
+            std::string channels = fmt::format("{0} total\n{1} text\n{2} voice", channel_count, channel_text_count, channel_voice_count);
+            std::string guilds = fmt::format("{0}", guild_count);
+            std::string events = fmt::format("{0}", eventsseen);
+            std::string misc = fmt::format("I am shard {0} of {1}", message.channel().guild().bot.shardid + 1, message.channel().guild().bot.shardidmax);
 
             fmt::MemoryWriter w;
             w << "[Latest bot source](https://github.com/zeroxs/aegis)\n[Official Bot Server](https://discord.gg/w7Y3Bb8)\n\nMemory usage: "
                 << double(AegisBot::getCurrentRSS()) / (1024 * 1024) << "MB\nMax Memory: "
                 << double(AegisBot::getPeakRSS()) / (1024 * 1024) << "MB";
-            string stats = w.str();
+            std::string stats = w.str();
 
             message.content = "";
             json t = {
@@ -213,6 +216,11 @@ int main(int argc, char * argv[])
             message.channel().sendMessageEmbed(json(), t);
         };
 
+//         myguild.addCommand("reset", [&bot](ABMessage & message)
+//         {
+//             message.channel().guild().bot.ws.close(message.channel().guild().bot.hdl, 1002, "");
+//         });
+        
 
 
 
@@ -244,12 +252,12 @@ int main(int argc, char * argv[])
                 try
                 {
                     int64_t epoch = ((std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - (14 * 24 * 60 * 60 * 1000)) - 1420070400000) << 22;
-                    std::vector<string> delmessages;
+                    std::vector<std::string> delmessages;
                     for (auto & m : message.obj)
                     {
-                        if (std::stoull(m["id"].get<string>()) > epoch)
+                        if (std::stoull(m["id"].get<std::string>()) > epoch)
                         {
-                            delmessages.push_back(m["id"].get<string>());
+                            delmessages.push_back(m["id"].get<std::string>());
                         }
                     }
                     message.channel().bulkDelete(delmessages);
@@ -263,7 +271,7 @@ int main(int argc, char * argv[])
 
         myguild.addCommand("disc", [&bot](ABMessage & message)
         {
-            std::vector<string> tokens;
+            std::vector<std::string> tokens;
             boost::split(tokens, message.content, boost::is_any_of(" "));
 
             fmt::MemoryWriter w;
@@ -302,7 +310,7 @@ int main(int argc, char * argv[])
 
         myguild.addCommand("leaveserver", [&bot](ABMessage & message)
         {
-            std::vector<string> tokens;
+            std::vector<std::string> tokens;
             boost::split(tokens, message.content, boost::is_any_of(" "));
 
             uint64_t guildid = std::stoull(tokens[1]);
@@ -311,16 +319,16 @@ int main(int argc, char * argv[])
             {
                 try
                 {
-                    string guildname = message.bot.getGuild(guildid).name;
+                    std::string guildname = message.bot.getGuild(guildid).name;
                     message.channel().sendMessage(fmt::format("Leaving **{1}** [{0}]", tokens[1], message.bot.getGuild(guildid).name));
-                    message.bot.getGuild(guildid).leave(std::bind([](ABMessage & message, string id, string guildname, Channel * channel)
+                    message.bot.getGuild(guildid).leave(std::bind([](ABMessage & message, std::string id, std::string guildname, Channel * channel)
                     {
                         channel->sendMessage(fmt::format("Successfully left **{1}** [{0}]", id, guildname));
                     }, std::placeholders::_1, tokens[1], guildname, &message.channel()));
                 }
                 catch (std::domain_error & e)
                 {
-                    message.channel().sendMessage(string(e.what()));
+                    message.channel().sendMessage(std::string(e.what()));
                 }
             }
             else
@@ -331,7 +339,7 @@ int main(int argc, char * argv[])
 
         myguild.addCommand("serverinfo", [&bot](ABMessage & message)
         {
-            std::vector<string> tokens;
+            std::vector<std::string> tokens;
             boost::split(tokens, message.content, boost::is_any_of(" "));
 
             if (tokens.size() >= 2)
@@ -339,7 +347,7 @@ int main(int argc, char * argv[])
                 uint64_t guildid = std::stoull(tokens[1]);
               
                 Guild & guild = message.bot.getGuild(guildid);
-                string title;
+                std::string title;
 
                 title = fmt::format("Server: **{0}**", guild.name);
 
@@ -396,7 +404,7 @@ int main(int argc, char * argv[])
 }
 
 
-string uptime()
+std::string uptime()
 {
     std::stringstream ss;
     std::chrono::steady_clock::time_point timenow = std::chrono::steady_clock::now();

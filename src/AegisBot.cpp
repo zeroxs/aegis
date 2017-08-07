@@ -62,7 +62,7 @@
 #endif
 
 template< typename CharT, typename TraitsT >
-inline std::basic_ostream< CharT, TraitsT >& operator<< (std::basic_ostream< CharT, TraitsT >& strm, severity_level level)
+std::basic_ostream< CharT, TraitsT >& operator<< (std::basic_ostream< CharT, TraitsT >& strm, severity_level level)
 {
     static const char* const str[] =
     {
@@ -86,8 +86,6 @@ namespace src = boost::log::sources;
 namespace sinks = boost::log::sinks;
 namespace expr = boost::log::expressions;
 namespace keywords = boost::log::keywords;
-
-using boost::shared_ptr;
 
 //#include <curl/curl.h>
 
@@ -155,55 +153,35 @@ void AegisBot::cleanup()
     }
 }
 
-Guild & AegisBot::createGuild(uint64_t id)
-{
-    if (AegisBot::guildlist.count(id))
-        return *AegisBot::guildlist[id];
-    //AegisBot::guildlist[id] = Guild(*this, id);
-    AegisBot::guildlist.insert(std::pair<uint64_t, Guild*>(id, new Guild(*this, id)));
-    AegisBot::guildlist[id]->id = id;
-    return *AegisBot::guildlist[id];
-}
-
-Member & AegisBot::createMember(uint64_t id)
-{
-    if (AegisBot::memberlist.count(id))
-        return *AegisBot::memberlist[id];
-    //AegisBot::globalusers[id] = Member();
-    AegisBot::memberlist.insert(std::pair<uint64_t, Member*>(id, new Member()));
-    AegisBot::memberlist[id]->id = id;
-    return *AegisBot::memberlist[id];
-}
-
-Channel & AegisBot::createChannel(uint64_t id, uint64_t guildid)
-{
-    if (AegisBot::channellist.count(id))
-        return *AegisBot::channellist[id];
-    //AegisBot::channellist[id] = Channel(CreateGuild(guildid));
-    AegisBot::channellist.insert(std::pair<uint64_t, Channel*>(id, new Channel(&createGuild(guildid))));
-    AegisBot::channellist[id]->id = id;
-    return *AegisBot::channellist[id];
-}
-
 Guild & AegisBot::getGuild(uint64_t id)
 {
-    if (AegisBot::guildlist.count(id))
-        return *AegisBot::guildlist[id];
-    throw std::domain_error("Exception: Guild does not exist");
+    if (guildlist.count(id))
+        return *guildlist[id];
+    //guildlist[id] = Guild(*this, id);
+    guildlist.insert(std::pair<uint64_t, Guild*>(id, new Guild(*this, id)));
+    guildlist[id]->id = id;
+    return *guildlist[id];
 }
 
 Member & AegisBot::getMember(uint64_t id)
 {
-    if (AegisBot::memberlist.count(id))
-        return *AegisBot::memberlist[id];
-    throw std::domain_error("Exception: Member does not exist");
+    if (memberlist.count(id))
+        return *memberlist[id];
+    //globalusers[id] = Member();
+    memberlist.insert(std::pair<uint64_t, Member*>(id, new Member()));
+    memberlist[id]->id = id;
+    return *memberlist[id];
 }
 
 Channel & AegisBot::getChannel(uint64_t id)
 {
-    if (AegisBot::channellist.count(id))
-        return *AegisBot::channellist[id];
-    throw std::domain_error("Exception: Channel does not exist");
+    if (channellist.count(id))
+    {
+        return *channellist[id];
+    }
+    channellist.insert(std::pair<uint64_t, Channel*>(id, new Channel()));
+    channellist[id]->id = id;
+    return *channellist[id];
 }
 
 void AegisBot::setupCache(ABCache * in)
@@ -272,11 +250,9 @@ bool AegisBot::initialize(uint64_t shardid)
         log(fmt::format("Connection failed: {0}", ec.message()), severity_level::error);
         return false;
     }
-    else
-    {
-        ws.connect(connection);
-        return true;
-    }
+
+    ws.connect(connection);
+    return true;
 }
 
 void AegisBot::startShards()
@@ -323,18 +299,18 @@ void AegisBot::startShards()
 
     for (int i = 0; i < AegisBot::shardidmax; ++i)
     {
-        AegisBot::shards.push_back(new AegisBot);
-        AegisBot::shards[i]->initialize(i);
-        AegisBot::threadPool.push_back(std::thread([=]()
+        shards.push_back(new AegisBot);
+        shards[i]->initialize(i);
+        threadPool.push_back(std::thread([=]()
         {
             if (i == 0)
             {
                 //only have shard 0 do maint stuff since it's always guaranteed to be loaded
-                AegisBot::shards[i]->prunemessages.expires_from_now(std::chrono::seconds(30));
-                AegisBot::shards[i]->prunemessages.async_wait([=](const boost::system::error_code & ec) { AegisBot::shards[i]->pruneMsgHistory(ec); });
+                shards[i]->prunemessages.expires_from_now(std::chrono::seconds(30));
+                shards[i]->prunemessages.async_wait([=](const boost::system::error_code & ec) { AegisBot::shards[i]->pruneMsgHistory(ec); });
             }
 
-            AegisBot::shards[i]->run();
+            shards[i]->run();
         }));
     }
 }
@@ -343,9 +319,9 @@ void AegisBot::threads()
 {
     for (size_t t = 0; t < std::thread::hardware_concurrency() * 2; t++)
         threadPool.push_back(std::thread([&]() { io_service.run(); }));
-    for (auto & b : AegisBot::shards)
-        AegisBot::threadPool.push_back(std::thread([&]() { b->run(); }));
-    for (std::thread& t : AegisBot::threadPool)
+    for (auto & b : shards)
+        threadPool.push_back(std::thread([&]() { b->run(); }));
+    for (std::thread& t : threadPool)
         t.join();
 }
 
@@ -415,7 +391,7 @@ void AegisBot::processReady(json & d)
         if (guildobj.count("unavailable"))
             unavailable = guildobj["unavailable"];
 
-        Guild & guild = createGuild(id);
+        Guild & guild = getGuild(id);
         log(fmt::format("Guild created: {0}", guild.id), severity_level::trace);
         guild.unavailable = unavailable;
         if (!unavailable)
@@ -463,7 +439,7 @@ void AegisBot::processReady(json & d)
 
             //Member & rec = privateChat.recipients[recipientId];
             privateChat.recipients.push_back(recipientId);
-            Member & glob = AegisBot::createMember(recipientId);
+            Member & glob = AegisBot::getMember(recipientId);
             log(fmt::format("Member created: {0}", channel_id), severity_level::trace);
             glob.id = recipientId;
             glob.avatar = recipientAvatar;
@@ -477,11 +453,11 @@ void AegisBot::processReady(json & d)
     discriminator = std::stoi(userdata["discriminator"].get<std::string>());
     userId = std::stoull(userdata["id"].get<std::string>());
 
-    if (AegisBot::mention.size() == 0)
+    if (mention.size() == 0)
     {
         std::stringstream ss;
         ss << "<@" << userId  << ">";
-        AegisBot::mention = ss.str();
+        mention = ss.str();
         log(fmt::format("Member: {0}", AegisBot::mention), severity_level::normal);
     }
 
@@ -502,12 +478,10 @@ void AegisBot::processReady(json & d)
 void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg)
 {
     json result;
-    string payload;
+    std::string payload = msg->get_payload();
     try
     {
         //TODO: do something about this mess
-        payload = msg->get_payload();
-
         if (payload[0] == (char)0x78 && (payload[1] == (char)0x01 || payload[1] == (char)0x9C || payload[1] == (char)0xDA))
         {
             boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
@@ -785,7 +759,7 @@ void AegisBot::userMessage(json & obj)
 
     //keep a temporary store of the id
     //create user if doesn't exist
-    auto & member = createMember(userid);
+    auto & member = getMember(userid);
     {
         std::lock_guard<std::mutex> lock(Member::m);
         member.msghistory.push(id);
@@ -950,7 +924,7 @@ boost::optional<std::string> AegisBot::call(std::string url, std::string obj, Ra
         response.write(ss);
         BOOST_LOG_SEV(slg, trace) << "Response: " << ss.str() << std::endl;
 #endif
-        string result;
+        std::string result;
 
         Poco::StreamCopier::copyToString(rs, result);
 #ifdef DEBUG_OUTPUT
@@ -1172,7 +1146,12 @@ void AegisBot::loadGuild(json & obj)
     uint64_t id = std::stoull(obj["id"].get<std::string>());
 
 
-    Guild & guild = createGuild(id);
+    if (guildlist.count(id) == 0)
+    {
+        //new guild post-ready
+    }
+
+    Guild & guild = getGuild(id);
 
     try
     {
@@ -1314,11 +1293,11 @@ void AegisBot::loadChannel(json & channel, uint64_t guild_id)
     try
     {
         //does channel exist?
-        Channel & checkchannel = createChannel(channel_id, guild_id);
+        Channel & checkchannel = getChannel(channel_id);
         log(fmt::format("Channel[{0}] created for guild[{1}]", channel_id, guild_id), severity_level::trace);
         checkchannel.name = GET_NULL(channel, "name");
         checkchannel.position = channel["position"];
-        checkchannel.type = (ChannelType)channel["type"].get<int>();// 0 = text, 2 = voice
+        checkchannel.type = static_cast<ChannelType>(channel["type"].get<int>());// 0 = text, 2 = voice
 
         //voice channels
         if (channel.find("bitrate") != channel.end())
@@ -1374,7 +1353,7 @@ void AegisBot::loadMember(json & member, Guild & guild)
     uint64_t member_id = std::stoull(user["id"].get<std::string>());
     try
     {
-        Member & checkmember = createMember(member_id);
+        Member & checkmember = getMember(member_id);
         log(fmt::format("Member[{0}] created for guild[{1}]", member_id, guild_id), severity_level::trace);
         guild.memberlist[member_id] = std::pair<Member*, uint16_t>(&checkmember, 0);
 

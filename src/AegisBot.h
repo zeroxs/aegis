@@ -120,12 +120,9 @@ enum severity_level
 class AegisBot
 {
 public:
-    Guild & createGuild(uint64_t id);
-    Member & createMember(uint64_t id);
-    Channel & createChannel(uint64_t id, uint64_t guildid);
     Guild & getGuild(uint64_t id);
-    Member & getMember(uint64_t id);
-    Channel & getChannel(uint64_t id);
+    static Member & getMember(uint64_t id);
+    static Channel & getChannel(uint64_t id);
 
     static void setupLogging();
 

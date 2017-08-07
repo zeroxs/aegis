@@ -38,23 +38,23 @@ public:
     ABRedisCache(boost::asio::io_service & io_service);
     ~ABRedisCache();
 
-    string get(string key, bool useprefix = true);
-    bool put(string key, string value, bool useprefix = true);
+    std::string get(std::string key, bool useprefix = true);
+    bool put(std::string key, std::string value, bool useprefix = true);
     //may not have a portable function in other database solutions
     //for Redis, -1 is infinite, 0 is delete now, >= 1 is seconds until expiry
     //databases that do not support entry expiration could have a timer
     //created that deletes it, though that is subject to 'leaks' in case of
     //application termination before it finishes
-    void expire(string key, int64_t value = 0, bool useprefix = true);
+    void expire(std::string key, int64_t value = 0, bool useprefix = true);
     bool initialize();
-    string getset(string key, string value, bool useprefix = true);
-    string eval(string script);
-    string run(string command);
+    std::string getset(std::string key, std::string value, bool useprefix = true);
+    std::string eval(std::string script);
+    std::string run(std::string command);
 
     //hashmap cache storage
-    string hset(string key, string value);
-    string hget(string key, string value);
-    string hvals(string key);
+    std::string hset(std::string key, std::string value);
+    std::string hget(std::string key, std::string value);
+    std::string hvals(std::string key);
 
 private:
     RedisSyncClient redis;
