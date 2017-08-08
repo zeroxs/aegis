@@ -52,8 +52,8 @@ bool ABRedisCache::initialize()
         std::cerr << "Can't connect to redis: " << errmsg << std::endl;
         return false;
     }
-    else
-        std::cerr << "Redis connected" << std::endl;
+
+    std::cerr << "Redis connected" << std::endl;
 
     RedisValue result;
     if (password != "")
@@ -75,8 +75,7 @@ std::string ABRedisCache::run(std::string key)
 
     if (result.isOk())
         return result.toString();
-    else
-        return "";
+    return "";
 }
 
 std::string ABRedisCache::get(std::string key, bool useprefix)
@@ -89,8 +88,7 @@ std::string ABRedisCache::get(std::string key, bool useprefix)
 
     if (result.isOk())
         return result.toString();
-    else
-        return "";
+    return "";
 }
 
 bool ABRedisCache::put(std::string key, std::string value, bool useprefix)
@@ -103,8 +101,7 @@ bool ABRedisCache::put(std::string key, std::string value, bool useprefix)
 
     if (result.isOk())
         return true;
-    else
-        return false;
+    return false;
 }
 
 void ABRedisCache::expire(std::string key, int64_t value, bool useprefix)
@@ -126,8 +123,7 @@ std::string ABRedisCache::getset(std::string key, std::string value, bool usepre
 
     if (result.isOk())
         return result.toString();
-    else
-        return "";
+    return "";
 }
 
 std::string ABRedisCache::eval(std::string script)
@@ -136,8 +132,7 @@ std::string ABRedisCache::eval(std::string script)
 
     if (result.isOk())
         return result.toString();
-    else
-        return "";
+    return "";
 }
 
 #endif

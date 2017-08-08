@@ -40,14 +40,14 @@ public:
     ABMemoryCache(boost::asio::io_service & io_service);
     ~ABMemoryCache();
 
-    string get(string key, bool useprefix = true);
-    bool put(string key, string value, bool useprefix = true);
+    std::string get(std::string key, bool useprefix = true);
+    bool put(std::string key, std::string value, bool useprefix = true);
     //may not have a portable function in other database solutions
     //for Redis, -1 is infinite, 0 is delete now, >= 1 is seconds until expiry
     //databases that do not support entry expiration could have a timer
     //created that deletes it, though that is subject to 'leaks' in case of
     //application termination before it finishes
-    void expire(string key, int64_t value = 0, bool useprefix = true);
+    void expire(std::string key, int64_t value = 0, bool useprefix = true);
     bool initialize();
     boost::asio::io_service & io_service;
 

@@ -49,7 +49,7 @@ bool ABMemoryCache::initialize()
     return true;
 }
 
-string ABMemoryCache::get(string key, bool useprefix)
+std::string ABMemoryCache::get(std::string key, bool useprefix)
 {
     if (useprefix)
         return memdata[prefix + key];
@@ -58,7 +58,7 @@ string ABMemoryCache::get(string key, bool useprefix)
 }
 
 
-bool ABMemoryCache::put(string key, string value, bool useprefix)
+bool ABMemoryCache::put(std::string key, std::string value, bool useprefix)
 {
     if (useprefix)
         memdata[prefix + key] = value;
@@ -67,7 +67,7 @@ bool ABMemoryCache::put(string key, string value, bool useprefix)
     return true;
 }
 
-void ABMemoryCache::expire(string key, int64_t value, bool useprefix)
+void ABMemoryCache::expire(std::string key, int64_t value, bool useprefix)
 {
     if (value == 0)
     {

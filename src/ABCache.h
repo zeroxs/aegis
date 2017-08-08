@@ -25,16 +25,12 @@
 
 #pragma once
 
-#include <string>
 #include <iostream>
-
-
-
 
 class ABCache
 {
 public:
-    ABCache() {};
+    ABCache() : port(0) {};
     virtual ~ABCache() {};
 
     //get key entry - set no prefix to false for entries like global configs that do not

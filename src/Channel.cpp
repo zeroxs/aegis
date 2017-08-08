@@ -60,8 +60,7 @@ void Channel::getMessages(uint64_t messageid, ABMessageCallback callback)
     {
         if (guild().silentperms)
             return;
-        else
-            throw no_permission("READ_HISTORY");
+        throw no_permission("READ_HISTORY");
     }
 
     ABMessage message(this);
@@ -123,8 +122,7 @@ void Channel::bulkDelete(std::vector<std::string> messages, ABMessageCallback ca
     {
         if (guild().silentperms)
             return;
-        else
-            throw no_permission("MANAGE_MESSAGES");
+        throw no_permission("MANAGE_MESSAGES");
     }
 
     json arr(messages);
@@ -147,8 +145,7 @@ void Channel::deleteChannel(ABMessageCallback callback)
     {
         if (guild().silentperms)
             return;
-        else
-            throw no_permission("MANAGE_SERVER");
+        throw no_permission("MANAGE_SERVER");
     }
 
     ABMessage message(this);

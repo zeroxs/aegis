@@ -55,7 +55,7 @@ int main(int argc, char * argv[])
 #endif
 
 #if defined( _DEBUGTOKEN )
-    AegisBot::tokenstr = "config:token";
+    AegisBot::tokenstr = "config:token-test";
 #elif defined( SELFBOT )
     AegisBot::tokenstr = "config:token-self";
 #else
