@@ -449,7 +449,8 @@ void AegisBot::processReady(json & d)
     }
     sessionId = d["session_id"];
     json & userdata = d["user"];
-    avatar = userdata["avatar"];
+    if (userdata["avatar"] != nullptr)
+        avatar = userdata["avatar"];
     discriminator = std::stoi(userdata["discriminator"].get<std::string>());
     userId = std::stoull(userdata["id"].get<std::string>());
 
