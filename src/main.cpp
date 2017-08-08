@@ -66,11 +66,11 @@ int main(int argc, char * argv[])
     {
         boost::asio::io_service::work work(AegisBot::io_service);
 
-        AegisBot::setupLogging();
+        AegisBot::setupLogging(trace, trace);
         
 #if defined USE_REDIS
         ABRedisCache cache(AegisBot::io_service);
-#ifdef WIN32
+#if defined WIN32
         cache.address = "192.168.184.136";
 #else
         cache.address = "127.0.0.1";

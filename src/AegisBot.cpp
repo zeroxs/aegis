@@ -1424,7 +1424,7 @@ void AegisBot::loadPresence(json & member, Guild & guild)
     return;
 }
 
-void AegisBot::setupLogging()
+void AegisBot::setupLogging(severity_level logfile, severity_level logconsole)
 {
     boost::shared_ptr< logging::core > core = logging::core::get();
     logging::add_common_attributes();
@@ -1436,7 +1436,11 @@ void AegisBot::setupLogging()
     {
         boost::shared_ptr< sinks::text_file_backend > backend =
             boost::make_shared< sinks::text_file_backend >(
+#if defined _DEBUG
+                keywords::file_name = "aegis_d_%Y%m%d.log",
+#else
                 keywords::file_name = "aegis_%Y%m%d.log",
+#endif
                 keywords::time_based_rotation = sinks::file::rotation_at_time_point(0, 0, 0)
                 );
 
@@ -1445,7 +1449,7 @@ void AegisBot::setupLogging()
         typedef sinks::synchronous_sink< sinks::text_file_backend > sink_t;
         boost::shared_ptr< sink_t > sink(new sink_t(backend));
 
-        sink->set_filter(severity >= normal);
+        sink->set_filter(severity >= logfile);
 
         logging::formatter fmt = expr::stream
             << expr::format_date_time< boost::posix_time::ptime >("TimeStamp", "%Y-%m-%d %H:%M:%S") << " : "
@@ -1466,7 +1470,7 @@ void AegisBot::setupLogging()
         typedef sinks::synchronous_sink< sinks::text_ostream_backend > sink_t;
         boost::shared_ptr< sink_t > sink(new sink_t(backend));
 
-        sink->set_filter(severity >= debug);
+        sink->set_filter(severity >= logconsole);
 
 
         logging::formatter fmt = expr::stream

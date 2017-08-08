@@ -124,7 +124,7 @@ public:
     static Member & getMember(uint64_t id);
     static Channel & getChannel(uint64_t id);
 
-    static void setupLogging();
+    static void setupLogging(severity_level logfile, severity_level logconsole);
 
     static boost::optional<std::string> call(std::string url, std::string obj = "", RateLimits * endpoint = nullptr, std::string method = "GET", std::string query = "");
 
