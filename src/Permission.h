@@ -53,6 +53,7 @@ public:
     inline bool canManageChannels()     { return _permissions & 0x10; }
     inline bool canManageGuild()        { return _permissions & 0x20; }
     inline bool canAddReactions()       { return _permissions & 0x40; }
+    inline bool canViewAuditLogs()      { return _permissions & 0x80; }
     inline bool canReadMessages()       { return _permissions & 0x400; }
     inline bool canSendMessages()       { return _permissions & 0x800; }
     inline bool canTTS()                { return _permissions & 0x1000; }
