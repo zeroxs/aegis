@@ -288,6 +288,10 @@ void AegisBot::startShards()
     }
 
     json ret = json::parse(res.get());
+    if (ret.count("message"))
+        if (ret["message"] == "401: Unauthorized")
+            throw std::runtime_error("Token is unauthorized.");
+    
     gatewayurl = ret["url"];
 
 #ifndef SELFBOT
