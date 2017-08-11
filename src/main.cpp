@@ -70,7 +70,7 @@ int main(int argc, char * argv[])
     {
         boost::asio::io_service::work work(AegisBot::io_service);
 
-        AegisBot::setupLogging(trace, trace);
+        AegisBot::setupLogging(trace, normal);
         
 #if defined USE_REDIS
         ABRedisCache cache(AegisBot::io_service);
@@ -448,12 +448,24 @@ int main(int argc, char * argv[])
             message.channel().sendMessageEmbed(json(), msg);
         };
 
+        auto Shards = [&bot](ABMessage & message)
+        {
+            std::string s = "```\n";
+            for (auto & shard : AegisBot::shards)
+            {
+                s += fmt::format("shard#{} tracking {:4} guilds {:4} channels {:4} members {:4} messages\n", shard->shardid, shard->counters.guilds, shard->counters.channels, shard->counters.members, shard->counters.messages);
+            }
+            s += "```";
+            message.channel().sendMessage(s);
+        };
+
         cmdlist["events"] = Events;
         cmdlist["info"] = Info;
         cmdlist["perms"] = Perms;
         cmdlist["setgame"] = SetGame;
         cmdlist["listperms"] = ListPerms;
         cmdlist["listor"] = ListOverrides;
+        cmdlist["shards"] = Shards;
 
         testguild.addCommands(cmdlist);
         myguild.addCommands(cmdlist);

@@ -57,7 +57,7 @@ void Guild::processMessage(json obj)
 
     std::string avatar = author["avatar"].is_string()?author["avatar"]:"";
     std::string username = author["username"];
-    //uint16_t discriminator = std::stoi(author["discriminator"].get<string>());
+    uint16_t discriminator = std::stoi(author["discriminator"].get<std::string>());
 
     uint64_t channel_id = std::stoull(obj["channel_id"].get<std::string>());
     uint64_t id = std::stoull(obj["id"].get<std::string>());
@@ -111,7 +111,7 @@ void Guild::processMessage(json obj)
             if (cmd == "exit")
             {
                 //TODO: add some core bot management
-                bot.getChannel(1).sendMessage(fmt::format("Bot shutdown g[{0}] c[{1}] u[{2}]", id, channel_id, userid));
+                bot.getChannel(288707540844412928LL).sendMessage(fmt::format("Bot shutdown Guild [{}:{}] Channel [{}:{}] User [{}:{}:{}]", name, id, channellist[channel_id]->name, channel_id, username, discriminator, userid));
                 channellist[channel_id]->sendMessage("Bot shutting down.");
                 std::this_thread::sleep_for(std::chrono::seconds(2));
                 bot.ws.close(bot.hdl, 1000, "");

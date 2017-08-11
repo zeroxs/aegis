@@ -68,9 +68,7 @@ boost::optional<std::string> Member::getName(uint64_t guildid)
 std::string Member::getFullName()
 {
     std::stringstream fullname;
-    fullname << name;
-    fullname << "#";
-    fullname << this->discriminator;
+    fullname << name << "#" << discriminator;
     return fullname.str();
 }
 

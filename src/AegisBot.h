@@ -180,6 +180,17 @@ public:
 
     static std::map<std::string, uint64_t> eventCount;
 
+    struct
+    {
+        uint32_t guilds;
+        uint32_t members;
+        uint32_t channels;
+        uint32_t messages;
+    } counters = {0,0,0,0};
+    uint32_t connectguilds = 0;
+    bool botready = false;
+    std::vector<int> shardready;
+
     Member * self = nullptr;
 
     static uint16_t shardidmax;

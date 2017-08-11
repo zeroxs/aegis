@@ -295,8 +295,8 @@ void AegisBot::startShards()
     gatewayurl = ret["url"];
 
 #ifndef SELFBOT
-    BOOST_LOG_SEV(slg, normal) << fmt::format("Shard count: {0}", ret["shards"].get<uint16_t>());
     shardidmax = ret["shards"];
+    BOOST_LOG_SEV(slg, normal) << fmt::format("Shard count: {0}", shardidmax);
 #else
     shardidmax = 1;
 #endif
@@ -305,26 +305,23 @@ void AegisBot::startShards()
     {
         shards.push_back(new AegisBot);
         shards[i]->initialize(i);
-        threadPool.push_back(std::thread([=]()
-        {
-            if (i == 0)
-            {
-                //only have shard 0 do maint stuff since it's always guaranteed to be loaded
-                shards[i]->prunemessages.expires_from_now(std::chrono::seconds(30));
-                shards[i]->prunemessages.async_wait([=](const boost::system::error_code & ec) { AegisBot::shards[i]->pruneMsgHistory(ec); });
-            }
-
-            shards[i]->run();
-        }));
     }
+
+    threadPool.push_back(std::thread([=]()
+    {
+        //only have shard 0 do maint stuff since it's always guaranteed to be loaded
+        shards[0]->prunemessages.expires_from_now(std::chrono::seconds(30));
+        shards[0]->prunemessages.async_wait([=](const boost::system::error_code & ec) { AegisBot::shards[0]->pruneMsgHistory(ec); });
+        shards[0]->run();
+    }));
 }
 
 void AegisBot::threads()
 {
     for (size_t t = 0; t < std::thread::hardware_concurrency() * 2; t++)
         threadPool.push_back(std::thread([&]() { io_service.run(); }));
-    for (auto & b : shards)
-        threadPool.push_back(std::thread([&]() { b->run(); }));
+//     for (auto & b : shards)
+//         threadPool.push_back(std::thread([&]() { b->run(); }));
     for (std::thread& t : threadPool)
         t.join();
 }
@@ -387,6 +384,7 @@ void AegisBot::processReady(json & d)
 {
     std::lock_guard<std::recursive_mutex> lock(m);
     json guilds = d["guilds"];
+    connectguilds = guilds.size();
     for (auto & guildobj : guilds)
     {
         uint64_t id = std::stoull(guildobj["id"].get<std::string>());
@@ -519,13 +517,23 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     //do we care? it'd easily be the most sent event
                     return;
                 }
-                else if (cmd == "MESSAGE_CREATE")
+                if (cmd == "MESSAGE_CREATE")
                 {
                     while (!active && isrunning)
                         std::this_thread::sleep_for(std::chrono::milliseconds(1));
                     userMessage(result["d"]);
+                    ++counters.messages;
                 }
-                else if (cmd == "MESSAGE_UPDATE")
+
+                if ((shardready.size() < shardidmax)  && (shardready[shardid] != 1) && (counters.guilds >= connectguilds))
+                {
+                    shardready[shardid] = 1;
+                    log(fmt::format("Shard#{} completed loading.", shardid));
+                    if (shardready.size() >= shardidmax)
+                        botready = true;
+                }
+
+                if (cmd == "MESSAGE_UPDATE")
                 {
                     //std::cout << result.dump() << std::endl;
                     json message = result["d"];
@@ -578,6 +586,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                 else if (cmd == "GUILD_CREATE")
                 {
                     loadGuild(result["d"]);
+                    ++counters.guilds;
 
                     //load things like database commands and permissions here
                 }
@@ -587,6 +596,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                 }
                 else if (cmd == "GUILD_DELETE")
                 {
+                    --counters.guilds;
                 }
                 else if (cmd == "MESSAGE_DELETE")
                 {
@@ -621,6 +631,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     if (cmd == "CHANNEL_CREATE")
                     {
                         loadChannel(result["d"], guild.id);//untested
+                        ++counters.channels;
                     }
                     else if (cmd == "CHANNEL_UPDATE")
                     {
@@ -629,6 +640,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     else if (cmd == "CHANNEL_DELETE")
                     {
                         channelDelete(result["d"]);
+                        --counters.channels;
                     }
                     else if (cmd == "GUILD_BAN_ADD")
                     {
@@ -645,9 +657,11 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     else if (cmd == "GUILD_MEMBER_ADD")
                     {
                         loadMember(result["d"], guild);//untested
+                        ++counters.members;
                     }
                     else if (cmd == "GUILD_MEMBER_REMOVE")
                     {
+                        --counters.members;
 
                     }
                     else if (cmd == "GUILD_MEMBER_UPDATE")
@@ -702,6 +716,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                                     { "$referring_domain", "" }
                                 }
                             },
+                            { "shard", json::array({ shardid, shardidmax }) },
                             { "compress", true },
                             { "large_threshhold", 250 }
                         }
@@ -977,6 +992,7 @@ void AegisBot::onConnect(websocketpp::connection_hdl hdl)
                             { "$referring_domain", "" }
                         }
                     },
+                    { "shard", json::array({shardid, shardidmax}) },
                     { "compress", true },
                     { "large_threshhold", 250 }
                 }
@@ -1118,7 +1134,7 @@ void AegisBot::pruneMsgHistory(const boost::system::error_code& error)
 
         log("Starting message prune", severity_level::trace);
         //2 hour expiry
-        int64_t epoch = ((std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - (2 * 60 * 60 * 1000)) - 1420070400000) << 22;
+        uint64_t epoch = ((std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - (2 * 60 * 60 * 1000)) - 1420070400000) << 22;
         for (auto & member : memberlist)
         {
             if (member.second->msghistory.size() > 0 && member.second->msghistory.front() < epoch)
@@ -1331,6 +1347,7 @@ void AegisBot::loadGuild(json & obj)
             for (auto & member : members)
             {
                 loadMember(member, guild);
+                ++counters.members;
             }
         }
 
@@ -1341,6 +1358,7 @@ void AegisBot::loadGuild(json & obj)
             for (auto & channel : channels)
             {
                 loadChannel(channel, id);
+                ++counters.channels;
             }
         }
 
