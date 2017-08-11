@@ -962,6 +962,8 @@ boost::optional<std::string> AegisBot::call(std::string url, std::string obj, Ra
 
                 if (status == 429)
                 {
+                    BOOST_LOG_SEV(slg, error) << fmt::format("Rate limited retry_after {}", Poco::DynamicAny(response.get("X-RateLimit-Reset")).convert<uint32_t>());
+                    endpoint->rateReset(endpoint->rateReset() + 2);
                     return boost::none;
                 }
                 BOOST_LOG_SEV(slg, trace) << fmt::format("Rates: {0}:{1} resets in: {2}s", endpoint->rateLimit(), endpoint->rateRemaining(), (endpoint->rateReset() > 0) ? (endpoint->rateReset() - epoch) : 0);
@@ -1035,7 +1037,7 @@ void AegisBot::run()
                 {
                     if (channel.second->ratelimits.outqueue.size() > 0)
                     {
-                        if (channel.second->ratelimits.rateRemaining())
+                        if (channel.second->ratelimits.rateRemaining() > 0)
                         {
                             if (channel.second->ratelimits.isFailureTime())
                             {

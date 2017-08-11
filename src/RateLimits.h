@@ -54,9 +54,8 @@ public:
     uint8_t rateRemaining()
     {
         int64_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-        if (_rate_reset < epoch)
+        if (_rate_reset < epoch - 3)//time offset - calculate sometime
         {
-            _rate_reset = 0;
             _rate_remaining = _rate_limit;
         }
         return _rate_remaining;
