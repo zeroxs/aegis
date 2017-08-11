@@ -49,7 +49,7 @@ struct stGuildInfo
     Guild * guild;
 };
 
-class Member : public Permission 
+class Member 
 {
 public:
     Member() {};

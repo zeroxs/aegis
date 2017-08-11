@@ -46,7 +46,7 @@ enum class ChannelType
     VOICE = 2
 };
 
-class Channel : public Permission
+class Channel
 {
 public:
     Channel(Guild * guild) : _guild(guild) {}
@@ -54,13 +54,15 @@ public:
     ~Channel() {};
 
     Guild & guild() { return *_guild; }
- 
+    void setGuild(Guild & guild) { _guild = &guild; }
+    Permission & getPermission();
+
     void getMessages(uint64_t messageid, ABMessageCallback callback = ABMessageCallback());
     void sendMessage(std::string content, ABMessageCallback callback = ABMessageCallback());
     void sendMessageEmbed(json content, json embed, ABMessageCallback callback = ABMessageCallback());
     void bulkDelete(std::vector<std::string> messages, ABMessageCallback callback = ABMessageCallback());
     void deleteChannel(ABMessageCallback callback = ABMessageCallback());
-
+    void UpdatePermissions();
 
     uint64_t id = 0;
     uint64_t last_message_id = 0;
@@ -74,11 +76,8 @@ public:
 
     RateLimits ratelimits;
 
-    Permission overrides;
-
-    //TODO: track all the overrides. not just our own. possible use-case?
-    //<Role, Permission>
-    //std::vector<Override> overrides;
+    std::map<uint64_t, Override> overrides;
+    std::map<uint64_t, Permission> permission_cache;
 
 private:
     Guild * _guild = nullptr;

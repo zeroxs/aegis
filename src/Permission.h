@@ -30,54 +30,60 @@
 
 struct Override
 {
-    uint64_t id;
+    uint64_t id = 0;
     enum ORType
     {
         USER,
         ROLE
     };
-    ORType type;
-    uint64_t allow;
-    uint64_t deny;
+    ORType type = ROLE;
+    uint64_t allow = 0;
+    uint64_t deny = 0;
 };
 
 class Permission
 {
 public:
-    inline void updatePerms(uint64_t p) { _permissions = p; }
-    inline uint64_t getPerms()          { return _permissions; }
-    inline bool canInvite()             { return _permissions & 0x1; }
-    inline bool canKick()               { return _permissions & 0x2; }
-    inline bool canBan()                { return _permissions & 0x4; }
-    inline bool isAdmin()               { return _permissions & 0x8; }
-    inline bool canManageChannels()     { return _permissions & 0x10; }
-    inline bool canManageGuild()        { return _permissions & 0x20; }
-    inline bool canAddReactions()       { return _permissions & 0x40; }
-    inline bool canViewAuditLogs()      { return _permissions & 0x80; }
-    inline bool canReadMessages()       { return _permissions & 0x400; }
-    inline bool canSendMessages()       { return _permissions & 0x800; }
-    inline bool canTTS()                { return _permissions & 0x1000; }
-    inline bool canManageMessages()     { return _permissions & 0x2000; }
-    inline bool canEmbed()              { return _permissions & 0x4000; }
-    inline bool canAttachFiles()        { return _permissions & 0x8000; }
-    inline bool canReadHistory()        { return _permissions & 0x10000; }
-    inline bool canMentionEveryone()    { return _permissions & 0x20000; }
-    inline bool canExternalEmoiji()     { return _permissions & 0x40000; }
-    inline bool canChangeName()         { return _permissions & 0x4000000; }
-    inline bool canManageNames()        { return _permissions & 0x8000000; }
-    inline bool canManageRoles()        { return _permissions & 0x10000000; }
-    inline bool canManageWebhooks()     { return _permissions & 0x20000000; }
-    inline bool canManageEmojis()       { return _permissions & 0x40000000; }
+    Permission() {}
+    Permission(uint64_t allow) : _allow_permissions(allow) {}
+    Permission(uint64_t allow, uint64_t deny) : _allow_permissions(allow), _deny_permissions(deny) {}
+    Permission(const Permission&) = delete;
+    //void updatePerms(uint64_t p) { _permissions = p; }
+    uint64_t getAllowPerms()     { return _allow_permissions; }
+    uint64_t getDenyPerms()      { return _deny_permissions; }
+    bool canInvite()             { return (_allow_permissions & 0x1) > 0; }
+    bool canKick()               { return (_allow_permissions & 0x2) > 0; }
+    bool canBan()                { return (_allow_permissions & 0x4) > 0; }
+    bool isAdmin()               { return (_allow_permissions & 0x8) > 0; }
+    bool canManageChannels()     { return (_allow_permissions & 0x10) > 0; }
+    bool canManageGuild()        { return (_allow_permissions & 0x20) > 0; }
+    bool canAddReactions()       { return (_allow_permissions & 0x40) > 0; }
+    bool canViewAuditLogs()      { return (_allow_permissions & 0x80) > 0; }
+    bool canReadMessages()       { return (_allow_permissions & 0x400) > 0; }
+    bool canSendMessages()       { return (_allow_permissions & 0x800) > 0; }
+    bool canTTS()                { return (_allow_permissions & 0x1000) > 0; }
+    bool canManageMessages()     { return (_allow_permissions & 0x2000) > 0; }
+    bool canEmbed()              { return (_allow_permissions & 0x4000) > 0; }
+    bool canAttachFiles()        { return (_allow_permissions & 0x8000) > 0; }
+    bool canReadHistory()        { return (_allow_permissions & 0x10000) > 0; }
+    bool canMentionEveryone()    { return (_allow_permissions & 0x20000) > 0; }
+    bool canExternalEmoiji()     { return (_allow_permissions & 0x40000) > 0; }
+    bool canChangeName()         { return (_allow_permissions & 0x4000000) > 0; }
+    bool canManageNames()        { return (_allow_permissions & 0x8000000) > 0; }
+    bool canManageRoles()        { return (_allow_permissions & 0x10000000) > 0; }
+    bool canManageWebhooks()     { return (_allow_permissions & 0x20000000) > 0; }
+    bool canManageEmojis()       { return (_allow_permissions & 0x40000000) > 0; }
 
-    inline bool canVoiceConnect()       { return _permissions & 0x100000; }
-    inline bool canVoiceMute()          { return _permissions & 0x400000; }
-    inline bool canVoiceSpeak()         { return _permissions & 0x200000; }
-    inline bool canVoiceDeafen()        { return _permissions & 0x800000; }
-    inline bool canVoiceMove()          { return _permissions & 0x1000000; }
-    inline bool canVoiceActivity()      { return _permissions & 0x2000000; }
+    bool canVoiceConnect()       { return (_allow_permissions & 0x100000) > 0; }
+    bool canVoiceMute()          { return (_allow_permissions & 0x400000) > 0; }
+    bool canVoiceSpeak()         { return (_allow_permissions & 0x200000) > 0; }
+    bool canVoiceDeafen()        { return (_allow_permissions & 0x800000) > 0; }
+    bool canVoiceMove()          { return (_allow_permissions & 0x1000000) > 0; }
+    bool canVoiceActivity()      { return (_allow_permissions & 0x2000000) > 0; }
 
 private:
-    uint64_t _permissions = 0;
+    uint64_t _allow_permissions = 0;
+    uint64_t _deny_permissions = 0;
 };
 
 class no_permission : public std::exception

@@ -39,9 +39,9 @@ public:
     bool managed = false;
     bool mentionable = false;
     std::string name;
-    uint64_t permissions;
+    Permission permission;
     uint16_t position = 0;
 
-    std::map<uint64_t, Override> overrides;//channel, struct
+    //std::map<uint64_t, Override> overrides;//channel, struct
 };
 

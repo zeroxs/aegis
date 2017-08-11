@@ -323,6 +323,13 @@ private:
     void loadRole(json & role, Guild & guild);
     void loadEmoji(json & emoji, Guild & guild);
     void loadPresence(json & presence, Guild & guild);
+
+    void channelUpdate(json & obj);
+    void channelDelete(json & obj);
+    void roleCreate(json & obj);
+    void roleDelete(json & obj);
+    void roleUpdate(json & obj);
+
     boost::log::sources::severity_logger< severity_level > slg;
 
     //Websockets

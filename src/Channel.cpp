@@ -56,7 +56,7 @@ ABMessage::ABMessage(Guild * guild)
 
 void Channel::getMessages(uint64_t messageid, ABMessageCallback callback)
 {
-    if (!canReadHistory())
+    if (!getPermission().canReadHistory())
     {
         if (guild().silentperms)
             return;
@@ -82,7 +82,7 @@ void Channel::sendMessage(std::string content, ABMessageCallback callback)
 
     json obj;
     if (guild().preventbotparse)
-        obj["content"] = "\u200B" + content;
+        obj["content"] = u8"\u200B" + content;
     else
         obj["content"] = content;
 
@@ -98,7 +98,7 @@ void Channel::sendMessage(std::string content, ABMessageCallback callback)
 
 void Channel::sendMessageEmbed(json content, json embed, ABMessageCallback callback /*= ABMessageCallback()*/)
 {
-     if (!canSendMessages())
+    if (!getPermission().canSendMessages())
          return;
 
     json obj;
@@ -118,7 +118,7 @@ void Channel::sendMessageEmbed(json content, json embed, ABMessageCallback callb
 
 void Channel::bulkDelete(std::vector<std::string> messages, ABMessageCallback callback)
 {
-    if (!canManageMessages())
+    if (!getPermission().canManageMessages())
     {
         if (guild().silentperms)
             return;
@@ -141,7 +141,7 @@ void Channel::bulkDelete(std::vector<std::string> messages, ABMessageCallback ca
 
 void Channel::deleteChannel(ABMessageCallback callback)
 {
-    if (!canManageGuild())
+    if (!getPermission().canManageGuild())
     {
         if (guild().silentperms)
             return;
@@ -155,6 +155,51 @@ void Channel::deleteChannel(ABMessageCallback callback)
         message.callback = callback;
 
     ratelimits.putMessage(std::move(message));
+}
+
+Permission & Channel::getPermission()
+{
+    return permission_cache[guild().bot.userId];
+}
+
+void Channel::UpdatePermissions()
+{
+    uint64_t botid = guild().bot.userId;
+
+    permission_cache.clear();
+
+    for (auto & m : guild().memberlist)
+    {
+        uint64_t allow = 0, deny = 0;
+
+        for (auto & p : m.second.first->roles)
+        {
+            allow |= guild().rolelist[p].permission.getAllowPerms();
+            deny |= guild().rolelist[p].permission.getDenyPerms();//roles don't have deny perms do they? they either have it allowed, or not
+            if (overrides.count(p))
+            {
+                allow |= overrides[p].allow;
+                deny |= overrides[p].deny;
+            }
+        }
+        if (overrides.count(m.second.first->id))
+        {
+            allow |= overrides[m.second.first->id].allow;
+            deny |= overrides[m.second.first->id].deny;
+        }
+
+        allow |= overrides[guild().id].allow;
+        deny |= overrides[guild().id].deny;
+
+        permission_cache[m.second.first->id] = Permission(allow, deny);
+    }
+
+//     for (auto & m : guild().memberlist)
+//     {
+//         guild_permission_cache[m.second.first->id] = Permission(allow, deny);
+// 
+//     }
+
 }
 
 /*

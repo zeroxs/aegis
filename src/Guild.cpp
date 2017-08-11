@@ -345,40 +345,35 @@ void Guild::removeAttachmentHandler()
 void Guild::modifyMember(json content, uint64_t guildid, uint64_t memberid, ABMessageCallback callback)
 {
     //TODO: also needs to check perm for connecting to channel
-    if (content.count("channel_id") && !canVoiceMove())
+    if (content.count("channel_id") && !permission_cache[bot.userId].canVoiceMove())
     {
         if (silentperms)
             return;
-        else
-            throw no_permission("MOVE_MEMBERS");
+        throw no_permission("MOVE_MEMBERS");
     }
-    if (content.count("nick") && !canManageNames())
+    if (content.count("nick") && !permission_cache[bot.userId].canManageNames())
     {
         if (silentperms)
             return;
-        else
-            throw no_permission("MANAGE_NICKNAMES");
+        throw no_permission("MANAGE_NICKNAMES");
     }
-    if (content.count("roles") && !canManageRoles())
+    if (content.count("roles") && !permission_cache[bot.userId].canManageRoles())
     {
         if (silentperms)
             return;
-        else
-            throw no_permission("MANAGE_ROLES");
+        throw no_permission("MANAGE_ROLES");
     }
-    if (content.count("mute") && !canVoiceMute())
+    if (content.count("mute") && !permission_cache[bot.userId].canVoiceMute())
     {
         if (silentperms)
             return;
-        else
-            throw no_permission("MUTE_MEMBERS");
+        throw no_permission("MUTE_MEMBERS");
     }
-    if (content.count("deaf") && !canVoiceDeafen())
+    if (content.count("deaf") && !permission_cache[bot.userId].canVoiceDeafen())
     {
         if (silentperms)
             return;
-        else
-            throw no_permission("DEAFEN_MEMBERS");
+        throw no_permission("DEAFEN_MEMBERS");
     }
 
 
@@ -394,12 +389,11 @@ void Guild::modifyMember(json content, uint64_t guildid, uint64_t memberid, ABMe
 
 void Guild::createVoice(json content, uint64_t guildid, ABMessageCallback callback)
 {
-    if (!canManageGuild())
+    if (!permission_cache[bot.userId].canManageGuild())
     {
         if (silentperms)
             return;
-        else
-            throw no_permission("MANAGE_SERVER");
+        throw no_permission("MANAGE_SERVER");
     }
 
     ABMessage message(this);
@@ -421,4 +415,45 @@ void Guild::leave(ABMessageCallback callback)
         message.callback = callback;
 
     ratelimits.putMessage(std::move(message));
+}
+
+//         channel             user
+//std::map<uint64_t, std::map<uint64_t, Permission>> permission_cache;
+void Guild::UpdatePermissions()
+{
+//     uint64_t botid = bot.userId;
+// 
+//     channel_permission_cache.clear();
+//     
+    for (auto & c : channellist)
+    {
+        c.second->UpdatePermissions();
+    }
+
+    for (auto & m : memberlist)
+    {
+        uint64_t allow = 0, deny = 0;
+
+        for (auto & p : m.second.first->roles)
+        {
+            allow |= rolelist[p].permission.getAllowPerms();
+            deny |= rolelist[p].permission.getDenyPerms();//roles don't have deny perms do they? they either have it allowed, or not
+            if (overrides.count(p))
+            {
+                allow |= overrides[p].allow;
+                deny |= overrides[p].deny;
+            }
+        }
+        if (overrides.count(m.second.first->id))
+        {
+            allow |= overrides[m.second.first->id].allow;
+            deny |= overrides[m.second.first->id].deny;
+        }
+
+        allow |= overrides[id].allow;
+        deny |= overrides[id].deny;
+
+        permission_cache[m.second.first->id] = Permission(allow, deny);
+    }
+
 }

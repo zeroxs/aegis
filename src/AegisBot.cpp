@@ -475,7 +475,7 @@ void AegisBot::processReady(json & d)
     obj["op"] = 3;
     obj["d"]["idle_since"] = nullptr;
 
-    obj["d"]["game"] = { { "name", "@​Aegis help" } };
+    obj["d"]["game"] = { { "name", u8"@\u200bAegis help" } };
 
     wssend(obj.dump()); 
 }
@@ -501,12 +501,10 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
             payload = ss.str();
         }
  
-        result = json::parse(std::move(payload));
+        result = json::parse(payload);
 
         log(fmt::format("Received: {0}", payload), severity_level::trace);
  
-        //poco_trace_f1(*log, "Received JSON: %s", msg->get_payload());
-
         if (!result.is_null())
         {
             if (!result["t"].is_null())
@@ -626,9 +624,11 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     }
                     else if (cmd == "CHANNEL_UPDATE")
                     {
+                        channelUpdate(result["d"]);
                     }
                     else if (cmd == "CHANNEL_DELETE")
                     {
+                        channelDelete(result["d"]);
                     }
                     else if (cmd == "GUILD_BAN_ADD")
                     {
@@ -652,18 +652,22 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     }
                     else if (cmd == "GUILD_MEMBER_UPDATE")
                     {
+                        loadMember(result["d"], guild);//untested
                     }
                     else if (cmd == "GUILD_MEMBER_CHUNK")
                     {
                     }
                     else if (cmd == "GUILD_ROLE_CREATE")
                     {
+                        roleCreate(result["d"]);
                     }
                     else if (cmd == "GUILD_ROLE_UPDATE")
                     {
+                        roleUpdate(result["d"]);
                     }
                     else if (cmd == "GUILD_ROLE_DELETE")
                     {
+                        roleDelete(result["d"]);
                     }
                     else if (cmd == "PRESENCE_UPDATE")
                     {
@@ -739,6 +743,117 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
     }
 }
 
+void AegisBot::roleCreate(json & obj)
+{
+    json role = obj["role"];
+    int64_t guildid = std::stoull(obj["guild_id"].get<std::string>());
+    int64_t roleid = std::stoull(role["id"].get<std::string>());
+
+    Role r;
+    r.color = role["color"];
+    r.hoist = role["hoist"];
+    r.managed = role["managed"];
+    r.mentionable = role["mentionable"];
+    r.name = role["name"].get<std::string>();
+    r.permission = Permission(role["permissions"].get<int64_t>());
+    r.position = role["position"];
+
+    guildlist[guildid]->rolelist[roleid] = r;
+
+    guildlist[guildid]->UpdatePermissions();
+}
+
+void AegisBot::roleDelete(json & obj)
+{
+    int64_t guildid = std::stoull(obj["guild_id"].get<std::string>());
+    int64_t roleid = std::stoull(obj["role_id"].get<std::string>());
+
+    guildlist[guildid]->rolelist.erase(roleid);
+
+    guildlist[guildid]->UpdatePermissions();
+}
+
+void AegisBot::roleUpdate(json & obj)
+{
+    json role = obj["role"];
+    int64_t guildid = std::stoull(obj["guild_id"].get<std::string>());
+    int64_t roleid = std::stoull(role["id"].get<std::string>());
+
+    Role & r = guildlist[guildid]->rolelist[roleid];
+    r.color = role["color"];
+    r.hoist = role["hoist"];
+    r.managed = role["managed"];
+    r.mentionable = role["mentionable"];
+    r.name = role["name"].get<std::string>();
+    r.permission = Permission(role["permissions"].get<int64_t>());
+    r.position = role["position"];
+
+    guildlist[guildid]->UpdatePermissions();
+}
+
+void AegisBot::channelDelete(json & obj)
+{
+    int64_t type = obj["type"];
+    std::string topic = (obj["topic"].is_null()) ? "" : obj["topic"];
+    int64_t position = obj["position"];
+
+    int64_t id = std::stoull(obj["id"].get<std::string>());
+    int64_t guildid = std::stoull(obj["guild_id"].get<std::string>());
+
+    channellist.erase(id);
+
+    guildlist[guildid]->channellist.erase(id);
+
+    guildlist[guildid]->UpdatePermissions();
+}
+
+void AegisBot::channelUpdate(json & obj)
+{
+    int64_t type = obj["type"];
+    std::string topic = (obj["topic"].is_null()) ? "" : obj["topic"];
+    int64_t position = obj["position"];
+
+    //parent_id == null
+
+    bool nsfw = obj["nsfw"];
+    std::string channelname = obj["name"];
+
+    //last_message_id == int64_t
+
+    int64_t id = std::stoull(obj["id"].get<std::string>());
+    int64_t guildid = std::stoull(obj["guild_id"].get<std::string>());
+
+    Channel & channel = getChannel(id);
+    Guild & guild = getGuild(guildid);
+
+
+    json permission_overwrites = obj["permission_overwrites"];
+    channel.overrides.clear();
+    for (auto & permission : permission_overwrites)
+    {
+        uint32_t allow = permission["allow"];
+        uint32_t deny = permission["deny"];
+        uint64_t p_id = std::stoull(permission["id"].get<std::string>());
+        std::string p_type = permission["type"] != nullptr ? permission["type"] : "";
+
+//         if (channel.id == 289245168232824843LL)
+//         {
+//             channel.sendMessage(fmt::format("Allow [{0}:{0:#x}] Deny [{1}:{1:#x}] ID [{2}]", allow, deny, p_id));
+//         }
+        //log(fmt::format("Allow [{0}:{0:#x}] Deny [{1}:{1:#x}] ID [{2}]", allow, deny, p_id));
+
+        channel.overrides[p_id].allow = allow;
+        channel.overrides[p_id].deny = deny;
+        channel.overrides[p_id].id = id;
+        if (p_type == "role")
+            channel.overrides[p_id].type = Override::ORType::ROLE;
+        else
+            channel.overrides[p_id].type = Override::ORType::USER;
+    }
+
+    channel.UpdatePermissions();
+}
+
 void AegisBot::userMessage(json & obj)
 {
     json author = obj["author"];
@@ -799,16 +914,23 @@ void AegisBot::keepAlive(const boost::system::error_code& error, const uint64_t 
 {
     if (error != boost::asio::error::operation_aborted)
     {
-        json obj;
-        obj["d"] = sequence;
-        obj["op"] = 1;
+        try
+        {
+            json obj;
+            obj["d"] = sequence;
+            obj["op"] = 1;
 
-        log(fmt::format("Sending Heartbeat: {0}", obj.dump()), severity_level::trace);
-        ws.send(connection, obj.dump(), websocketpp::frame::opcode::text);
+            log(fmt::format("Sending Heartbeat: {0}", obj.dump()), severity_level::trace);
+            ws.send(connection, obj.dump(), websocketpp::frame::opcode::text);
 
-        log(fmt::format("Heartbeat timer added: {0} ms", ms), severity_level::trace);
-        keepalive_timer_.expires_from_now(std::chrono::milliseconds(ms));
-        keepalive_timer_.async_wait([ms, this](const boost::system::error_code & ec) { keepAlive(ec, ms); });
+            log(fmt::format("Heartbeat timer added: {0} ms", ms), severity_level::trace);
+            keepalive_timer_.expires_from_now(std::chrono::milliseconds(ms));
+            keepalive_timer_.async_wait([ms, this](const boost::system::error_code & ec) { keepAlive(ec, ms); });
+        }
+        catch (websocketpp::exception & e)
+        {
+            log(fmt::format("Websocket exception : {0}", e.what()));
+        }
     }
 }
 
@@ -1248,24 +1370,29 @@ void AegisBot::loadGuild(json & obj)
 
         }
 
-
-        {
-            uint64_t perms = 0;
-            for (auto & r : guild.memberlist[userId].first->roles)
-            {
-                perms |= guild.rolelist[r].permissions;
-            }
-            guild.updatePerms(perms);
-        }
+// 
+//         {
+//             uint64_t perms = 0;
+//             for (auto & r : guild.memberlist[userId].first->roles)
+//             {
+//                 perms |= guild.rolelist[r].permissions;
+//             }
+//             guild.updatePerms(perms);
+//             guild.channellist[id]->sendMessage(fmt::format("Guild specific perms by role [{0}:{0:#x}]", perms));
+//             log(fmt::format("Guild: {0} Perms: {1:#x}", guild.id, perms));
+//         }
 
         for (auto & c : guild.channellist)
         {
-            uint64_t perms = 0;
-            for (auto & r : guild.memberlist[userId].first->roles)
-            {
-                perms |= guild.rolelist[r].permissions;
-            }
-            c.second->updatePerms(perms);
+//             uint64_t perms = 0;
+//             for (auto & r : guild.memberlist[userId].first->roles)
+//             {
+//                 perms |= guild.rolelist[r].permissions;
+//             }
+//             c.second->updatePerms(perms);
+//             c.second->sendMessage(fmt::format("channel based perms? [{0}:{0:#x}]", perms));
+//             log(fmt::format("Guild: {0} Channel: {1} Perms: {2:#x}", guild.id, c.first, perms));
+            c.second->UpdatePermissions();
         }
 
 
@@ -1302,6 +1429,7 @@ void AegisBot::loadChannel(json & channel, uint64_t guild_id)
         //does channel exist?
         Channel & checkchannel = getChannel(channel_id);
         log(fmt::format("Channel[{0}] created for guild[{1}]", channel_id, guild_id), severity_level::trace);
+        checkchannel.setGuild(guild);
         checkchannel.name = GET_NULL(channel, "name");
         checkchannel.position = channel["position"];
         checkchannel.type = static_cast<ChannelType>(channel["type"].get<int>());// 0 = text, 2 = voice
@@ -1328,23 +1456,46 @@ void AegisBot::loadChannel(json & channel, uint64_t guild_id)
             uint64_t p_id = std::stoull(permission["id"].get<std::string>());
             std::string p_type = GET_NULL(permission, "type");
 
+            //if (checkchannel.id == 289245168232824843LL)
+            //    checkchannel.sendMessage(fmt::format("Allow [{0}:{0:#x}] Deny [{1}:{1:#x}] ID [{2}]", allow, deny, p_id));
+            //log(fmt::format("Allow [{0}:{0:#x}] Deny [{1}:{1:#x}] ID [{2}]", allow, deny, p_id));
+
+        /*{
+            "t":"CHANNEL_UPDATE", 
+            "s" : 34,
+            "op" : 0,
+            "d" :
+            {
+                "type":0,
+                "topic" : "",
+                "position" : 1,
+                "permission_overwrites" :
+                [{
+                    "type":"role",
+                    "id" : "321096577425080322",
+                    "deny" : 393280,
+                    "allow" : 0
+                }],
+                "parent_id" : null,
+                "nsfw" : false,
+                "name" : "testchannelrmperms",
+                "last_message_id" : "344280384688881664",
+                "id" : "344221125116428288",
+                "guild_id" : "321096577425080322"
+            }
+        }*/
+
+            checkchannel.overrides[p_id].allow = allow;
+            checkchannel.overrides[p_id].deny = deny;
+            checkchannel.overrides[p_id].id = channel_id;
             if (p_type == "role")
-            {
-                guild.rolelist[p_id].overrides[channel_id].allow = allow;
-                guild.rolelist[p_id].overrides[channel_id].deny = deny;
-                guild.rolelist[p_id].overrides[channel_id].id = channel_id;
-                guild.rolelist[p_id].overrides[channel_id].type = Override::ORType::ROLE;
-            }
+                checkchannel.overrides[p_id].type = Override::ORType::ROLE;
             else
-            {
-//                 memberlist[p_id]->overrides[channel_id].allow = allow;
-//                 memberlist[p_id]->overrides[channel_id].deny = deny;
-//                 memberlist[p_id]->overrides[channel_id].id = channel_id;
-//                 memberlist[p_id]->overrides[channel_id].type = Override::ORType::USER;
-            }
+                checkchannel.overrides[p_id].type = Override::ORType::USER;
         }
 
         guild.channellist.insert(std::pair<uint64_t, Channel*>(checkchannel.id, &checkchannel));
+        checkchannel.UpdatePermissions();
     }
     catch (std::exception&e)
     {
@@ -1397,7 +1548,7 @@ void AegisBot::loadRole(json & role, Guild & guild)
         _role.hoist = role["hoist"];
         _role.managed = role["managed"];
         _role.mentionable = role["mentionable"];
-        _role.permissions = role["permissions"];
+        _role.permission = Permission(role["permissions"].get<uint64_t>());
         _role.position = role["position"];
         _role.name = GET_NULL(role, "name");
         _role.color = role["color"];

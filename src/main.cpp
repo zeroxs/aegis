@@ -111,6 +111,11 @@ int main(int argc, char * argv[])
 
 
 
+        auto Perms = [&bot](ABMessage & message)
+        {
+            message.channel().sendMessage(fmt::format("My perms Allow {0:#x} Deny {0:#x} : {0}", message.channel().getPermission().getAllowPerms(), message.channel().getPermission().getDenyPerms()));
+        };
+
         auto SetGame = [&bot](ABMessage & message)
         {
             std::string gamestr = message.content.substr(message.channel().guild().prefix.size() + 8);
@@ -379,10 +384,76 @@ int main(int argc, char * argv[])
         });
 
 
+        auto ListOverrides = [&bot](ABMessage & message)
+        {
+            auto arr = json::array();
+            for (auto & o : message.channel().overrides)
+            {
+                arr.push_back(json({ {"name", fmt::format("{}", o.second.type == Override::ROLE ? "Role" : "User")}, {"value", fmt::format("id: {}\nAllow: {}\nDeny: {}", o.first, o.second.allow, o.second.deny) }, {"inline", false} }));
+            }
+            json msg =
+            {
+                { "title", "AegisBot" },
+                { "description", "Perms" },
+                { "color", rand() % 0xFFFFFF },//10599460 },
+                { "fields", arr }
+            };
+            message.channel().sendMessageEmbed(json(), msg);
+        };
+
+        auto ListPerms = [&bot](ABMessage & message)
+        {
+            auto & permission = message.channel().getPermission();
+            json msg =
+            {
+                { "title", "AegisBot" },
+                { "description", "Perms" },
+                { "color", rand() % 0xFFFFFF },//10599460 },
+                { "fields",
+                json::array(
+                    {
+                        { { "name", "canInvite" },          { "value", fmt::format("{}", permission.canInvite()) },{ "inline", true } },
+                        { { "name", "canKick" },            { "value", fmt::format("{}", permission.canKick()) },{ "inline", true } },
+                        { { "name", "canBan" },             { "value", fmt::format("{}", permission.canBan()) },{ "inline", true } },
+                        { { "name", "isAdmin" },            { "value", fmt::format("{}", permission.isAdmin()) },{ "inline", true } },
+                        { { "name", "canManageChannels" },  { "value", fmt::format("{}", permission.canManageChannels()) },{ "inline", true } },
+                        { { "name", "canManageGuild" },     { "value", fmt::format("{}", permission.canManageGuild()) },{ "inline", true } },
+                        { { "name", "canAddReactions" },    { "value", fmt::format("{}", permission.canAddReactions()) },{ "inline", true } },
+                        { { "name", "canViewAuditLogs" },   { "value", fmt::format("{}", permission.canViewAuditLogs()) },{ "inline", true } },
+                        { { "name", "canReadMessages" },    { "value", fmt::format("{}", permission.canReadMessages()) },{ "inline", true } },
+                        { { "name", "canSendMessages" },    { "value", fmt::format("{}", permission.canSendMessages()) },{ "inline", true } },
+                        { { "name", "canTTS" },             { "value", fmt::format("{}", permission.canTTS()) },{ "inline", true } },
+                        { { "name", "canManageMessages" },  { "value", fmt::format("{}", permission.canManageMessages()) },{ "inline", true } },
+                        { { "name", "canEmbed" },           { "value", fmt::format("{}", permission.canEmbed()) },{ "inline", true } },
+                        { { "name", "canAttachFiles" },     { "value", fmt::format("{}", permission.canAttachFiles()) },{ "inline", true } },
+                        { { "name", "canReadHistory" },     { "value", fmt::format("{}", permission.canReadHistory()) },{ "inline", true } },
+                        { { "name", "canMentionEveryone" }, { "value", fmt::format("{}", permission.canMentionEveryone()) },{ "inline", true } },
+                        { { "name", "canExternalEmoiji" },  { "value", fmt::format("{}", permission.canExternalEmoiji()) },{ "inline", true } },
+                        { { "name", "canChangeName" },      { "value", fmt::format("{}", permission.canChangeName()) },{ "inline", true } },
+                        { { "name", "canManageNames" },     { "value", fmt::format("{}", permission.canManageNames()) },{ "inline", true } },
+                        { { "name", "canManageRoles" },     { "value", fmt::format("{}", permission.canManageRoles()) },{ "inline", true } },
+                        { { "name", "canManageWebhooks" },  { "value", fmt::format("{}", permission.canManageWebhooks()) },{ "inline", true } },
+                        { { "name", "canManageEmojis" },    { "value", fmt::format("{}", permission.canManageEmojis()) },{ "inline", true } },
+                        { { "name", "canMentionEveryone" }, { "value", fmt::format("{}", permission.canMentionEveryone()) },{ "inline", true } },
+                        { { "name", "canVoiceConnect" },    { "value", fmt::format("{}", permission.canVoiceConnect()) },{ "inline", true } },
+                        { { "name", "canVoiceMute" },       { "value", fmt::format("{}", permission.canVoiceMute()) },{ "inline", true } },
+                        { { "name", "canVoiceSpeak" },      { "value", fmt::format("{}", permission.canVoiceSpeak()) },{ "inline", true } },
+                        { { "name", "canVoiceDeafen" },     { "value", fmt::format("{}", permission.canVoiceDeafen()) },{ "inline", true } },
+                        { { "name", "canVoiceMove" },       { "value", fmt::format("{}", permission.canVoiceMove()) },{ "inline", true } },
+                        { { "name", "canVoiceActivity" },   { "value", fmt::format("{}", permission.canVoiceActivity()) },{ "inline", true } }
+                    }
+                    )
+                }
+            };
+            message.channel().sendMessageEmbed(json(), msg);
+        };
+
         cmdlist["events"] = Events;
         cmdlist["info"] = Info;
         cmdlist["perms"] = Perms;
         cmdlist["setgame"] = SetGame;
+        cmdlist["listperms"] = ListPerms;
+        cmdlist["listor"] = ListOverrides;
 
         testguild.addCommands(cmdlist);
         myguild.addCommands(cmdlist);

@@ -39,7 +39,7 @@ class AegisBot;
 
 using json = nlohmann::json;
 
-class Guild : public Permission
+class Guild
 {
 public:
     Guild(AegisBot & bot, uint64_t id);
@@ -58,12 +58,15 @@ public:
     void modifyMember(json content, uint64_t guildid, uint64_t memberid, ABMessageCallback callback = ABMessageCallback());
     void createVoice(json content, uint64_t guildid, ABMessageCallback callback = ABMessageCallback());
 
+    void RecalculatePermissions();
+
     void leave(ABMessageCallback callback = ABMessageCallback());
 
     //id, <object, accesslevel>
     std::map<uint64_t, std::pair<Member*, uint16_t>> memberlist;
     std::map<uint64_t, Channel*> channellist;
     std::map<uint64_t, Role> rolelist;
+    std::map<uint64_t, Override> overrides;
 
     //TODO: perhaps endpoint objects for storing ratelimits and can share base class of
     //ratelimits and send functionality, but determine path? overcomplicated?
@@ -112,5 +115,9 @@ public:
     //for more than just simple responses
     std::map<std::string, ABCallbackPair> cmdlist = {};
     ABCallbackPair attachmenthandler;
+
+    std::map<uint64_t, Permission> permission_cache;
+
+    void UpdatePermissions();
 };
 
