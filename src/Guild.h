@@ -50,6 +50,7 @@ public:
     void processMessage(json obj);
     void addCommand(std::string command, ABMessageCallback callback);
     void addCommand(std::string command, ABCallbackPair callback);
+    void addCommands(std::map<std::string, ABMessageCallback> & clist);
     void removeCommand(std::string command);
     void addAttachmentHandler(ABMessageCallback callback);
     void addAttachmentHandler(ABCallbackPair callback);
@@ -105,7 +106,7 @@ public:
     bool silentperms = false;
     bool preventbotparse = false;
 
-    std::vector<uint64_t> activeChannels;
+    std::vector<uint64_t> active_channels;
 
     //extendable command list. this list allows you to place c++ functions in matching to a command
     //for more than just simple responses

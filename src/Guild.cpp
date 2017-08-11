@@ -161,16 +161,25 @@ void Guild::processMessage(json obj)
                 }
                 else if (cmd == "wl")
                 {
-                    try
+                    if (token.at_end())
                     {
-                        uint64_t channel = stoull(*(token++));
-                        activeChannels.push_back(channel);
-                        channellist[channel_id]->sendMessage(fmt::format("Channel [<#{0}>] added to whitelist", channel));
-                    }
-                    catch (std::exception&e)
-                    {
-                        activeChannels.push_back(channel_id);
+                        active_channels.push_back(channel_id);
                         channellist[channel_id]->sendMessage(fmt::format("Channel [<#{0}>] added to whitelist", channel_id));
+
+                    }
+                    else
+                    {
+                        try
+                        {
+                            uint64_t channel = stoull(*(token++));
+                            active_channels.push_back(channel);
+                            channellist[channel_id]->sendMessage(fmt::format("Channel [<#{0}>] added to whitelist", channel));
+                        }
+                        catch (std::exception&e)
+                        {
+                            active_channels.push_back(channel_id);
+                            channellist[channel_id]->sendMessage(fmt::format("Channel [<#{0}>] added to whitelist", channel_id));
+                        }
                     }
                     return;
                 }
@@ -179,20 +188,20 @@ void Guild::processMessage(json obj)
                     try
                     {
                         uint64_t channel = stoull(*(token++));
-                        auto it = std::find(activeChannels.begin(), activeChannels.end(), channel);
-                        if (it != activeChannels.end())
+                        auto it = std::find(active_channels.begin(), active_channels.end(), channel);
+                        if (it != active_channels.end())
                         {
-                            activeChannels.erase(it);
+                            active_channels.erase(it);
                             channellist[channel_id]->sendMessage(fmt::format("Channel [<#{0}>] removed from whitelist", channel));
                             return;
                         }
                     }
                     catch (std::exception&e)
                     {
-                        auto it = std::find(activeChannels.begin(), activeChannels.end(), channel_id);
-                        if (it != activeChannels.end())
+                        auto it = std::find(active_channels.begin(), active_channels.end(), channel_id);
+                        if (it != active_channels.end())
                         {
-                            activeChannels.erase(it);
+                            active_channels.erase(it);
                             channellist[channel_id]->sendMessage(fmt::format("Channel [<#{0}>] removed from whitelist", channel_id));
                             return;
                         }
@@ -201,7 +210,7 @@ void Guild::processMessage(json obj)
                 }
                 else if (cmd == "commands")
                 {
-                    if (std::find(activeChannels.begin(), activeChannels.end(), channel_id) == activeChannels.end())
+                    if (std::find(active_channels.begin(), active_channels.end(), channel_id) == active_channels.end())
                         return;
                     std::stringstream ss;
                     for (auto & c : cmdlist)
@@ -221,7 +230,7 @@ void Guild::processMessage(json obj)
         }
     }
 
-    if (std::find(activeChannels.begin(), activeChannels.end(), channel_id) == activeChannels.end())
+    if (std::find(active_channels.begin(), active_channels.end(), channel_id) == active_channels.end())
         return;
 
     if (content.size() == 1 || content.size() - prefix.size() == 0 || content.substr(0, prefix.size()) != prefix)
@@ -290,7 +299,6 @@ void Guild::processMessage(json obj)
         message.message_id = id;
         message.cmd = cmd;
         cmdlist[cmd].second(message);
-        return;
     }
 }
 
@@ -302,6 +310,12 @@ void Guild::addCommand(std::string command, ABMessageCallback callback)
 void Guild::addCommand(std::string command, ABCallbackPair callback)
 {
     cmdlist[command] = callback;
+}
+
+void Guild::addCommands(std::map<std::string, ABMessageCallback> & clist)
+{
+    for (auto & cmd : clist)
+        cmdlist[cmd.first] = ABCallbackPair(ABCallbackOptions(), cmd.second);
 }
 
 void Guild::removeCommand(std::string command)

@@ -62,6 +62,10 @@ int main(int argc, char * argv[])
     AegisBot::tokenstr = "config:token-prod";
 #endif
 
+
+    //default commands to add to a guild
+    std::map<std::string, ABMessageCallback> cmdlist;
+
     try
     {
         boost::asio::io_service::work work(AegisBot::io_service);
@@ -102,6 +106,7 @@ int main(int argc, char * argv[])
         Guild & myguild = bot.getGuild(287048029524066334LL);
         Guild & dbots = bot.getGuild(110373943822540800LL);
         Guild & dapi = bot.getGuild(81384788765712384LL);
+        Guild & testguild = bot.getGuild(321096577425080322LL);
         
 
 
@@ -236,14 +241,6 @@ int main(int argc, char * argv[])
         {
             message.channel().sendMessage(message.content.substr(message.cmd.size() + message.channel().guild().prefix.size()));
         });
-
-        myguild.addCommand("events", Events);
-        dbots.addCommand("events", Events);
-        dapi.addCommand("events", Events);
-
-        myguild.addCommand("info", Info);
-        dbots.addCommand("info", Info);
-        dapi.addCommand("info", Info);
 
         myguild.addCommand("clearchat", [&bot](ABMessage & message)
         {
@@ -381,14 +378,23 @@ int main(int argc, char * argv[])
             }
         });
 
-        myguild.addCommand("setgame", SetGame);
-        dbots.addCommand("setgame", SetGame);
 
-        dbots.activeChannels.push_back(132632676225122304LL);
-        dbots.activeChannels.push_back(113743192305827841LL);
-        dapi.activeChannels.push_back(81402706320699392LL);
+        cmdlist["events"] = Events;
+        cmdlist["info"] = Info;
+        cmdlist["perms"] = Perms;
+        cmdlist["setgame"] = SetGame;
 
-        myguild.activeChannels.push_back(288707540844412928LL);
+        testguild.addCommands(cmdlist);
+        myguild.addCommands(cmdlist);
+
+        testguild.active_channels.push_back(344221125116428288LL);
+        testguild.active_channels.push_back(344221366888955905LL);
+
+        dbots.active_channels.push_back(132632676225122304LL);
+        dbots.active_channels.push_back(113743192305827841LL);
+        dapi.active_channels.push_back(81402706320699392LL);
+
+        myguild.active_channels.push_back(288707540844412928LL);
 
 
         AegisBot::threads();
