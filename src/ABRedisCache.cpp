@@ -95,9 +95,9 @@ bool ABRedisCache::put(std::string key, std::string value, bool useprefix)
 {
     RedisValue result;
     if (useprefix)
-        result = redis.command("SET", { prefix + key });
+        result = redis.command("SET", { prefix + key, value });
     else
-        result = redis.command("SET", { key });
+        result = redis.command("SET", { key, value });
 
     if (result.isOk())
         return true;
