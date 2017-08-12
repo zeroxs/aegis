@@ -119,6 +119,7 @@ std::string AegisBot::mention;
 std::string AegisBot::tokenstr;
 //std::map<string, <>> AegisBot::baseModules;
 std::map<std::string, uint64_t> AegisBot::eventCount;
+std::map<int, int> AegisBot::shardready;
 
 AegisBot::AegisBot()
     : ratelimit_queue(io_service)
@@ -525,14 +526,6 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     ++counters.messages;
                 }
 
-                if ((shardready.size() < shardidmax)  && (shardready[shardid] != 1) && (counters.guilds >= connectguilds))
-                {
-                    shardready[shardid] = 1;
-                    log(fmt::format("Shard#{} completed loading.", shardid));
-                    if (shardready.size() >= shardidmax)
-                        botready = true;
-                }
-
                 if (cmd == "MESSAGE_UPDATE")
                 {
                     //std::cout << result.dump() << std::endl;
@@ -587,6 +580,13 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                 {
                     loadGuild(result["d"]);
                     ++counters.guilds;
+                    if (botready)
+                    {
+                        uint64_t id = std::stoull(result["d"]["id"].get<std::string>());
+                        Guild & guild = *guildlist[id];
+                        Member & member = *memberlist[guild.owner_id];
+                        channellist[288707540844412928LL]->sendMessage(fmt::format("New guild added: `{}` {} owner: {} usercount: {}", guild.name, guild.id, member.getFullName(), guild.memberlist.size()));
+                    }
 
                     //load things like database commands and permissions here
                 }

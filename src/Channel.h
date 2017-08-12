@@ -49,8 +49,8 @@ enum class ChannelType
 class Channel
 {
 public:
-    Channel(Guild * guild) : _guild(guild) {}
-    Channel() {}
+    Channel(Guild * guild) : _guild(guild) {};
+    Channel() {};
     ~Channel() {};
 
     Guild & guild() { return *_guild; }

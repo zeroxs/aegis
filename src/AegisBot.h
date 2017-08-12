@@ -189,7 +189,7 @@ public:
     } counters = {0,0,0,0};
     uint32_t connectguilds = 0;
     bool botready = false;
-    std::vector<int> shardready;
+    static std::map<int, int> shardready;
 
     Member * self = nullptr;
 
