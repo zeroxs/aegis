@@ -295,7 +295,8 @@ int main(int argc, char * argv[])
 
         myguild.addCommand("serverlist", [&bot](ABMessage & message)
         {
-            fmt::MemoryWriter w;
+            //fmt::MemoryWriter w;
+            std::stringstream w;
             for (auto & g : message.channel().guild().bot.guildlist)
             {
                 w << "*" << g.second->name << "*  :  " << g.second->id << "\n";

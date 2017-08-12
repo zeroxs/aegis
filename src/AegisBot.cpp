@@ -578,14 +578,14 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                 }
                 else if (cmd == "GUILD_CREATE")
                 {
-                    guildCreate(result["d"]);
                     ++counters.guilds;
+                    guildCreate(result["d"]);
                     if (botready)
                     {
                         uint64_t id = std::stoull(result["d"]["id"].get<std::string>());
                         Guild & guild = *guildlist[id];
                         Member & member = *memberlist[guild.owner_id];
-                        channellist[288707540844412928LL]->sendMessage(fmt::format("New guild added: `{}` {} owner: {} usercount: {}", guild.name, guild.id, member.getFullName(), guild.memberlist.size()));
+                        channellist[288707540844412928LL]->sendMessage(fmt::format("New guild added: `{}` {}\nowner: {}\nchannelcount: {}\nusercount: {}", guild.name, guild.id, member.getFullName(), guild.channellist.size(), guild.memberlist.size()));
                     }
 
                     //load things like database commands and permissions here
@@ -597,6 +597,22 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                 else if (cmd == "GUILD_DELETE")
                 {
                     --counters.guilds;
+                    if (result["d"]["unavailable"] == true)
+                    {
+                        //outage
+                        guildlist[result["d"]["id"]]->unavailable = true;
+                    }
+                    else
+                    {
+                        uint64_t id = std::stoull(result["d"]["id"].get<std::string>());
+                        Guild & guild = *guildlist[id];
+                        Member & member = *memberlist[guild.owner_id];
+                        channellist[288707540844412928LL]->sendMessage(fmt::format("Guild removed: `{}` {}\nowner: {}\nchannelcout: {}\nusercount: {}", guild.name, guild.id, member.getFullName(), guild.channellist.size(), guild.memberlist.size()));
+                        Guild * g = guildlist[id];
+                        delete g;
+                        guildlist.erase(guildlist.find(id));
+                        //kicked or left
+                    }
                 }
                 else if (cmd == "MESSAGE_DELETE")
                 {
@@ -630,8 +646,8 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     Guild & guild = getGuild(std::stoull(result["d"]["guild_id"].get<std::string>()));
                     if (cmd == "CHANNEL_CREATE")
                     {
-                        channelCreate(result["d"], guild.id);//untested
                         ++counters.channels;
+                        channelCreate(result["d"], guild.id);//untested
                     }
                     else if (cmd == "CHANNEL_UPDATE")
                     {
@@ -639,8 +655,8 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     }
                     else if (cmd == "CHANNEL_DELETE")
                     {
-                        channelDelete(result["d"]);
                         --counters.channels;
+                        channelDelete(result["d"]);
                     }
                     else if (cmd == "GUILD_BAN_ADD")
                     {
@@ -656,13 +672,12 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     }
                     else if (cmd == "GUILD_MEMBER_ADD")
                     {
-                        memberCreate(result["d"], guild);
                         ++counters.members;
+                        memberCreate(result["d"], guild);
                     }
                     else if (cmd == "GUILD_MEMBER_REMOVE")
                     {
                         --counters.members;
-
                     }
                     else if (cmd == "GUILD_MEMBER_UPDATE")
                     {

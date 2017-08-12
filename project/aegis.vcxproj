@@ -105,7 +105,7 @@
       </CppAdditionalWarning>
       <CAdditionalWarning />
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
-      <CppLanguageStandard>c++11</CppLanguageStandard>
+      <CppLanguageStandard>c++1y</CppLanguageStandard>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -114,7 +114,7 @@
       <AdditionalOptions> -L /home/zero/projects/aegisbot/lib/boost-1.63.0/stage/lib/ -L /home/zero/projects/aegisbot/lib/poco-1.7.8/lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ClCompile>
-      <CppLanguageStandard>c++11</CppLanguageStandard>
+      <CppLanguageStandard>c++1y</CppLanguageStandard>
       <CAdditionalWarning />
       <CppAdditionalWarning />
       <PreprocessorDefinitions>BOOST_ALL_DYN_LINK;USE_REDIS;ROOTADMIN=171000788183678976LL;TEST_GID=287048029524066334LL;CONTROL_CHANNEL=288707540844412928LL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
