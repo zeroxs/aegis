@@ -691,6 +691,20 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     {
                     }
                 }
+
+                if (!botready && (shardready.size() <= shardidmax) && (shardready[shardid] != 1) && (counters.guilds >= connectguilds))
+                {
+                    shardready[shardid] = 1;
+                    log(fmt::format("Shard#{} completed loading.", shardid));
+                    if (shardready.size() >= shardidmax)
+                    {
+                        log("Bot loading complete.");
+                        botready = true;
+                        for (auto & g : guildlist)
+                            g.second->LoadCommandSettings();
+                    }
+                }
+
             }
             if (!result["s"].is_null())
                 sequence = result["s"].get<uint64_t>();
@@ -1388,31 +1402,9 @@ void AegisBot::guildCreate(json & obj)
 
         }
 
-// 
-//         {
-//             uint64_t perms = 0;
-//             for (auto & r : guild.memberlist[userId].first->roles)
-//             {
-//                 perms |= guild.rolelist[r].permissions;
-//             }
-//             guild.updatePerms(perms);
-//             guild.channellist[id]->sendMessage(fmt::format("Guild specific perms by role [{0}:{0:#x}]", perms));
-//             log(fmt::format("Guild: {0} Perms: {1:#x}", guild.id, perms));
-//         }
+        guild.UpdatePermissions();
 
-        for (auto & c : guild.channellist)
-        {
-//             uint64_t perms = 0;
-//             for (auto & r : guild.memberlist[userId].first->roles)
-//             {
-//                 perms |= guild.rolelist[r].permissions;
-//             }
-//             c.second->updatePerms(perms);
-//             c.second->sendMessage(fmt::format("channel based perms? [{0}:{0:#x}]", perms));
-//             log(fmt::format("Guild: {0} Channel: {1} Perms: {2:#x}", guild.id, c.first, perms));
-            c.second->UpdatePermissions();
-        }
-
+        //bot commands
 
 
 
@@ -1514,6 +1506,9 @@ void AegisBot::channelCreate(json & channel, uint64_t guild_id)
 
         guild.channellist.insert(std::pair<uint64_t, Channel*>(checkchannel.id, &checkchannel));
         checkchannel.UpdatePermissions();
+        std::string wl = cache->get(fmt::format("config:channel:{}:wl", channel_id));
+        if (wl != "" && std::stoi(wl) > 0)
+            guild.active_channels.push_back(channel_id);
     }
     catch (std::exception&e)
     {
@@ -1546,8 +1541,34 @@ void AegisBot::memberCreate(json & member, Guild & guild)
         json roles = member["roles"];
         for (auto & r : roles)
             checkmember.roles.push_back(std::stoull(r.get<std::string>()));
+        checkmember.roles.push_back(guild_id);
 
         checkmember.guilds[guild_id].guild = &getGuild(guild_id);
+    }
+    catch (std::exception&e)
+    {
+        log(fmt::format("Error processing member[{0}] of guild[{1}] {2}", member_id, guild_id, e.what()), severity_level::error);
+    }
+}
+
+void AegisBot::memberUpdate(json & member, Guild & guild)
+{
+    uint64_t guild_id = guild.id;
+
+    json user = member["user"];
+    uint64_t member_id = std::stoull(user["id"].get<std::string>());
+    try
+    {
+        Member & checkmember = getMember(member_id);
+        log(fmt::format("Member[{0}] created for guild[{1}]", member_id, guild_id), severity_level::trace);
+        guild.memberlist[member_id] = std::pair<Member*, uint16_t>(&checkmember, 0);
+
+        json roles = member["roles"];
+        for (auto & r : roles)
+            checkmember.roles.push_back(std::stoull(r.get<std::string>()));
+
+        checkmember.guilds[guild_id].guild = &getGuild(guild_id);
+        checkmember.guilds[guild_id].guild->UpdatePermissions();
     }
     catch (std::exception&e)
     {

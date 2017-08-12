@@ -331,6 +331,7 @@ private:
     void guildCreate(json & obj);
     void channelCreate(json & channel, uint64_t guild_id);
     void memberCreate(json & member, Guild & guild);
+    void memberUpdate(json & member, Guild & guild);
     void loadRole(json & role, Guild & guild);
     void loadEmoji(json & emoji, Guild & guild);
     void loadPresence(json & presence, Guild & guild);

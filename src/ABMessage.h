@@ -30,6 +30,7 @@
 #include <stdint.h>
 #include <functional>
 #include "../lib/json/src/json.hpp"
+#include <list>
 
 class Guild;
 class Channel;
@@ -39,10 +40,35 @@ class ABMessage;
 
 using json = nlohmann::json;
 
+enum class PermType
+{
+    BLOCK = 0,
+    ALLOW = 1
+};
+enum class IdType
+{
+    ROLE = 0,
+    USER = 1
+};
+
 struct ABCallbackOptions
 {
-    bool enabled = true;// false;
-    uint16_t level = 0;//1;
+    bool enabled = false;
+
+    struct id_type
+    {
+        bool operator==(const id_type & rhs)
+        {
+            return (type == rhs.type && id == rhs.id);
+        }
+        IdType type = IdType::ROLE;
+        uint64_t id;
+    };
+    struct
+    {
+        PermType type = PermType::BLOCK;
+        std::list<id_type> ids;
+    } perms;
 };
 
 //TODO:

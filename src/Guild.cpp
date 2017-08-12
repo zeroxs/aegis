@@ -64,7 +64,10 @@ void Guild::processMessage(json obj)
     uint16_t discriminator = std::stoi(author["discriminator"].get<std::string>());
 
     uint64_t channel_id = std::stoull(obj["channel_id"].get<std::string>());
-    uint64_t id = std::stoull(obj["id"].get<std::string>());
+    uint64_t msgid = std::stoull(obj["id"].get<std::string>());
+
+    Channel & channel = *channellist[channel_id];
+    Member & member = *memberlist[userid].first;
     //uint64_t nonce = obj["nonce"].is_null()?0:std::stoull(obj["nonce"].get<string>());
 
     std::string content = obj["content"];
@@ -106,7 +109,7 @@ void Guild::processMessage(json obj)
                     prefix = setprefix;
                     channellist[channel_id]->sendMessage(fmt::format("Prefix successfully set to `{0}`", setprefix));
 
-                    //TODO: set this in a persistent DB to maintain across restarts
+                    AegisBot::cache->put(fmt::format("config:guild:{}:prefix", id), setprefix);
                 }
                 return;
             }
@@ -140,6 +143,10 @@ void Guild::processMessage(json obj)
                 boost::char_separator<char> sep{ " " };
                 boost::tokenizer<boost::char_separator<char>> tok{ content, sep };
 
+//                 std::vector<std::string> tokens;
+//                 boost::split(tokens, content, boost::is_any_of(" "));
+
+
                 auto token = tok.begin();
 
                 token++;
@@ -155,12 +162,12 @@ void Guild::processMessage(json obj)
                         prefix = setprefix;
                         channellist[channel_id]->sendMessage(fmt::format("Prefix successfully set to `{0}`", setprefix));
 
-                        //TODO: set this in a persistent DB to maintain across restarts
+                        AegisBot::cache->put(fmt::format("config:guild:{}:prefix", id), setprefix);
                     }
                 }
                 else if (cmd == "help")
                 {
-                    channellist[channel_id]->sendMessage("This bot is in development. If you'd like more information on it, please join the discord server https://discord.gg/w7Y3Bb8");
+                    channellist[channel_id]->sendMessage("This bot is in development. If you'd like more information on it, please join the discord server https://discord.gg/Kv7aP5K");
                     return;
                 }
                 else if (cmd == "wl")
@@ -169,20 +176,32 @@ void Guild::processMessage(json obj)
                     {
                         active_channels.push_back(channel_id);
                         channellist[channel_id]->sendMessage(fmt::format("Channel [<#{0}>] added to whitelist", channel_id));
-
+                        AegisBot::cache->put(fmt::format("config:channel:{}:wl", channel_id), "1");
                     }
                     else
                     {
                         try
                         {
-                            uint64_t channel = stoull(*(token++));
+                            std::string c = *token;
+                            if (c == "*")
+                            {
+                                for (auto & g_c : channellist)
+                                {
+                                    AegisBot::cache->put(fmt::format("config:channel:{}:wl", g_c.second->id), "1");
+                                }
+                                channellist[channel_id]->sendMessage("All Channels added to whitelist");
+                                return;
+                            }
+                            uint64_t channel = stoull(c);
                             active_channels.push_back(channel);
                             channellist[channel_id]->sendMessage(fmt::format("Channel [<#{0}>] added to whitelist", channel));
+                            AegisBot::cache->put(fmt::format("config:channel:{}:wl", channel), "1");
                         }
                         catch (std::exception&e)
                         {
                             active_channels.push_back(channel_id);
                             channellist[channel_id]->sendMessage(fmt::format("Channel [<#{0}>] added to whitelist", channel_id));
+                            AegisBot::cache->put(fmt::format("config:channel:{}:wl", channel_id), "1");
                         }
                     }
                     return;
@@ -191,12 +210,23 @@ void Guild::processMessage(json obj)
                 {
                     try
                     {
-                        uint64_t channel = stoull(*(token++));
+                        std::string c = *token;
+                        if (c == "*")
+                        {
+                            for (auto & g_c : channellist)
+                            {
+                                AegisBot::cache->put(fmt::format("config:channel:{}:wl", g_c.second->id), "0");
+                            }
+                            channellist[channel_id]->sendMessage("All Channels removed from whitelist");
+                            return;
+                        }
+                        uint64_t channel = stoull(c);
                         auto it = std::find(active_channels.begin(), active_channels.end(), channel);
                         if (it != active_channels.end())
                         {
                             active_channels.erase(it);
                             channellist[channel_id]->sendMessage(fmt::format("Channel [<#{0}>] removed from whitelist", channel));
+                            AegisBot::cache->put(fmt::format("config:channel:{}:wl", channel), "0");
                             return;
                         }
                     }
@@ -207,22 +237,233 @@ void Guild::processMessage(json obj)
                         {
                             active_channels.erase(it);
                             channellist[channel_id]->sendMessage(fmt::format("Channel [<#{0}>] removed from whitelist", channel_id));
+                            AegisBot::cache->put(fmt::format("config:channel:{}:wl", channel_id), "0");
                             return;
                         }
                     }
                     return;
+                }
+                else if (cmd == "disable")
+                {
+                    std::vector<std::string> tokens;
+                    std::string msg = content.substr(AegisBot::mention.size()+1);
+                    boost::split(tokens, msg, boost::is_any_of(" "));
+
+                    std::string todisable = tokens[1];
+                    boost::algorithm::to_lower(todisable);
+
+                    if (todisable == "enable" || todisable == "disable")
+                    {
+                        channel.sendMessage(fmt::format("Unable to disable command `{}`", todisable));
+                        return;
+                    }
+
+                    if (cmdlist.count(todisable) == 0)
+                    {
+                        channel.sendMessage(fmt::format("No such command `{}`", todisable));
+                        return;
+                    }
+
+                    AegisBot::cache->put(fmt::format("config:guild:{}:{}:enable", id, todisable), "0");
+                    cmdlist[todisable].first.enabled = false;
+                    channel.sendMessage(fmt::format("Disabled command `{}`", todisable));
+                    return;
+                }
+                else if (cmd == "scmd")
+                {
+                    std::vector<std::string> tokens;
+                    std::string msg = content.substr(AegisBot::mention.size() + 1);
+                    boost::split(tokens, msg, boost::is_any_of(" "));
+
+                    std::string toenable = tokens[1];
+                    boost::algorithm::to_lower(toenable);
+
+                    if (toenable == "enable" || toenable == "disable")
+                    {
+                        channel.sendMessage(fmt::format("Unable to get status of command `{}`", toenable));
+                        return;
+                    }
+
+                    if (cmdlist.count(toenable) == 0)
+                    {
+                        channel.sendMessage(fmt::format("No such command `{}`", toenable));
+                        return;
+                    }
+
+                    json ins = {};
+                    for (auto & i : cmdlist[toenable].first.perms.ids)
+                    {
+                        json j = { { "id", i.id },{ "type", static_cast<int>(i.type) } };
+                        ins.push_back(j);
+                    }
+
+                    channel.sendMessage(fmt::format("Command: `{}`\nStatus: {}\nPerm type: {}\nPerm List: {}", toenable, cmdlist[toenable].first.enabled ? "enabled" : "disabled", cmdlist[toenable].first.perms.type==PermType::ALLOW?"allow":"block", ins.dump()));
+                }
+                else if (cmd == "enable")
+                {
+                    std::vector<std::string> tokens;
+                    std::string msg = content.substr(AegisBot::mention.size()+1);
+                    boost::split(tokens, msg, boost::is_any_of(" "));
+
+                    std::string toenable = tokens[1];
+                    boost::algorithm::to_lower(toenable);
+
+                    if (toenable == "enable" || toenable == "disable")
+                    {
+                        channel.sendMessage(fmt::format("Unable to enable command `{}`", toenable));
+                        return;
+                    }
+
+                    if (cmdlist.count(toenable) == 0)
+                    {
+                        channel.sendMessage(fmt::format("No such command `{}`", toenable));
+                        return;
+                    }
+
+                    AegisBot::cache->put(fmt::format("config:guild:{}:{}:enable", id, toenable), "1");
+                    cmdlist[toenable].first.enabled = true;
+                    channel.sendMessage(fmt::format("Enabled command `{}`", toenable));
+                    return;
+                }
+                else if (cmd == "perm")
+                {
+                    std::vector<std::string> tokens;
+                    std::string msg = content.substr(AegisBot::mention.size()+1);
+                    boost::algorithm::to_lower(msg);
+                    boost::split(tokens, msg, boost::is_any_of(" "));
+
+                    if (tokens.size() < 2)
+                    {
+                        channellist[channel_id]->sendMessage("Not enough params.");
+                        return;
+                    }
+
+                    if (tokens[1] == "allow")
+                    {
+                        auto cmditer = cmdlist.find(tokens[2]);
+                        cmditer->second.first.perms.type = PermType::ALLOW;
+                        channellist[channel_id]->sendMessage(fmt::format("Changed command `{}` permission to allow", cmditer->first));
+                        AegisBot::cache->put(fmt::format("config:guild:{}:{}:permtype", id, cmditer->first), fmt::format("{}", static_cast<int>(PermType::ALLOW)));
+                        return;
+                    }
+                    if (tokens[1] == "block")
+                    {
+                        auto cmditer = cmdlist.find(tokens[2]);
+                        cmditer->second.first.perms.type = PermType::BLOCK;
+                        channellist[channel_id]->sendMessage(fmt::format("Changed command `{}` permission to block", cmditer->first));
+                        AegisBot::cache->put(fmt::format("config:guild:{}:{}:permtype", id, cmditer->first), fmt::format("{}", static_cast<int>(PermType::BLOCK)));
+                        return;
+                    }
+
+                    if (tokens.size() < 5)
+                    {
+                        channellist[channel_id]->sendMessage("Not enough params.");
+                        return;
+                    }
+
+                    if (tokens[1] == "add")
+                    {
+                        if (tokens[2] == "user")
+                        {
+                            auto cmditer = cmdlist.find(tokens[3]);
+
+                            uint64_t uid = std::stoull(tokens[4]);
+                            
+                            cmdlist[tokens[3]].first.perms.ids.push_back({ IdType::USER, uid });
+                            json ins = {};
+                            for (auto & i : cmdlist[tokens[3]].first.perms.ids)
+                            {
+                                json j = { { "id", i.id },{ "type", static_cast<int>(i.type) } };
+                                ins.push_back(j);
+                            }
+                            channellist[channel_id]->sendMessage(fmt::format("Added user `{}` to command `{}`", bot.memberlist[uid]->getFullName(), cmditer->first));
+                            AegisBot::cache->put(fmt::format("config:guild:{}:{}:idlist", id, cmditer->first), ins.dump());
+                            return;
+                        }
+                        if (tokens[2] == "role")
+                        {
+                            auto cmditer = cmdlist.find(tokens[3]);
+
+                            uint64_t uid = std::stoull(tokens[4]);
+                           
+                            cmdlist[tokens[3]].first.perms.ids.push_back({ IdType::ROLE, uid });
+                            json ins = {};
+                            for (auto & i : cmdlist[tokens[3]].first.perms.ids)
+                            {
+                                json j = { { "id", i.id },{ "type", static_cast<int>(i.type) } };
+                                ins.push_back(j);
+                            }
+                            channellist[channel_id]->sendMessage(fmt::format("Added role `{}` to command `{}`", rolelist[uid].name, cmditer->first));
+                            AegisBot::cache->put(fmt::format("config:guild:{}:{}:idlist", id, cmditer->first), ins.dump());
+                            return;
+                        }
+                        channellist[channel_id]->sendMessage("Invalid param.");
+                        return;
+                    }
+                    else if (tokens[1] == "rem")
+                    {
+                        if (tokens[2] == "user")
+                        {
+                            auto cmditer = cmdlist.find(tokens[3]);
+
+                            uint64_t uid = std::stoull(tokens[4]);
+                           
+                            ABCallbackOptions::id_type temp{ IdType::USER, uid };
+                            cmdlist[tokens[3]].first.perms.ids.remove(temp);
+                            json ins = {};
+                            for (auto & i : cmdlist[tokens[3]].first.perms.ids)
+                            {
+                                json j = { { "id", i.id },{ "type", static_cast<int>(i.type) } };
+                                ins.push_back(j);
+                            }
+                            channellist[channel_id]->sendMessage(fmt::format("Removed user `{}` from command `{}`", bot.memberlist[uid]->getFullName(), cmditer->first));
+                            AegisBot::cache->put(fmt::format("config:guild:{}:{}:idlist", id, cmditer->first), ins.dump());
+                            return;
+                        }
+                        if (tokens[3] == "role")
+                        {
+                            auto cmditer = cmdlist.find(tokens[3]);
+
+                            uint64_t uid = std::stoull(tokens[4]);
+                            
+                            ABCallbackOptions::id_type temp{ IdType::USER, uid };
+                            cmdlist[tokens[3]].first.perms.ids.remove(temp);
+                            json ins = {};
+                            for (auto & i : cmdlist[tokens[3]].first.perms.ids)
+                            {
+                                json j = { { "id", i.id },{ "type", static_cast<int>(i.type) } };
+                                ins.push_back(j);
+                            }
+                            channellist[channel_id]->sendMessage(fmt::format("Removed role `{}` from command `{}`", rolelist[uid].name, cmditer->first));
+                            AegisBot::cache->put(fmt::format("config:guild:{}:{}:idlist", id, cmditer->first), ins.dump());
+                            return;
+                        }
+                        channellist[channel_id]->sendMessage("Invalid param.");
+                        return;
+                    }
                 }
                 else if (cmd == "commands")
                 {
                     if (std::find(active_channels.begin(), active_channels.end(), channel_id) == active_channels.end())
                         return;
                     std::stringstream ss;
+                    ss << "`";
+                    std::stringstream ssdisabled;
+                    ssdisabled << "`";
                     for (auto & c : cmdlist)
                     {
-                        ss << " " << c.first;
+                        if (c.second.first.enabled)
+                            ss << " " << c.first;
+                        else
+                            ssdisabled << " " << c.first;
                     }
-                    ss << " ";
-                    channellist[channel_id]->sendMessage(fmt::format("Command list: `{0}`.", ss.str()));
+                    if (ss.str() == "`")
+                        ss << u8"\u200b";
+                    ss << "`";
+                    if (ssdisabled.str() == "`")
+                        ssdisabled << u8"\u200b";
+                    ssdisabled << "`";
+                    channellist[channel_id]->sendMessage(fmt::format("Command list: {}\nDisabled commands: {}", ss.str(), ssdisabled.str()));
                 }
                 return;
             }
@@ -275,32 +516,69 @@ void Guild::processMessage(json obj)
 
     if (cmdlist.count(cmd))
     {
-        //guild owners bypass all restrictions
-        if (userid != owner_id)
-        {
-            //command exists - construct callback object and perform callback
-            //but first check if it's enabled
-            if (!cmdlist[cmd].first.enabled)
-                return;
+        //command exists - construct callback object and perform callback
+        //but first check if it's enabled
+        if (!cmdlist[cmd].first.enabled)
+            return;
 
-            //now check access levels
-            //a user that does not exist in the access list has a default permission level of 0
-            //commands have a default setting of 1 preventing anyone but guild owner from initially
-            //running any commands until permissions are set
-            if (memberlist[userid].second < cmdlist[cmd].first.level)
+        if (cmdlist[cmd].first.perms.type == PermType::ALLOW)
+        {
+            for (auto & type : cmdlist[cmd].first.perms.ids)
             {
-                if (!silentperms)
+                if (type.type == IdType::ROLE)
                 {
-                    channellist[channel_id]->sendMessage("You do not have access to that command.");
-                    return;
+                    if (std::find(member.roles.begin(), member.roles.end(), type.id) == member.roles.end())
+                    {
+                        return;
+                    }
+                }
+                else if (type.type == IdType::USER)
+                {
+                    if (member.id != type.id)
+                    {
+                        return;
+                    }
+                }
+            }
+        }
+        else
+        {
+            for (auto & type : cmdlist[cmd].first.perms.ids)
+            {
+                if (type.type == IdType::ROLE)
+                {
+                    if (std::find(member.roles.begin(), member.roles.end(), type.id) != member.roles.end())
+                    {
+                        return;
+                    }
+                }
+                else if (type.type == IdType::USER)
+                {
+                    if (member.id == type.id)
+                    {
+                        return;
+                    }
                 }
             }
         }
 
+        //now check access levels
+        //a user that does not exist in the access list has a default permission level of 0
+        //commands have a default setting of 1 preventing anyone but guild owner from initially
+        //running any commands until permissions are set
+//         if (memberlist[userid].second < cmdlist[cmd].first.level)
+//         {
+//             if (!silentperms)
+//             {
+//                 channellist[channel_id]->sendMessage("You do not have access to that command.");
+//                 return;
+//             }
+//         }
+
 
         ABMessage message(channellist[channel_id], AegisBot::memberlist[userid]);
         message.content = content;
-        message.message_id = id;
+        message.message_id = msgid;
         message.cmd = cmd;
         cmdlist[cmd].second(message);
     }
