@@ -28,11 +28,15 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
 
-
 Guild::Guild(AegisBot & bot, uint64_t id)
     : bot(bot)
     , id(id)
 {
+    //Load settings
+
+    std::string t = bot.cache->get(fmt::format("config:guild:{}:prefix", id));
+    if (t != "")
+        prefix = t;
 
 }
 
@@ -456,4 +460,42 @@ void Guild::UpdatePermissions()
         permission_cache[m.second.first->id] = Permission(allow, deny);
     }
 
+}
+
+void Guild::LoadCommandSettings()
+{
+    for (auto & cmd : cmdlist)
+    {
+        std::string enbl = AegisBot::cache->get(fmt::format("config:guild:{}:{}:enable", id, cmd.first));
+        if (enbl != "" && std::stoi(enbl) > 0)
+            cmd.second.first.enabled = true;
+        else
+            cmd.second.first.enabled = false;
+
+        std::string permtype = AegisBot::cache->get(fmt::format("config:guild:{}:{}:permtype", id, cmd.first));
+        if (permtype != "" && std::stoi(permtype) > 0)
+            cmd.second.first.perms.type = PermType::ALLOW;
+        else
+            cmd.second.first.perms.type = PermType::BLOCK;
+
+        try
+        {
+            std::string idliststr = AegisBot::cache->get(fmt::format("config:guild:{}:{}:idlist", id, cmd.first));
+            if (idliststr == "")
+                idliststr = "{}";
+            json idlist = json::parse(idliststr);
+
+            for (auto & id : idlist)
+            {
+                ABCallbackOptions::id_type idtype;
+                idtype.id = id["id"].get<uint64_t>();
+                idtype.type = static_cast<IdType>(id["type"].get<uint32_t>());
+                cmd.second.first.perms.ids.push_back(idtype);
+            }
+        }
+        catch (std::invalid_argument & e)
+        {
+            bot.log(fmt::format("Error processing command permission loading for guild[{0}] {1}", id, (std::string)e.what()), severity_level::error);
+        }
+    }
 }

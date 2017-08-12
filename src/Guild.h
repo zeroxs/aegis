@@ -119,5 +119,6 @@ public:
     std::map<uint64_t, Permission> permission_cache;
 
     void UpdatePermissions();
+    void LoadCommandSettings();
 };
 
