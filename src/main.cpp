@@ -64,7 +64,8 @@ int main(int argc, char * argv[])
 
 
     //default commands to add to a guild
-    std::map<std::string, ABMessageCallback> cmdlist;
+    std::map<std::string, ABMessageCallback> & cmdlist = AegisBot::cmdlist;
+    std::map<std::string, ABMessageCallback> admincmdlist;
 
     try
     {
@@ -463,13 +464,15 @@ int main(int argc, char * argv[])
         cmdlist["events"] = Events;
         cmdlist["info"] = Info;
         cmdlist["perms"] = Perms;
-        cmdlist["setgame"] = SetGame;
-        cmdlist["listperms"] = ListPerms;
-        cmdlist["listor"] = ListOverrides;
         cmdlist["shards"] = Shards;
+
+        admincmdlist["setgame"] = SetGame;
+        admincmdlist["listperms"] = ListPerms;
+        admincmdlist["listor"] = ListOverrides;
 
         testguild.addCommands(cmdlist);
         myguild.addCommands(cmdlist);
+        myguild.addCommands(admincmdlist);
 
         testguild.active_channels.push_back(344221125116428288LL);
         testguild.active_channels.push_back(344221366888955905LL);

@@ -120,6 +120,7 @@ std::string AegisBot::tokenstr;
 //std::map<string, <>> AegisBot::baseModules;
 std::map<std::string, uint64_t> AegisBot::eventCount;
 std::map<int, int> AegisBot::shardready;
+std::map<std::string, ABMessageCallback> AegisBot::cmdlist;
 
 AegisBot::AegisBot()
     : ratelimit_queue(io_service)
@@ -1443,6 +1444,9 @@ void AegisBot::guildCreate(json & obj)
         guild.UpdatePermissions();
 
         //bot commands
+
+        for (auto cmd : cmdlist)
+            guild.cmdlist[cmd.first] = ABCallbackPair(ABCallbackOptions(), cmd.second);
 
 
 

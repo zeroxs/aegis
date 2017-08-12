@@ -152,6 +152,7 @@ public:
     static std::string mention;
     static std::string tokenstr;
     static std::map<uint64_t, std::function<void(json &)>> ws_callbacks;
+    static std::map<std::string, ABMessageCallback> cmdlist;
     //static std::map<string, <>> baseModules;
 
     static void AddCallback(std::string name, std::function<void(json &)> fn);
