@@ -633,8 +633,22 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                 {
                     processReady(result["d"]);
                 }
-
-
+                else if (cmd == "CHANNEL_CREATE")
+                {
+                    ++counters.channels;
+                    auto t = static_cast<ChannelType>(result["d"]["type"].get<int>());
+                    if (t == ChannelType::DM || t == ChannelType::GROUP_DM)
+                    {
+                        uint64_t channel_id = result["d"]["id"];
+                        Channel & checkchannel = getChannel(channel_id);
+                        log(fmt::format("DM Channel[{0}] created", channel_id), severity_level::trace);
+                        checkchannel.type = t;
+                        checkchannel.sendMessage("I do not support DMs at this time. If you would like more information, please join my support server located @ https://discord.gg/Kv7aP5K");
+                        return;
+                    }
+                    Guild & guild = getGuild(std::stoull(result["d"]["guild_id"].get<std::string>()));
+                    channelCreate(result["d"], guild.id);//untested
+                }
 
                 //////////////////////////////////////////////////////////////////////////
                 //start of guild_id events
@@ -647,9 +661,18 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     if (cmd == "CHANNEL_CREATE")
                     {
                         ++counters.channels;
+                        auto t = static_cast<ChannelType>(result["d"]["type"].get<int>());
+                        if (t == ChannelType::DM || t == ChannelType::GROUP_DM)
+                        {
+                            uint64_t channel_id = result["d"]["id"];
+                            Channel & checkchannel = getChannel(channel_id);
+                            log(fmt::format("DM Channel[{0}] created", channel_id), severity_level::trace);
+                            checkchannel.type = t;
+                            return;
+                        }
                         channelCreate(result["d"], guild.id);//untested
                     }
-                    else if (cmd == "CHANNEL_UPDATE")
+                    if (cmd == "CHANNEL_UPDATE")
                     {
                         channelUpdate(result["d"]);
                     }
@@ -1198,62 +1221,62 @@ void AegisBot::run()
         // Check for outgoing messages that need sending
         {
             std::lock_guard<std::recursive_mutex> lock(m);
-            for (auto & guild : guildlist)
+            for (auto & channel : channellist)
             {
-                for (auto & channel : guild.second->channellist)
+                if (channel.second->ratelimits.outqueue.size() > 0)
                 {
-                    if (channel.second->ratelimits.outqueue.size() > 0)
+                    if (channel.second->ratelimits.rateRemaining() > 0)
                     {
-                        if (channel.second->ratelimits.rateRemaining() > 0)
+                        if (channel.second->ratelimits.isFailureTime())
                         {
-                            if (channel.second->ratelimits.isFailureTime())
+                            continue;
+                        }
+
+                        //TODO: support differing rate limits eg, differentiate between self commands and guild user renames
+                        //TODO: also merge this + guild call() calls.
+
+                        //Channel api calls
+                        auto message = channel.second->ratelimits.getMessage();
+                        boost::optional<std::string> res;
+                        {
+                            //lock and pop when success
+                            //std::lock_guard<std::recursive_mutex> lock(channel.second.ratelimits.m);
+
+                            res = call(message.endpoint, message.content, &message.channel().ratelimits, message.method, message.query);
+                                
+                            if (res == boost::none)
                             {
+                                //rate limit hit
+                                log(fmt::format("Rate Limit hit or connection error - requeuing message [{0}] [{1}] [{2}] [{3}]", message.channel().guild().name, message.channel().guild().id, message.channel().name, message.channel().id), severity_level::error);
                                 continue;
                             }
 
-                            //TODO: support differing rate limits eg, differentiate between self commands and guild user renames
-                            //TODO: also merge this + guild call() calls.
-
-                            //Channel api calls
-                            auto message = channel.second->ratelimits.getMessage();
-                            boost::optional<std::string> res;
+                            try
                             {
-                                //lock and pop when success
-                                //std::lock_guard<std::recursive_mutex> lock(channel.second.ratelimits.m);
-
-                                res = call(message.endpoint, message.content, &message.channel().ratelimits, message.method, message.query);
-                                
-                                if (res == boost::none)
-                                {
-                                    //rate limit hit
-                                    log(fmt::format("Rate Limit hit or connection error - requeuing message [{0}] [{1}] [{2}] [{3}]", message.channel().guild().name, message.channel().guild().id, message.channel().name, message.channel().id), severity_level::error);
-                                    continue;
-                                }
-
-                                try
-                                {
-                                    message.content = std::move(res.get());
-                                    if (message.content.size() != 0)
-                                        message.obj = json::parse(message.content);
-                                }
-                                catch (...)
-                                {
-                                    //dummy catch on empty or malformed responses
-                                }
-
-                                //message success, pop
-                                message.channel().ratelimits.outqueue.pop();
+                                message.content = std::move(res.get());
+                                if (message.content.size() != 0)
+                                    message.obj = json::parse(message.content);
+                            }
+                            catch (...)
+                            {
+                                //dummy catch on empty or malformed responses
                             }
 
-                            log(fmt::format("Message sent: [{0}] [{1}]", message.endpoint, message.content), severity_level::trace);
-                            if (message.callback)
-                            {
-                                message.callback(message);
-                            }
+                            //message success, pop
+                            message.channel().ratelimits.outqueue.pop();
+                        }
+
+                        log(fmt::format("Message sent: [{0}] [{1}]", message.endpoint, message.content), severity_level::trace);
+                        if (message.callback)
+                        {
+                            message.callback(message);
                         }
                     }
                 }
+            }
 
+            for (auto & guild : guildlist)
+            {
                 if (guild.second->ratelimits.outqueue.size() > 0)
                 {
                     if (guild.second->ratelimits.rateRemaining())

@@ -43,7 +43,10 @@ class AegisBot;
 enum class ChannelType
 {
     TEXT = 0,
-    VOICE = 2
+    DM = 1,
+    VOICE = 2,
+    GROUP_DM = 3,
+    CATEGORY = 4
 };
 
 class Channel

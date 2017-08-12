@@ -220,7 +220,6 @@ public:
     uint64_t convertDateToInt64(std::string timestamp);
 
 
-
     //////////////////////////////////////////////////////////////////////////
     /*
     * Author:  David Robert Nadeau

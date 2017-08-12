@@ -80,7 +80,6 @@ public:
     std::string joined_at;
     MEMBER_STATUS status = MEMBER_STATUS::OFFLINE;
 
-
-    RateLimits ratelimits;
+    //RateLimits ratelimits;
 };
 
