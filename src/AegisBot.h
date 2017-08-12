@@ -328,9 +328,9 @@ private:
     void pruneMsgHistory(const boost::system::error_code& error);
     void purgeMsgHistory();
     void keepAlive(const boost::system::error_code& error, const uint64_t ms);
-    void loadGuild(json & obj);
-    void loadChannel(json & channel, uint64_t guild_id);
-    void loadMember(json & member, Guild & guild);
+    void guildCreate(json & obj);
+    void channelCreate(json & channel, uint64_t guild_id);
+    void memberCreate(json & member, Guild & guild);
     void loadRole(json & role, Guild & guild);
     void loadEmoji(json & emoji, Guild & guild);
     void loadPresence(json & presence, Guild & guild);

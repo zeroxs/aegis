@@ -399,7 +399,7 @@ void AegisBot::processReady(json & d)
         guild.unavailable = unavailable;
         if (!unavailable)
         {
-            loadGuild(guildobj);
+            guildCreate(guildobj);
 
             {
                 //temporary. This won't work when the bot is in over 120 guilds due to ratelimits over websocket
@@ -476,7 +476,7 @@ void AegisBot::processReady(json & d)
 
     obj["d"]["game"] = { { "name", u8"@\u200bAegis help" } };
 
-    wssend(obj.dump()); 
+    wssend(obj.dump());
 }
 
 void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg)
@@ -578,7 +578,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                 }
                 else if (cmd == "GUILD_CREATE")
                 {
-                    loadGuild(result["d"]);
+                    guildCreate(result["d"]);
                     ++counters.guilds;
                     if (botready)
                     {
@@ -592,7 +592,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                 }
                 else if (cmd == "GUILD_UPDATE")
                 {
-                    loadGuild(result["d"]);
+                    guildCreate(result["d"]);
                 }
                 else if (cmd == "GUILD_DELETE")
                 {
@@ -630,7 +630,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     Guild & guild = getGuild(std::stoull(result["d"]["guild_id"].get<std::string>()));
                     if (cmd == "CHANNEL_CREATE")
                     {
-                        loadChannel(result["d"], guild.id);//untested
+                        channelCreate(result["d"], guild.id);//untested
                         ++counters.channels;
                     }
                     else if (cmd == "CHANNEL_UPDATE")
@@ -656,7 +656,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     }
                     else if (cmd == "GUILD_MEMBER_ADD")
                     {
-                        loadMember(result["d"], guild);//untested
+                        memberCreate(result["d"], guild);
                         ++counters.members;
                     }
                     else if (cmd == "GUILD_MEMBER_REMOVE")
@@ -666,7 +666,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     }
                     else if (cmd == "GUILD_MEMBER_UPDATE")
                     {
-                        loadMember(result["d"], guild);//untested
+                        memberUpdate(result["d"], guild);
                     }
                     else if (cmd == "GUILD_MEMBER_CHUNK")
                     {
@@ -1283,7 +1283,7 @@ void AegisBot::wssend(std::string obj)
     }
 }
 
-void AegisBot::loadGuild(json & obj)
+void AegisBot::guildCreate(json & obj)
 {
     std::lock_guard<std::recursive_mutex> lock(m);
 
@@ -1346,7 +1346,7 @@ void AegisBot::loadGuild(json & obj)
 
             for (auto & member : members)
             {
-                loadMember(member, guild);
+                memberCreate(member, guild);
                 ++counters.members;
             }
         }
@@ -1357,7 +1357,7 @@ void AegisBot::loadGuild(json & obj)
 
             for (auto & channel : channels)
             {
-                loadChannel(channel, id);
+                channelCreate(channel, id);
                 ++counters.channels;
             }
         }
@@ -1437,7 +1437,7 @@ void AegisBot::loadGuild(json & obj)
     }
 }
 
-void AegisBot::loadChannel(json & channel, uint64_t guild_id)
+void AegisBot::channelCreate(json & channel, uint64_t guild_id)
 {
     uint64_t channel_id = std::stoull(channel["id"].get<std::string>());
     Guild & guild = getGuild(guild_id);
@@ -1521,7 +1521,7 @@ void AegisBot::loadChannel(json & channel, uint64_t guild_id)
     }
 }
 
-void AegisBot::loadMember(json & member, Guild & guild)
+void AegisBot::memberCreate(json & member, Guild & guild)
 {
     uint64_t guild_id = guild.id;
 
