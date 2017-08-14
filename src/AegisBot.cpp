@@ -503,9 +503,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
  
         result = json::parse(payload);
 
-        log(fmt::format("Received: {0}", payload), severity_level::trace);
- 
-        if (!result.is_null())
+         if (!result.is_null())
         {
             if (!result["t"].is_null())
             {
@@ -584,12 +582,13 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     if (botready)
                     {
                         uint64_t id = std::stoull(result["d"]["id"].get<std::string>());
-                        Guild & guild = *guildlist[id];
-                        Member & member = *memberlist[guild.owner_id];
+                        Guild & guild = getGuild(id);
+                        Member & member = getMember(guild.owner_id);
                         channellist[288707540844412928LL]->sendMessage(fmt::format("New guild added: `{}` {}\nowner: {}\nchannelcount: {}\nusercount: {}", guild.name, guild.id, member.getFullName(), guild.channellist.size(), guild.memberlist.size()));
                     }
 
                     //load things like database commands and permissions here
+                    return;
                 }
                 else if (cmd == "GUILD_UPDATE")
                 {
@@ -633,6 +632,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                 else if (cmd == "READY")
                 {
                     processReady(result["d"]);
+                    return;
                 }
                 else if (cmd == "CHANNEL_CREATE")
                 {
@@ -649,6 +649,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     }
                     Guild & guild = getGuild(std::stoull(result["d"]["guild_id"].get<std::string>()));
                     channelCreate(result["d"], guild.id);//untested
+                    return;
                 }
 
                 //////////////////////////////////////////////////////////////////////////
@@ -672,6 +673,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                             return;
                         }
                         channelCreate(result["d"], guild.id);//untested
+                        return;
                     }
                     if (cmd == "CHANNEL_UPDATE")
                     {
@@ -698,6 +700,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     {
                         ++counters.members;
                         memberCreate(result["d"], guild);
+                        return;
                     }
                     else if (cmd == "GUILD_MEMBER_REMOVE")
                     {
@@ -705,10 +708,11 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     }
                     else if (cmd == "GUILD_MEMBER_UPDATE")
                     {
-                        memberUpdate(result["d"], guild);
+                        memberUpdate(result["d"], guild);//TODO: THIS ADDS A MEMBER BUT DOESN'T ASSIGN IT TO A GUILD CAUSING GUILD STRUCT TO BE EMPTY IN MEMBER (likely invisible/offline users in large guilds logging in)
                     }
                     else if (cmd == "GUILD_MEMBER_CHUNK")
                     {
+                        log(fmt::format("GUILD_MEMBER_CHUNK WAT DO: {}", payload));
                     }
                     else if (cmd == "GUILD_ROLE_CREATE")
                     {
@@ -725,6 +729,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     else if (cmd == "PRESENCE_UPDATE")
                     {
                         //std::cout << result.dump      () << std::endl;
+                        return;
                     }
                     else if (cmd == "VOICE_SERVER_UPDATE")
                     {
@@ -789,6 +794,9 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                 //heartbeat ACK
                 log("Heartbeat ACK", severity_level::trace);
             }
+
+            log(fmt::format("Received: {0}", payload), severity_level::trace);
+
         }
     }
 //     catch (Poco::BadCastException& e)
@@ -1567,8 +1575,8 @@ void AegisBot::memberCreate(json & member, Guild & guild)
     try
     {
         Member & checkmember = getMember(member_id);
-        log(fmt::format("Member[{0}] created for guild[{1}]", member_id, guild_id), severity_level::trace);
-        guild.memberlist[member_id] = std::pair<Member*, uint16_t>(&checkmember, 0);
+        ///log(fmt::format("Member[{0}] created for guild[{1}]", member_id, guild_id), severity_level::trace);
+        guild.memberlist[member_id].first = memberlist[member_id];
 
         checkmember.avatar = GET_NULL(user, "avatar");
         checkmember.discriminator = std::stoi(user["discriminator"].get<std::string>());
@@ -1602,8 +1610,8 @@ void AegisBot::memberUpdate(json & member, Guild & guild)
     try
     {
         Member & checkmember = getMember(member_id);
-        log(fmt::format("Member[{0}] created for guild[{1}]", member_id, guild_id), severity_level::trace);
-        guild.memberlist[member_id] = std::pair<Member*, uint16_t>(&checkmember, 0);
+        //log(fmt::format("Member[{0}] created for guild[{1}]", member_id, guild_id), severity_level::trace);
+        guild.memberlist[member_id].first = memberlist[member_id];
 
         json roles = member["roles"];
         for (auto & r : roles)
