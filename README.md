@@ -18,11 +18,13 @@ Please note, this link gives the bot full admin. Please refine it further if you
 
 
 Libraries used:
-- [Boost](http://www.boost.org)
+- [Boost](http://www.boost.org) (log, iostreams, thread, system)
 - [Websocketpp](https://github.com/zaphoyd/websocketpp)
-- [PocoProject](https://github.com/pocoproject/poco)
+- [PocoProject](https://github.com/pocoproject/poco) (Foundation, Net, NetSSL)
 - [JSON for Modern C++](https://github.com/nlohmann/json)
+- [OpenSSL](https://www.openssl.org)
+- [zlib](https://zlib.net)
 
 Optional Libraries:
-- [RedisClient](https://github.com/nekipelov/redisclient)
+- [RedisClient](https://github.com/nekipelov/redisclient) (used for caching and settings. not mandatory, but useful if you wish to have a non-hardcoded solution to configurations)
 
