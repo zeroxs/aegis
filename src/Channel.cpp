@@ -172,6 +172,13 @@ void Channel::UpdatePermissions()
     {
         uint64_t allow = 0, deny = 0;
 
+        if (m.second.first == nullptr)
+        {
+            //user is not included in the GUILD_CREATE so we don't know what roles it has
+            //TODO: do something about this
+            continue;
+        }
+
         for (auto & p : m.second.first->roles)
         {
             allow |= guild().rolelist[p].permission.getAllowPerms();

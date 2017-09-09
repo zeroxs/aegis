@@ -332,7 +332,7 @@ void Guild::processMessage(json obj)
                     boost::algorithm::to_lower(msg);
                     boost::split(tokens, msg, boost::is_any_of(" "));
 
-                    if (tokens.size() < 2)
+                    if (tokens.size() < 3)
                     {
                         channellist[channel_id]->sendMessage("Not enough params.");
                         return;

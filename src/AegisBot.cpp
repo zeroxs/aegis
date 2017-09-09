@@ -121,6 +121,7 @@ std::string AegisBot::tokenstr;
 std::map<std::string, uint64_t> AegisBot::eventCount;
 std::map<int, int> AegisBot::shardready;
 std::map<std::string, ABMessageCallback> AegisBot::cmdlist;
+std::map<std::string, ABMessageCallback> AegisBot::admincmdlist;
 
 AegisBot::AegisBot()
     : ratelimit_queue(io_service)
@@ -155,12 +156,26 @@ void AegisBot::cleanup()
     }
 }
 
-Guild & AegisBot::getGuild(uint64_t id)
+Guild & AegisBot::addGuild(uint64_t id)
 {
     if (guildlist.count(id))
         return *guildlist[id];
     //guildlist[id] = Guild(*this, id);
-    guildlist.insert(std::pair<uint64_t, Guild*>(id, new Guild(*this, id)));
+    guildlist.insert(std::pair<uint64_t, Guild*>(id, new Guild(id)));
+    guildlist[id]->id = id;
+    return *guildlist[id];
+}
+
+Guild & AegisBot::getGuild(uint64_t id)
+{
+    if (guildlist.count(id))
+    {
+        if (guildlist[id]->_bot == nullptr)
+            guildlist[id]->_bot = this;
+        return *guildlist[id];
+    }
+    //guildlist[id] = Guild(*this, id);
+    guildlist.insert(std::pair<uint64_t, Guild*>(id, new Guild(this, id)));
     guildlist[id]->id = id;
     return *guildlist[id];
 }
@@ -360,7 +375,7 @@ void AegisBot::connectWS()
 void AegisBot::onClose(websocketpp::connection_hdl hdl)
 {
     keepalive_timer_.cancel();
-    log("Connection closed. Reconnecting.", severity_level::warning);
+    log(fmt::format("S{} Connection closed. Reconnecting.", shardid), severity_level::warning);
 
     int64_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
@@ -503,7 +518,9 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
  
         result = json::parse(payload);
 
-         if (!result.is_null())
+        log(fmt::format("Received: {0}", payload), severity_level::trace);
+
+        if (!result.is_null())
         {
             if (!result["t"].is_null())
             {
@@ -795,7 +812,6 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                 log("Heartbeat ACK", severity_level::trace);
             }
 
-            log(fmt::format("Received: {0}", payload), severity_level::trace);
 
         }
     }
@@ -1585,7 +1601,7 @@ void AegisBot::memberCreate(json & member, Guild & guild)
         checkmember.deaf = member["deaf"];
         checkmember.joined_at = member["joined_at"];
         checkmember.mute = member["mute"];
-        checkmember.isbot = member["bot"].is_null() ? false : true;
+        checkmember.isbot = user["bot"].is_null() ? false : true;
         checkmember.guilds[guild_id].nickname = GET_NULL(member, "nick");
 
         json roles = member["roles"];

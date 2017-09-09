@@ -41,7 +41,44 @@
 #define WIN32_PAUSE
 #endif
 
-#define _DEBUGTOKEN
+//////////////////////////////////////////////////////////////////////////
+//?info data test
+#if defined(_WIN64)
+    #define PLATFORM_NAME "Windows x64" // Windows
+#elif defined(_WIN32)
+    #define PLATFORM_NAME "Windows x86" // Windows
+#elif defined(__CYGWIN__) && !defined(_WIN32)
+    #define PLATFORM_NAME "Windows (Cygwin)" // Windows (Cygwin POSIX under Microsoft Window)
+#elif defined(__linux__)
+    #define PLATFORM_NAME "Linux" // Debian, Ubuntu, Gentoo, Fedora, openSUSE, RedHat, Centos and other
+#elif defined(__unix__) || defined(__APPLE__) && defined(__MACH__)
+    #include <sys/param.h>
+    #if defined(BSD)
+        #define PLATFORM_NAME "*BSD" // FreeBSD, NetBSD, OpenBSD, DragonFly BSD
+    #endif
+#elif defined(__hpux)
+    #define PLATFORM_NAME "HP-UX" // HP-UX
+#elif defined(_AIX)
+    #define PLATFORM_NAME "AIX" // IBM AIX
+#elif defined(__APPLE__) && defined(__MACH__) // Apple OSX and iOS (Darwin)
+    #include <TargetConditionals.h>
+    #if TARGET_IPHONE_SIMULATOR == 1
+        #define PLATFORM_NAME "iOS iPhone simulator" // Apple iOS
+    #elif TARGET_OS_IPHONE == 1
+        #define PLATFORM_NAME "iOS iPhone" // Apple iOS
+    #elif TARGET_OS_MAC == 1
+        #define PLATFORM_NAME "OSX" // Apple OSX
+    #endif
+#elif defined(__sun) && defined(__SVR4)
+    #define PLATFORM_NAME "Solaris" // Oracle Solaris, Open Indiana
+#else
+    #define PLATFORM_NAME "undefined"
+#endif
+//////////////////////////////////////////////////////////////////////////
+
+
+
+//#define _DEBUGTOKEN
 
 
 std::string uptime();
@@ -62,7 +99,7 @@ int main(int argc, char * argv[])
     AegisBot::tokenstr = "config:token-prod";
 #endif
 
-
+    
     //default commands to add to a guild
     std::map<std::string, ABMessageCallback> & cmdlist = AegisBot::cmdlist;
     std::map<std::string, ABMessageCallback> admincmdlist;
@@ -196,7 +233,7 @@ int main(int argc, char * argv[])
             std::string channels = fmt::format("{0} total\n{1} text\n{2} voice", channel_count, channel_text_count, channel_voice_count);
             std::string guilds = fmt::format("{0}", guild_count);
             std::string events = fmt::format("{0}", eventsseen);
-            std::string misc = fmt::format("I am shard {0} of {1}", message.channel().guild().bot.shardid + 1, message.channel().guild().bot.shardidmax);
+            std::string misc = fmt::format("I am shard {0} of {1} running on `{2}`", message.channel().guild().bot.shardid + 1, message.channel().guild().bot.shardidmax, PLATFORM_NAME);
 
             fmt::MemoryWriter w;
             w << "[Latest bot source](https://github.com/zeroxs/aegis)\n[Official Bot Server](https://discord.gg/w7Y3Bb8)\n\nMemory usage: "
@@ -383,6 +420,12 @@ int main(int argc, char * argv[])
             {
                 message.channel().sendMessage("Invalid guild id.");
             }
+        });
+
+        myguild.addCommand("osver", [&bot](ABMessage & message)
+        {
+            //TODO: add more detailed information like actual OS flavor (for linux) and version
+            message.channel().sendMessage(fmt::format("I am running on `{}`", PLATFORM_NAME));
         });
 
 
