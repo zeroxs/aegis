@@ -26,7 +26,6 @@
 #pragma once
 
 #include <stdint.h>
-#include <exception>
 
 struct Override
 {
@@ -86,19 +85,3 @@ private:
     uint64_t _deny_permissions = 0;
 };
 
-class no_permission : public std::exception
-{
-public:
-    no_permission(const char * e)
-        : _data(e)
-    {
-    }
-
-    virtual const char* what() const throw()
-    {
-        return _data;
-    }
-
-private:
-    const char * _data;
-};

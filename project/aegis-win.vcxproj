@@ -25,6 +25,7 @@
     <ClInclude Include="..\src\AegisBot.h" />
     <ClInclude Include="..\src\AegisModule.h" />
     <ClInclude Include="..\src\Channel.h" />
+    <ClInclude Include="..\src\exceptions.h" />
     <ClInclude Include="..\src\Guild.h" />
     <ClInclude Include="..\src\Member.h" />
     <ClInclude Include="..\src\Permission.h" />
@@ -113,7 +114,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>BOOST_ALL_DYN_LINK;_WIN32_WINNT=0x0600;_DEBUG;USE_REDIS;ROOTADMIN=171000788183678976LL;TEST_GID=287048029524066334LL;CONTROL_CHANNEL=288707540844412928LL;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\headers;C:\headers\openssl</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\lib\websocketpp;..\lib\redisclient\src;..\lib\poco;..\lib\boost;..\lib\json\src;..\lib\openssl;..\lib\fmt;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -158,7 +159,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>BOOST_ALL_DYN_LINK;_WIN32_WINNT=0x0600;NDEBUG;USE_REDIS;ROOTADMIN=171000788183678976LL;TEST_GID=287048029524066334LL;CONTROL_CHANNEL=288707540844412928LL;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\headers;C:\headers\openssl</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\lib\websocketpp;..\lib\redisclient\src;..\lib\poco;..\lib\boost;..\lib\json\src;..\lib\openssl;..\lib\fmt;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BrowseInformation>false</BrowseInformation>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <MinimalRebuild>true</MinimalRebuild>

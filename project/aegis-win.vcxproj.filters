@@ -48,6 +48,9 @@
     <ClInclude Include="..\src\ABRedisCache.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\exceptions.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\Channel.cpp">
