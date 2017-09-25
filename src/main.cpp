@@ -35,48 +35,6 @@
 #include <boost/tokenizer.hpp>
 #include <boost/tuple/tuple.hpp>
 
-#ifdef WIN32
-#define WIN32_PAUSE system("pause");
-#else
-#define WIN32_PAUSE
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//?info data test
-#if defined(_WIN64)
-    #define PLATFORM_NAME "Windows x64" // Windows
-#elif defined(_WIN32)
-    #define PLATFORM_NAME "Windows x86" // Windows
-#elif defined(__CYGWIN__) && !defined(_WIN32)
-    #define PLATFORM_NAME "Windows (Cygwin)" // Windows (Cygwin POSIX under Microsoft Window)
-#elif defined(__linux__)
-    #define PLATFORM_NAME "Linux" // Debian, Ubuntu, Gentoo, Fedora, openSUSE, RedHat, Centos and other
-#elif defined(__unix__) || defined(__APPLE__) && defined(__MACH__)
-    #include <sys/param.h>
-    #if defined(BSD)
-        #define PLATFORM_NAME "*BSD" // FreeBSD, NetBSD, OpenBSD, DragonFly BSD
-    #endif
-#elif defined(__hpux)
-    #define PLATFORM_NAME "HP-UX" // HP-UX
-#elif defined(_AIX)
-    #define PLATFORM_NAME "AIX" // IBM AIX
-#elif defined(__APPLE__) && defined(__MACH__) // Apple OSX and iOS (Darwin)
-    #include <TargetConditionals.h>
-    #if TARGET_IPHONE_SIMULATOR == 1
-        #define PLATFORM_NAME "iOS iPhone simulator" // Apple iOS
-    #elif TARGET_OS_IPHONE == 1
-        #define PLATFORM_NAME "iOS iPhone" // Apple iOS
-    #elif TARGET_OS_MAC == 1
-        #define PLATFORM_NAME "OSX" // Apple OSX
-    #endif
-#elif defined(__sun) && defined(__SVR4)
-    #define PLATFORM_NAME "Solaris" // Oracle Solaris, Open Indiana
-#else
-    #define PLATFORM_NAME "undefined"
-#endif
-//////////////////////////////////////////////////////////////////////////
-
-
 
 //#define _DEBUGTOKEN
 
