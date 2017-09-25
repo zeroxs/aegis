@@ -95,8 +95,8 @@ public:
     AegisBot & bot() { return*_bot; }
 
 private:
+    AegisBot * _bot;
     Channel * _channel;
     Member * _member;
     Guild * _guild;
-    AegisBot * _bot;
 };

@@ -29,8 +29,8 @@
 #include <boost/tokenizer.hpp>
 
 Guild::Guild(AegisBot * bot, uint64_t id)
-    : _bot(bot)
-    , id(id)
+    : id(id)
+    , _bot(bot)
 {
     //Load settings
 
@@ -478,6 +478,11 @@ void Guild::processMessage(json obj)
                             ss << " " << c.first;
                         else
                             ssdisabled << " " << c.first;
+                    }
+                    if (userid == AegisBot::ownerid)
+                    {
+                        for (auto & c : AegisBot::admincmdlist)
+                            ss << " " << c.first;
                     }
                     if (ss.str() == "`")
                         ss << u8"\u200b";

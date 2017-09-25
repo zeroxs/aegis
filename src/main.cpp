@@ -99,7 +99,6 @@ int main(int argc, char * argv[])
 
         cmdlist["info"] = [](ABMessage & message)
         {
-            AegisBot & bot = message.bot();
             uint64_t guild_count = AegisBot::guildlist.size();
             uint64_t member_count = AegisBot::memberlist.size();
             uint64_t member_count_unique = 0;

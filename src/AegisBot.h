@@ -387,7 +387,7 @@ private:
     //better organize timers?
     boost::asio::steady_timer prunemessages;
     uint8_t wsfail = 0;
-    uint64_t wsfailtime = 0;
+    int64_t wsfailtime = 0;
 };
 
 //////////////////////////////////////////////////////////////////////////

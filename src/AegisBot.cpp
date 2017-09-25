@@ -419,19 +419,7 @@ void AegisBot::processReady(json & d)
         log(fmt::format("Guild created: {0}", guild.id), severity_level::debug);
         guild.unavailable = unavailable;
         if (!unavailable)
-        {
             guildCreate(guildobj);
-
-            {
-                //temporary. This won't work when the bot is in over 120 guilds due to ratelimits over websocket
-//                 json obj;
-//                 obj["op"] = 8;
-//                 obj["d"]["guild_id"] = id;
-//                 obj["d"]["query"] = "";
-//                 obj["d"]["limit"] = 0;
-//                 wssend(obj.dump());
-            }
-        }
     }
 
 /*
@@ -489,15 +477,6 @@ void AegisBot::processReady(json & d)
     username = userdata["username"];
     mfa_enabled = userdata["mfa_enabled"];
     active = true;
-
-
-//     json obj;
-//     obj["op"] = 3;
-//     obj["d"]["idle_since"] = nullptr;
-// 
-//     obj["d"]["game"] = { { "name", u8"@\u200bAegis help" } };
-// 
-//     wssend(obj.dump());
 }
 
 void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg)
@@ -512,10 +491,8 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
             boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
             std::stringstream origin(payload);
             in.push(boost::iostreams::zlib_decompressor());
-            //in.push(boost::make_iterator_range(payload));
             in.push(origin);
             payload.clear();
-            //boost::iostreams::copy(in, boost::iostreams::back_inserter(payload));
             std::stringstream ss;
             boost::iostreams::copy(in, ss);
             payload = ss.str();
@@ -549,10 +526,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
 
                 if (cmd == "MESSAGE_UPDATE")
                 {
-                    //std::cout << result.dump() << std::endl;
                     json message = result["d"];
-                    //uint64_t message_id = std::stoull(message["id"].get<string>());
-                    //uint64_t channel_id = std::stoull(message["channel_id"].get<string>());
 
                     if (message["embeds"].size() > 0)
                     {
@@ -589,24 +563,20 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                         json mentions = message["mentions"];
                         json mention_roles = message["mention_roles"];*/
                     }
-
-
-
-
-
-
-
                 }
                 else if (cmd == "GUILD_CREATE")
                 {
-                    ++counters.guilds;
                     if (guildlist.count(std::stoull(result["d"]["id"].get<std::string>())))
                     {
+                        //This is likely a RESUME which means already loaded guilds should not contribute to the count
+                        if (!shardloaded)
+                            ++counters.guilds;
                         log(fmt::format("GUILD_CREATE: [{}] [{}] TOTAL: {} COUNTER: {}", result["d"]["id"], result["d"]["name"], connectguilds, counters.guilds), severity_level::normal);
                         guildCreate(result["d"]);
                     }
                     else
                     {
+                        ++counters.guilds;
                         log(fmt::format("GUILD_CREATE: [{}] [{}] COUNTER: {}", result["d"]["id"], result["d"]["name"], counters.guilds), severity_level::normal);
                         guildCreate(result["d"]);
                         if (shardloaded)
@@ -616,8 +586,8 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                             Member & member = getMember(guild.owner_id);
                             channellist[master_channel]->sendMessage(fmt::format("New guild added: `{}` {}\nowner: {}\nchannelcount: {}\nusercount: {}", guild.name, guild.id, member.getFullName(), guild.channellist.size(), guild.memberlist.size()));
                         }
-                        uint64_t id = std::stoull(result["d"]["id"].get<std::string>());
-                        Guild & guild = getGuild(id);
+                        //uint64_t id = std::stoull(result["d"]["id"].get<std::string>());
+                        //Guild & guild = getGuild(id);
                     }
                 }
                 else if (cmd == "GUILD_UPDATE")
@@ -923,9 +893,9 @@ void AegisBot::roleUpdate(json & obj)
 
 void AegisBot::channelDelete(json & obj)
 {
-    int64_t type = obj["type"];
+    //int64_t type = obj["type"];
     std::string topic = (obj["topic"].is_null()) ? "" : obj["topic"];
-    int64_t position = obj["position"];
+    //int64_t position = obj["position"];
 
     int64_t id = std::stoull(obj["id"].get<std::string>());
     int64_t guildid = std::stoull(obj["guild_id"].get<std::string>());
@@ -939,22 +909,20 @@ void AegisBot::channelDelete(json & obj)
 
 void AegisBot::channelUpdate(json & obj)
 {
-    int64_t type = obj["type"];
+    //int64_t type = obj["type"];
     std::string topic = (obj["topic"].is_null()) ? "" : obj["topic"];
-    int64_t position = obj["position"];
+    //int64_t position = obj["position"];
 
-    //parent_id == null
 
-    bool nsfw = obj["nsfw"];
+    //bool nsfw = obj["nsfw"];
     std::string channelname = obj["name"];
 
-    //last_message_id == int64_t
 
     int64_t id = std::stoull(obj["id"].get<std::string>());
     int64_t guildid = std::stoull(obj["guild_id"].get<std::string>());
 
     Channel & channel = getChannel(id);
-    Guild & guild = getGuild(guildid);
+    //Guild & guild = getGuild(guildid);
 
 
     json permission_overwrites = obj["permission_overwrites"];
@@ -1935,8 +1903,6 @@ void AegisBot::configure(bool overwritecache)
                     throw(std::runtime_error("`id` missing from default_servers entry"));
                 if (!s.count("defaultcmds"))
                     throw(std::runtime_error("`defaultcmds` missing from default_servers entry"));
-                if (!s.count("admincmds"))
-                    throw(std::runtime_error("`admincmds` missing from default_servers entry"));
                 if (!s.count("cmdlist"))
                     throw(std::runtime_error("`cmdlist` missing from default_servers entry"));
 
@@ -1944,7 +1910,6 @@ void AegisBot::configure(bool overwritecache)
 
                 uint64_t gid = 0;
                 bool defaults = false;
-                bool admins = false;
                 std::vector<std::string> cmds;
 
                 if (s["id"].is_string())
