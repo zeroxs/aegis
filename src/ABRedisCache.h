@@ -29,6 +29,7 @@
 
 #include "ABCache.h"
 #include <redisclient/redissyncclient.h>
+#include <mutex>
 
 using namespace redisclient;
 
@@ -55,6 +56,8 @@ public:
     std::string hset(std::string key, std::string value);
     std::string hget(std::string key, std::string value);
     std::string hvals(std::string key);
+
+    std::mutex m;
 
 private:
     RedisSyncClient redis;

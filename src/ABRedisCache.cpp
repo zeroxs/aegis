@@ -70,6 +70,7 @@ bool ABRedisCache::initialize()
 
 std::string ABRedisCache::run(std::string key)
 {
+    std::lock_guard<std::mutex> lock(m);
     RedisValue result;
     result = redis.command(key, {});
 
@@ -80,6 +81,7 @@ std::string ABRedisCache::run(std::string key)
 
 std::string ABRedisCache::get(std::string key, bool useprefix)
 {
+    std::lock_guard<std::mutex> lock(m);
     RedisValue result;
     if (useprefix)
         result = redis.command("GET", { prefix + key });
@@ -93,6 +95,7 @@ std::string ABRedisCache::get(std::string key, bool useprefix)
 
 bool ABRedisCache::put(std::string key, std::string value, bool useprefix)
 {
+    std::lock_guard<std::mutex> lock(m);
     RedisValue result;
     if (useprefix)
         result = redis.command("SET", { prefix + key, value });
@@ -106,6 +109,7 @@ bool ABRedisCache::put(std::string key, std::string value, bool useprefix)
 
 void ABRedisCache::expire(std::string key, int64_t value, bool useprefix)
 {
+    std::lock_guard<std::mutex> lock(m);
     RedisValue result;
     if (useprefix)
         result = redis.command("EXPIRE", { prefix + key, boost::lexical_cast<std::string>(value) });
@@ -115,6 +119,7 @@ void ABRedisCache::expire(std::string key, int64_t value, bool useprefix)
 
 std::string ABRedisCache::getset(std::string key, std::string value, bool useprefix)
 {
+    std::lock_guard<std::mutex> lock(m);
     RedisValue result;
     if (useprefix)
         result = redis.command("GETSET", { prefix + key });
@@ -128,6 +133,7 @@ std::string ABRedisCache::getset(std::string key, std::string value, bool usepre
 
 std::string ABRedisCache::eval(std::string script)
 {
+    std::lock_guard<std::mutex> lock(m);
     RedisValue result = redis.command("EVAL", { script });
 
     if (result.isOk())

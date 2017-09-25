@@ -64,7 +64,7 @@ struct ABCallbackOptions
         IdType type = IdType::ROLE;
         uint64_t id;
     };
-    struct
+    struct ABPerms
     {
         PermType type = PermType::BLOCK;
         std::list<id_type> ids;
