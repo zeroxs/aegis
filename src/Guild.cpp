@@ -92,7 +92,7 @@ void Guild::processMessage(json obj)
 
 
 
-    if (userid == ROOTADMIN)
+    if (userid == AegisBot::ownerid)
     {
 
         if (content.substr(0, AegisBot::mention.size()) == AegisBot::mention)
@@ -139,11 +139,21 @@ void Guild::processMessage(json obj)
                 shard().active = false;
                 return;
             }
+
+            if (AegisBot::admincmdlist.count(cmd))
+            {
+                ABMessage message(channellist[channel_id], AegisBot::memberlist[userid]);
+                message.content = content;
+                message.message_id = msgid;
+                message.cmd = cmd;
+                cmdlist[cmd].second(message);
+                return;
+            }
         }
     }
 
 
-    if ((userid == owner_id) || (userid == ROOTADMIN))//for support
+    if ((userid == owner_id) || (userid == AegisBot::ownerid))//for support
     {
         //guild owner is talking, do a check if this is the prefix set up command
         //as that needs to be set up first before the bot will function
@@ -588,11 +598,23 @@ void Guild::processMessage(json obj)
 //         }
 
 
-        ABMessage message(channellist[channel_id], AegisBot::memberlist[userid]);
-        message.content = content;
-        message.message_id = msgid;
-        message.cmd = cmd;
-        cmdlist[cmd].second(message);
+        try
+        {
+            ABMessage message(channellist[channel_id], AegisBot::memberlist[userid]);
+            message.content = content;
+            message.message_id = msgid;
+            message.cmd = cmd;
+            cmdlist[cmd].second(message);
+        }
+        catch (std::exception & e)
+        {
+            if (_bot != nullptr)
+            {
+                std::string msg = fmt::format("Error running command [{}] content [{}] user [`{}` : {}] server [`{}` : {}]", cmd, content, author["name"], author["id"], name, id);
+                shard().log(msg, severity_level::error);
+                channellist[AegisBot::master_channel]->sendMessage(msg);
+            }
+        }
     }
 }
 

@@ -25,8 +25,10 @@
 
 #include "AegisBot.h"
 #if defined USE_REDIS
+#define CACHE_PUT(x, y)
 #include "ABRedisCache.h"
 #elif defined USE_MEMORY
+#define CACHE_PUT(x, y) cache.put(x, y)
 #include "ABMemoryCache.h"
 #endif
 #include <boost/lexical_cast.hpp>
@@ -40,68 +42,26 @@ using namespace std::chrono;
 int main(int argc, char * argv[])
 {
     srand(static_cast<int32_t>(duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count()));
+    bool overwritecache = false;
 
 #ifdef WIN32
     Poco::Crypto::OpenSSLInitializer::initialize();
 #endif
 
-#if defined( _DEBUGTOKEN )
-    AegisBot::tokenstr = "config:token-test";
-#elif defined( SELFBOT )
-    AegisBot::tokenstr = "config:token-self";
-#else
-    AegisBot::tokenstr = "config:token-prod";
-#endif
+    if (argc > 1)
+        if (!strcmp(argv[1], "-overwritecache"))
+            overwritecache = true;
 
-    
+
+    //////////////////////////////////////////////////////////////////////////
+    //EDITABLE AREA
     //default commands to add to a guild
     std::map<std::string, ABMessageCallback> & cmdlist = AegisBot::cmdlist;
-    std::map<std::string, ABMessageCallback> admincmdlist;
+    std::map<std::string, ABMessageCallback> & admincmdlist = AegisBot::admincmdlist;
 
     try
     {
         boost::asio::io_service::work work(AegisBot::io_service);
-
-        AegisBot::setupLogging(trace, normal);
-        
-#if defined USE_REDIS
-        ABRedisCache cache(AegisBot::io_service);
-#if defined WIN32
-        cache.address = "192.168.184.136";
-#else
-        cache.address = "127.0.0.1";
-#endif
-        cache.port = 6379;
-        cache.password = "";
-#elif defined USE_MEMORY
-        ABMemoryCache cache(AegisBot::io_service);
-#endif
-
-        if (!cache.initialize())
-        {
-            //error with cache
-            std::cerr << "Unable to initialize cache" << std::endl;
-            WIN32_PAUSE
-            return -1;
-        }
-        AegisBot::setupCache(&cache);
-        //cache.put("config:token", "Mjg4MDYzMTYzNzI5OTY5MTUy.DC61AQ.s8gzSsMJbMl0eeh3gX3EDtu-6Sw");
-
-        //create our Bot object and cache and configure the basic settings
-        AegisBot::startShards();
-
-
-        //Grab shard0 for setting up single/few server bot
-        auto & bot = AegisBot::getShard(0);
-
-        //add unique commands to a specific guild. no other guilds can access these
-        Guild & myguild = bot.getGuild(287048029524066334LL);
-        Guild & dbots = bot.getGuild(110373943822540800LL);
-        Guild & dapi = bot.getGuild(81384788765712384LL);
-        Guild & testguild = bot.getGuild(321096577425080322LL);
-        
-
-
 
         cmdlist["perms"] = [](ABMessage & message)
         {
@@ -113,11 +73,7 @@ int main(int argc, char * argv[])
             std::string gamestr = message.content.substr(message.channel().guild().prefix.size() + 8);
             AegisBot::io_service.post([game = std::move(gamestr), &bot = message.channel().guild().shard()]()
             {
-                json obj;
-                obj["op"] = 3;
-                obj["d"]["idle_since"] = nullptr;
-
-                obj["d"]["game"] = { { "name", game } };
+                json obj = { { { "game",{ { "name", game },{ "type", 0 } } },{ "status", "online" },{ "since", 1 },{ "afk", false } } };
 
                 bot.wssend(obj.dump());
             });
@@ -460,6 +416,7 @@ int main(int argc, char * argv[])
         //////////////////////////////////////////////////////////////////////////
 
 
+        AegisBot::configure(overwritecache);
 
         AegisBot::threads();
         AegisBot::workthread.join();

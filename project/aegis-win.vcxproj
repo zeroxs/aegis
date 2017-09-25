@@ -113,9 +113,10 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>BOOST_ALL_DYN_LINK;_WIN32_WINNT=0x0600;_DEBUG;USE_REDIS;ROOTADMIN=171000788183678976LL;TEST_GID=287048029524066334LL;CONTROL_CHANNEL=288707540844412928LL;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>BOOST_ALL_DYN_LINK;_WIN32_WINNT=0x0600;_DEBUG;USE_REDIS;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\lib\websocketpp;..\lib\redisclient\src;..\lib\poco;..\lib\boost;..\lib\json\src;..\lib\openssl;..\lib\fmt;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -155,10 +156,10 @@
       <WarningLevel>Level3</WarningLevel>
       <PrecompiledHeader>
       </PrecompiledHeader>
-      <Optimization>Full</Optimization>
+      <Optimization>Disabled</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>BOOST_ALL_DYN_LINK;_WIN32_WINNT=0x0600;NDEBUG;USE_REDIS;ROOTADMIN=171000788183678976LL;TEST_GID=287048029524066334LL;CONTROL_CHANNEL=288707540844412928LL;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>BOOST_ALL_DYN_LINK;_WIN32_WINNT=0x0600;NDEBUG;USE_REDIS;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\lib\websocketpp;..\lib\redisclient\src;..\lib\poco;..\lib\boost;..\lib\json\src;..\lib\openssl;..\lib\fmt;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BrowseInformation>false</BrowseInformation>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>

@@ -1,0 +1,24 @@
+{
+  "owner": "171000788183678976",
+  "master_server": "287048029524066334",
+  "master_channel": "288707540844412928",
+  "log-verbosity-file": "normal",
+  "log-verbosity-console": "normal",
+  "token": "TOKENHERE",
+  "default_commands": [ "events", "info", "shards", "serverinfo" ],
+  "default_servers": [
+    {
+      "name": "Aegis",
+      "id": "287048029524066334",
+      "defaultcmds": true,
+      "cmdlist": [ "custom_command", "osver", "perms" ]
+    },
+    {
+      "name": "dapi",
+      "id": "81384788765712384",
+      "defaultcmds": true,
+      "cmdlist": [ ]
+    }
+  ]
+}
+

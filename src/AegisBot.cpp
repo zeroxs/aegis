@@ -116,12 +116,16 @@ std::vector<AegisBot*> AegisBot::shards;
 boost::asio::io_service AegisBot::io_service;
 uint16_t AegisBot::shardidmax;
 std::string AegisBot::mention;
-std::string AegisBot::tokenstr;
 //std::map<string, <>> AegisBot::baseModules;
 std::map<std::string, uint64_t> AegisBot::eventCount;
 std::map<int, bool> AegisBot::shardready;
 std::map<std::string, ABMessageCallback> AegisBot::cmdlist;
+std::map<std::string, ABMessageCallback> AegisBot::defaultcmdlist;
 std::map<std::string, ABMessageCallback> AegisBot::admincmdlist;
+uint64_t AegisBot::ownerid;
+uint64_t AegisBot::master_server;
+uint64_t AegisBot::master_channel;
+bool AegisBot::botready;
 
 AegisBot::AegisBot()
     : ratelimit_queue(io_service)
@@ -633,7 +637,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                         uint64_t id = std::stoull(result["d"]["id"].get<std::string>());
                         Guild & guild = *guildlist[id];
                         Member & member = *memberlist[guild.owner_id];
-                        channellist[288707540844412928LL]->sendMessage(fmt::format("Guild removed: `{}` {}\nowner: {}\nchannelcout: {}\nusercount: {}", guild.name, guild.id, member.getFullName(), guild.channellist.size(), guild.memberlist.size()));
+                        channellist[master_channel]->sendMessage(fmt::format("Guild removed: `{}` {}\nowner: {}\nchannelcout: {}\nusercount: {}", guild.name, guild.id, member.getFullName(), guild.channellist.size(), guild.memberlist.size()));
                         Guild * g = guildlist[id];
                         delete g;
                         guildlist.erase(guildlist.find(id));
@@ -807,7 +811,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     {
                         "d",
                         {
-                            { "token", cache->get(tokenstr) },
+                            { "token", cache->get("config:token") },
                             { "properties",
                                 {
 #ifdef WIN32
@@ -823,7 +827,8 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                             },
                             { "shard", json::array({ shardid, shardidmax }) },
                             { "compress", true },
-                            { "large_threshhold", 250 }
+                            { "large_threshhold", 250 },
+                            { "presence",{ { "game",{ { "name", u8"@\u200bAegis help" },{ "type", 0 } } },{ "status", "online" },{ "since", 1 },{ "afk", false } } }
                         }
                     }
                 };
@@ -1076,7 +1081,7 @@ void AegisBot::onConnect(websocketpp::connection_hdl hdl)
             {
                 "d",
                 {
-                    { "token", cache->get(tokenstr) },
+                    { "token", cache->get("config:token") },
                     { "session_id", sessionId },
                     { "seq", sequence }
                 }
@@ -1091,7 +1096,7 @@ void AegisBot::onConnect(websocketpp::connection_hdl hdl)
             {
                 "d",
                 {
-                    { "token", cache->get(tokenstr) },
+                    { "token", cache->get("config:token") },
                     {
                         "properties",
                         {
@@ -1131,9 +1136,9 @@ boost::optional<std::string> AegisBot::call(std::string url, std::string obj, Ra
 #endif
         HTTPRequest request(HTTPRequest::HTTP_GET, path, HTTPMessage::HTTP_1_1);
 #ifdef SELFBOT
-        request.set("Authorization", cache->get(tokenstr));
+        request.set("Authorization", cache->get("config:token"));
 #else
-        request.set("Authorization", std::string("Bot ") + cache->get(tokenstr));
+        request.set("Authorization", std::string("Bot ") + cache->get("config:token"));
 #endif
         request.set("User-Agent", "DiscordBot (https://github.com/zeroxs/aegisbot 0.1)");
         request.set("Content-Type", "application/json");
@@ -1503,7 +1508,7 @@ void AegisBot::guildCreate(json & obj)
 
         //bot commands
 
-        for (auto cmd : cmdlist)
+        for (auto cmd : defaultcmdlist)
             guild.cmdlist[cmd.first] = ABCallbackPair(ABCallbackOptions(), cmd.second);
 
 
@@ -1810,5 +1815,201 @@ uint64_t AegisBot::convertDateToInt64(std::string timestamp)
         return diff.ticks() / boost::posix_time::time_duration::rep_type::ticks_per_second;
     }
     return 0;
+}
+
+void AegisBot::configure(bool overwritecache)
+{
+    auto cache_put = [=](ABCache & cache, std::string key, std::string value)
+    {
+        if (overwritecache)
+            cache.put(key, value);
+    };
+
+#if defined USE_REDIS
+    static ABRedisCache cache(AegisBot::io_service);
+    cache.address = "192.168.184.136";
+    cache.port = 6379;
+    cache.password = "";
+#elif defined USE_MEMORY
+    static ABMemoryCache cache(AegisBot::io_service);
+#endif
+    severity_level file = trace, console = normal;
+
+    if (!cache.initialize())
+    {
+        //error with cache
+        std::cerr << "Unable to initialize cache" << std::endl;
+        throw(std::exception());
+    }
+    AegisBot::setupCache(&cache);
+
+    //////////////////////////////////////////////////////////////////////////
+    //load config.json
+    std::ifstream cfgfile("config.json");
+    json config = json::parse(cfgfile);
+
+    if (config.count("owner"))
+    {
+        if (config["owner"].is_string())
+        {
+            cache_put(cache, "config:owner", config["owner"].get<std::string>());
+            ownerid = std::stoull(config["owner"].get<std::string>());
+        }
+        else
+        {
+            cache_put(cache, "config:owner", std::to_string(config["owner"].get<uint64_t>()));
+            ownerid = config["owner"].get<uint64_t>();
+        }
+    }
+
+    if (config.count("master_server"))
+    {
+        if (config["master_server"].is_string())
+        {
+            cache_put(cache, "config:master_server", config["master_server"].get<std::string>());
+            master_server = std::stoull(config["master_server"].get<std::string>());
+        }
+        else
+        {
+            cache_put(cache, "config:master_server", std::to_string(config["master_server"].get<uint64_t>()));
+            master_server = config["master_server"].get<uint64_t>();
+        }
+    }
+
+    if (config.count("master_channel"))
+    {
+        if (config["master_channel"].is_string())
+        {
+            cache_put(cache, "config:master_channel", config["master_channel"].get<std::string>());
+            master_channel = std::stoull(config["master_channel"].get<std::string>());
+        }
+        else
+        {
+            cache_put(cache, "config:master_channel", std::to_string(config["master_channel"].get<uint64_t>()));
+            master_channel = config["master_channel"].get<uint64_t>();
+        }
+    }
+
+    if (config.count("token"))
+    {
+        cache_put(cache, "config:token", config["token"].get<std::string>());
+    }
+
+    auto getseverity = [](std::string text) -> severity_level
+    {
+        std::transform(text.begin(), text.end(), text.begin(), ::tolower);
+
+        if (text == "trace")
+            return trace;
+        if (text == "debug")
+            return debug;
+        if (text == "normal")
+            return normal;
+        if (text == "warning")
+            return warning;
+        if (text == "error")
+            return error;
+        if (text == "critical")
+            return critical;
+
+        return normal;
+    };
+
+    if (config.count("log-verbosity-file"))
+    {
+        file = getseverity(config["log-verbosity-file"].get<std::string>());
+    }
+
+    if (config.count("log-verbosity-console"))
+    {
+        console = getseverity(config["log-verbosity-console"].get<std::string>());
+    }
+
+    if (config.count("default_servers"))
+    {
+        for (auto & s : config["default_servers"])
+        {
+            if (s.is_object())
+            {
+                if (!s.count("id"))
+                    throw(std::runtime_error("`id` missing from default_servers entry"));
+                if (!s.count("defaultcmds"))
+                    throw(std::runtime_error("`defaultcmds` missing from default_servers entry"));
+                if (!s.count("admincmds"))
+                    throw(std::runtime_error("`admincmds` missing from default_servers entry"));
+                if (!s.count("cmdlist"))
+                    throw(std::runtime_error("`cmdlist` missing from default_servers entry"));
+
+
+
+                uint64_t gid = 0;
+                bool defaults = false;
+                bool admins = false;
+                std::vector<std::string> cmds;
+
+                if (s["id"].is_string())
+                    gid = std::stoull(s["id"].get<std::string>());
+                else
+                    gid = s["id"].get<uint64_t>();
+                defaults = s["defaultcmds"];
+
+                for (auto & c : s["cmdlist"])
+                {
+                    cmds.push_back(c.get<std::string>());
+                }
+
+                Guild & guild = addGuild(gid);
+                if (defaults)
+                {
+                    for (auto cmd : cmdlist)
+                        guild.cmdlist[cmd.first] = ABCallbackPair(ABCallbackOptions(), cmd.second);
+                }
+                if (cmds.size() > 0)
+                {
+                    for (auto & cmd : cmds)
+                    {
+                        guild.cmdlist[cmd] = ABCallbackPair(ABCallbackOptions(), cmdlist[cmd]);
+                    }
+                }
+            }
+        }
+    }
+    //////////////////////////////////////////////////////////////////////////
+
+    setupLogging(file, console);
+
+    auto fakelog = [](std::string message, severity_level level = severity_level::normal)
+    {
+        boost::log::sources::severity_logger< severity_level > slg;
+        boost::log::record rec = slg.open_record(keywords::severity = level);
+        if (rec)
+        {
+            logging::record_ostream strm(rec);
+            strm << message;
+            strm.flush();
+            slg.push_record(boost::move(rec));
+        }
+    };
+    fakelog(fmt::format("Bot Owner: {}", ownerid));
+    fakelog(fmt::format("Bot Main Server : {}", master_server));
+    fakelog(fmt::format("Bot Main Channel: {}", master_channel));
+    fakelog(fmt::format("Log Verbosity File: {}", config["log-verbosity-file"].get<std::string>()));
+    fakelog(fmt::format("Log Verbosity Cons: {}", config["log-verbosity-console"].get<std::string>()));
+
+    std::stringstream ss;
+    for (auto & s : config["default_servers"])
+    {
+        if (ss.str().length() > 0)
+            ss << " | ";
+        ss << s["name"];
+    }
+
+    fakelog(fmt::format("default_servers : Count: {} Names: {}", config["default_servers"].size(), ss.str()));
+
+
+
+    //create our Bot object and cache and configure the basic settings
+    AegisBot::startShards();
+
 }
 

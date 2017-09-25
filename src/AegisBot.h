@@ -125,6 +125,7 @@ public:
     Guild & getGuild(uint64_t id);
     static Member & getMember(uint64_t id);
     static Channel & getChannel(uint64_t id);
+    static Guild & addGuild(uint64_t id);
 
     static void setupLogging(severity_level logfile, severity_level logconsole);
 
@@ -135,6 +136,7 @@ public:
     static AegisBot & getShard(uint16_t shard) { return *shards[shard]; };
     static void threads();
     static void cleanup();
+    static void configure(bool overwritecache = false);
     static std::string gatewayurl;
     static bool isrunning;
     static bool active;
@@ -152,9 +154,13 @@ public:
     static uint64_t userId;
     static bool mfa_enabled;
     static std::string mention;
-    static std::string tokenstr;
     static std::map<uint64_t, std::function<void(json &)>> ws_callbacks;
     static std::map<std::string, ABMessageCallback> cmdlist;
+    static std::map<std::string, ABMessageCallback> defaultcmdlist;
+    static std::map<std::string, ABMessageCallback> admincmdlist;
+    static uint64_t ownerid;
+    static uint64_t master_server;
+    static uint64_t master_channel;
     //static std::map<string, <>> baseModules;
 
     static void AddCallback(std::string name, std::function<void(json &)> fn);
