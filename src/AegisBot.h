@@ -191,8 +191,9 @@ public:
         uint32_t messages;
     } counters = {0,0,0,0};
     uint32_t connectguilds = 0;
-    bool botready = false;
-    static std::map<int, int> shardready;
+    uint32_t shardloaded = 0;
+    static std::map<int, bool> shardready;
+    static bool botready;
 
     Member * self = nullptr;
 

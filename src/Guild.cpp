@@ -130,13 +130,13 @@ void Guild::processMessage(json obj)
             if (cmd == "exit")
             {
                 //TODO: add some core bot management
-                bot.getChannel(288707540844412928LL).sendMessage(fmt::format("Bot shutdown Guild [{}:{}] Channel [{}:{}] User [{}:{}:{}]", name, id, channellist[channel_id]->name, channel_id, username, discriminator, userid));
+                shard().getChannel(AegisBot::master_channel).sendMessage(fmt::format("Bot shutdown Guild [{}:{}] Channel [{}:{}] User [{}:{}:{}]", name, id, channellist[channel_id]->name, channel_id, username, discriminator, userid));
                 channellist[channel_id]->sendMessage("Bot shutting down.");
                 std::this_thread::sleep_for(std::chrono::seconds(2));
-                bot.ws.close(bot.hdl, 1000, "");
-                bot.io_service.stop();
-                bot.isrunning = false;
-                bot.active = false;
+                shard().ws.close(shard().hdl, 1000, "");
+                shard().io_service.stop();
+                shard().isrunning = false;
+                shard().active = false;
                 return;
             }
         }

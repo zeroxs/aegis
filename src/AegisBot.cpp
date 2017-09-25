@@ -119,7 +119,7 @@ std::string AegisBot::mention;
 std::string AegisBot::tokenstr;
 //std::map<string, <>> AegisBot::baseModules;
 std::map<std::string, uint64_t> AegisBot::eventCount;
-std::map<int, int> AegisBot::shardready;
+std::map<int, bool> AegisBot::shardready;
 std::map<std::string, ABMessageCallback> AegisBot::cmdlist;
 std::map<std::string, ABMessageCallback> AegisBot::admincmdlist;
 
@@ -163,6 +163,7 @@ Guild & AegisBot::addGuild(uint64_t id)
     //guildlist[id] = Guild(*this, id);
     guildlist.insert(std::pair<uint64_t, Guild*>(id, new Guild(id)));
     guildlist[id]->id = id;
+    guildlist[id]->unavailable = true;
     return *guildlist[id];
 }
 
@@ -324,7 +325,7 @@ void AegisBot::startShards()
         shards[i]->initialize(i);
     }
 
-    threadPool.push_back(std::thread([=]()
+    threadPool.push_back(std::thread([&]()
     {
         //only have shard 0 do maint stuff since it's always guaranteed to be loaded
         shards[0]->prunemessages.expires_from_now(std::chrono::seconds(30));
@@ -411,7 +412,7 @@ void AegisBot::processReady(json & d)
             unavailable = guildobj["unavailable"];
 
         Guild & guild = getGuild(id);
-        log(fmt::format("Guild created: {0}", guild.id), severity_level::trace);
+        log(fmt::format("Guild created: {0}", guild.id), severity_level::debug);
         guild.unavailable = unavailable;
         if (!unavailable)
         {
@@ -446,7 +447,7 @@ void AegisBot::processReady(json & d)
         json recipients = channel["recipients"];
       
         PrivateChat & privateChat = private_channels[channel_id];//test
-        log(fmt::format("Private Channel created: {0}", channel_id), severity_level::trace);
+        log(fmt::format("Private Channel created: {0}", channel_id), severity_level::debug);
         privateChat.id = channel_id;
         
         for (auto & recipient : recipients)
@@ -459,7 +460,7 @@ void AegisBot::processReady(json & d)
             //Member & rec = privateChat.recipients[recipientId];
             privateChat.recipients.push_back(recipientId);
             Member & glob = AegisBot::getMember(recipientId);
-            log(fmt::format("Member created: {0}", channel_id), severity_level::trace);
+            log(fmt::format("Member created: {0}", channel_id), severity_level::debug);
             glob.id = recipientId;
             glob.avatar = recipientAvatar;
             glob.name = recipientName;
@@ -486,13 +487,13 @@ void AegisBot::processReady(json & d)
     active = true;
 
 
-    json obj;
-    obj["op"] = 3;
-    obj["d"]["idle_since"] = nullptr;
-
-    obj["d"]["game"] = { { "name", u8"@\u200bAegis help" } };
-
-    wssend(obj.dump());
+//     json obj;
+//     obj["op"] = 3;
+//     obj["d"]["idle_since"] = nullptr;
+// 
+//     obj["d"]["game"] = { { "name", u8"@\u200bAegis help" } };
+// 
+//     wssend(obj.dump());
 }
 
 void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg)
@@ -595,17 +596,25 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                 else if (cmd == "GUILD_CREATE")
                 {
                     ++counters.guilds;
-                    guildCreate(result["d"]);
-                    if (botready)
+                    if (guildlist.count(std::stoull(result["d"]["id"].get<std::string>())))
                     {
+                        log(fmt::format("GUILD_CREATE: [{}] [{}] TOTAL: {} COUNTER: {}", result["d"]["id"], result["d"]["name"], connectguilds, counters.guilds), severity_level::normal);
+                        guildCreate(result["d"]);
+                    }
+                    else
+                    {
+                        log(fmt::format("GUILD_CREATE: [{}] [{}] COUNTER: {}", result["d"]["id"], result["d"]["name"], counters.guilds), severity_level::normal);
+                        guildCreate(result["d"]);
+                        if (shardloaded)
+                        {
+                            uint64_t id = std::stoull(result["d"]["id"].get<std::string>());
+                            Guild & guild = getGuild(id);
+                            Member & member = getMember(guild.owner_id);
+                            channellist[master_channel]->sendMessage(fmt::format("New guild added: `{}` {}\nowner: {}\nchannelcount: {}\nusercount: {}", guild.name, guild.id, member.getFullName(), guild.channellist.size(), guild.memberlist.size()));
+                        }
                         uint64_t id = std::stoull(result["d"]["id"].get<std::string>());
                         Guild & guild = getGuild(id);
-                        Member & member = getMember(guild.owner_id);
-                        channellist[288707540844412928LL]->sendMessage(fmt::format("New guild added: `{}` {}\nowner: {}\nchannelcount: {}\nusercount: {}", guild.name, guild.id, member.getFullName(), guild.channellist.size(), guild.memberlist.size()));
                     }
-
-                    //load things like database commands and permissions here
-                    return;
                 }
                 else if (cmd == "GUILD_UPDATE")
                 {
@@ -659,7 +668,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     {
                         uint64_t channel_id = result["d"]["id"];
                         Channel & checkchannel = getChannel(channel_id);
-                        log(fmt::format("DM Channel[{0}] created", channel_id), severity_level::trace);
+                        log(fmt::format("DM Channel[{0}] created", channel_id), severity_level::debug);
                         checkchannel.type = t;
                         checkchannel.sendMessage("I do not support DMs at this time. If you would like more information, please join my support server located @ https://discord.gg/Kv7aP5K");
                         return;
@@ -685,7 +694,7 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                         {
                             uint64_t channel_id = result["d"]["id"];
                             Channel & checkchannel = getChannel(channel_id);
-                            log(fmt::format("DM Channel[{0}] created", channel_id), severity_level::trace);
+                            log(fmt::format("DM Channel[{0}] created", channel_id), severity_level::debug);
                             checkchannel.type = t;
                             return;
                         }
@@ -753,16 +762,37 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
                     }
                 }
 
-                if (!botready && (shardready.size() <= shardidmax) && (shardready[shardid] != 1) && (counters.guilds >= connectguilds))
+                if (!shardloaded && !shardready.count(shardid) && (counters.guilds >= connectguilds))
                 {
-                    shardready[shardid] = 1;
+                    shardready[shardid] = true;
+                    shardloaded = true;
                     log(fmt::format("Shard#{} completed loading.", shardid));
                     if (shardready.size() >= shardidmax)
                     {
-                        log("Bot loading complete.");
                         botready = true;
-                        for (auto & g : guildlist)
-                            g.second->LoadCommandSettings();
+
+                        std::vector<std::thread> cachethreads;
+                        size_t threadcount = 12;
+
+                        log(fmt::format("Bot loading complete. Building permission cache with {} threads.", threadcount));
+
+                        for (size_t t = 0; t < threadcount; t++)
+                            cachethreads.push_back(std::thread([&](size_t x)
+                            {
+                                for (auto & g : guildlist)
+                                {
+                                    if ((g.second->id >> 22) % threadcount == x)
+                                    {
+                                        log(fmt::format("Thread#[{}] Loading settings and caching permissions for [{}].", x, g.second->name));
+                                        g.second->LoadCommandSettings();
+                                        g.second->UpdatePermissions();
+                                    }
+                                }
+                            }, t));
+
+                        for (auto & t : cachethreads)
+                            t.join();
+                        log("Guild settings loaded and cache made");
                     }
                 }
 
@@ -821,8 +851,8 @@ void AegisBot::onMessage(websocketpp::connection_hdl hdl, websocketpp::config::a
 //     }
     catch (no_permission & e)
     {
-        AegisBot::channellist[std::stoull(result["d"]["channel_id"].get<std::string>())]->sendMessage(fmt::format("No permission: [{0}]", e.what()));
         log(fmt::format("No permission: [{0}]", e.what()), severity_level::warning);
+        AegisBot::channellist[std::stoull(result["d"]["channel_id"].get<std::string>())]->sendMessage(fmt::format("No permission: [{0}]", e.what()));
     }
     catch (std::exception& e)
     {
@@ -852,7 +882,8 @@ void AegisBot::roleCreate(json & obj)
 
     guildlist[guildid]->rolelist[roleid] = r;
 
-    guildlist[guildid]->UpdatePermissions();
+    if (shardloaded)
+        guildlist[guildid]->UpdatePermissions();
 }
 
 void AegisBot::roleDelete(json & obj)
@@ -862,7 +893,8 @@ void AegisBot::roleDelete(json & obj)
 
     guildlist[guildid]->rolelist.erase(roleid);
 
-    guildlist[guildid]->UpdatePermissions();
+    if (shardloaded)
+        guildlist[guildid]->UpdatePermissions();
 }
 
 void AegisBot::roleUpdate(json & obj)
@@ -880,7 +912,8 @@ void AegisBot::roleUpdate(json & obj)
     r.permission = Permission(role["permissions"].get<int64_t>());
     r.position = role["position"];
 
-    guildlist[guildid]->UpdatePermissions();
+    if (shardloaded)
+        guildlist[guildid]->UpdatePermissions();
 }
 
 void AegisBot::channelDelete(json & obj)
@@ -1209,7 +1242,7 @@ void AegisBot::pruneMsgHistory(const boost::system::error_code& error)
     {
         std::lock_guard<std::mutex> lock(Member::m);
 
-        log("Starting message prune", severity_level::trace);
+        log("Starting message prune", severity_level::debug);
         //2 hour expiry
         uint64_t epoch = ((std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - (2 * 60 * 60 * 1000)) - 1420070400000) << 22;
         for (auto & member : memberlist)
@@ -1377,7 +1410,7 @@ void AegisBot::guildCreate(json & obj)
 
     try
     {
-        log(fmt::format("Guild created: {0}", id), severity_level::trace);
+        log(fmt::format("Guild created: {0}", id), severity_level::debug);
         guild.id = id;
 
         //guild->cmdlist = defaultcmdlist;
@@ -1465,7 +1498,8 @@ void AegisBot::guildCreate(json & obj)
 
         }
 
-        guild.UpdatePermissions();
+        if (shardloaded)
+            guild.UpdatePermissions();
 
         //bot commands
 
@@ -1504,7 +1538,7 @@ void AegisBot::channelCreate(json & channel, uint64_t guild_id)
     {
         //does channel exist?
         Channel & checkchannel = getChannel(channel_id);
-        log(fmt::format("Channel[{0}] created for guild[{1}]", channel_id, guild_id), severity_level::trace);
+        log(fmt::format("Channel[{0}] created for guild[{1}]", channel_id, guild_id), severity_level::debug);
         checkchannel.setGuild(guild);
         checkchannel.name = GET_NULL(channel, "name");
         checkchannel.position = channel["position"];
@@ -1571,7 +1605,8 @@ void AegisBot::channelCreate(json & channel, uint64_t guild_id)
         }
 
         guild.channellist.insert(std::pair<uint64_t, Channel*>(checkchannel.id, &checkchannel));
-        checkchannel.UpdatePermissions();
+        if (shardloaded)
+            checkchannel.UpdatePermissions();
         std::string wl = cache->get(fmt::format("config:channel:{}:wl", channel_id));
         if (wl != "" && std::stoi(wl) > 0)
             guild.active_channels.push_back(channel_id);
@@ -1591,7 +1626,7 @@ void AegisBot::memberCreate(json & member, Guild & guild)
     try
     {
         Member & checkmember = getMember(member_id);
-        ///log(fmt::format("Member[{0}] created for guild[{1}]", member_id, guild_id), severity_level::trace);
+        log(fmt::format("Member[{0}] created for guild[{1}]", member_id, guild_id), severity_level::debug);
         guild.memberlist[member_id].first = memberlist[member_id];
 
         checkmember.avatar = GET_NULL(user, "avatar");
@@ -1610,6 +1645,8 @@ void AegisBot::memberCreate(json & member, Guild & guild)
         checkmember.roles.push_back(guild_id);
 
         checkmember.guilds[guild_id].guild = &getGuild(guild_id);
+        if (shardloaded)
+            guild.UpdatePermissions();
     }
     catch (std::exception&e)
     {
@@ -1626,7 +1663,7 @@ void AegisBot::memberUpdate(json & member, Guild & guild)
     try
     {
         Member & checkmember = getMember(member_id);
-        //log(fmt::format("Member[{0}] created for guild[{1}]", member_id, guild_id), severity_level::trace);
+        //log(fmt::format("Member[{0}] created for guild[{1}]", member_id, guild_id), severity_level::debug);
         guild.memberlist[member_id].first = memberlist[member_id];
 
         json roles = member["roles"];
@@ -1634,7 +1671,8 @@ void AegisBot::memberUpdate(json & member, Guild & guild)
             checkmember.roles.push_back(std::stoull(r.get<std::string>()));
 
         checkmember.guilds[guild_id].guild = &getGuild(guild_id);
-        checkmember.guilds[guild_id].guild->UpdatePermissions();
+        if (shardloaded)
+            checkmember.guilds[guild_id].guild->UpdatePermissions();
     }
     catch (std::exception&e)
     {

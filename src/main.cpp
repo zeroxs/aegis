@@ -111,7 +111,7 @@ int main(int argc, char * argv[])
         cmdlist["setgame"] = [](ABMessage & message)
         {
             std::string gamestr = message.content.substr(message.channel().guild().prefix.size() + 8);
-            AegisBot::io_service.post([game = std::move(gamestr), &bot = message.channel().guild().bot]()
+            AegisBot::io_service.post([game = std::move(gamestr), &bot = message.channel().guild().shard()]()
             {
                 json obj;
                 obj["op"] = 3;
@@ -188,7 +188,7 @@ int main(int argc, char * argv[])
             std::string channels = fmt::format("{0} total\n{1} text\n{2} voice", channel_count, channel_text_count, channel_voice_count);
             std::string guilds = fmt::format("{0}", guild_count);
             std::string events = fmt::format("{0}", eventsseen);
-            std::string misc = fmt::format("I am shard {0} of {1} running on `{2}`", message.channel().guild().bot.shardid + 1, message.channel().guild().shard().shardidmax, PLATFORM_NAME);
+            std::string misc = fmt::format("I am shard {0} of {1} running on `{2}`", message.channel().guild().shard().shardid + 1, message.channel().guild().shard().shardidmax, PLATFORM_NAME);
 
             fmt::MemoryWriter w;
             w << "[Latest bot source](https://github.com/zeroxs/aegis)\n[Official Bot Server](https://discord.gg/w7Y3Bb8)\n\nMemory usage: "
@@ -288,7 +288,7 @@ int main(int argc, char * argv[])
         {
             //fmt::MemoryWriter w;
             std::stringstream w;
-            for (auto & g : message.channel().guild().bot.guildlist)
+            for (auto & g : message.channel().guild().shard().guildlist)
             {
                 w << "*" << g.second->name << "*  :  " << g.second->id << "\n";
             }
@@ -352,7 +352,7 @@ int main(int argc, char * argv[])
                 //TODO: may break until full member chunk is obtained on connect
 
                 //TODO:2 this should be getMember
-                Member & owner = guild.bot.getMember(guild.owner_id);
+                Member & owner = guild.shard().getMember(guild.owner_id);
                 fmt::MemoryWriter w;
                 w << "Owner name: " << owner.getFullName() << " [" << owner.getName(guild.id).value_or("") << "]\n"
                     << "Owner id: " << guild.owner_id << "\n"
