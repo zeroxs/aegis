@@ -30,28 +30,46 @@
 #include "../lib/fmt/fmt/ostream.h"
 
 ABMessage::ABMessage(Channel * channel)
-    : bot(channel->guild().bot)
+    : _bot(channel->guild()._bot)
     , _channel(channel)
-    , _member(channel->guild().bot.self)
+    , _member(channel->guild().shard().self)
     , _guild(nullptr)
 {
+    if (channel != nullptr)
+    {
+        if (channel->ready())
+        {
+            if (channel->guild().ready())
+            {
 
+            }
+        }
+    }
+    //should theoretically never happen
+    if (channel->guild()._bot == nullptr)
+        throw std::runtime_error(fmt::format("1 ABMessage _bot nullptr channelid {}", channel->id));
 }
+
 ABMessage::ABMessage(Channel * channel, Member * member)
-    : bot(channel->guild().bot)
+    : _bot(channel->guild()._bot)
     , _channel(channel)
     , _member(member)
     , _guild(nullptr)
 {
-
+    //should theoretically never happen
+    if (channel->guild()._bot == nullptr)
+        throw std::runtime_error(fmt::format("2 ABMessage _bot nullptr channelid {}", channel->id));
 }
+
 ABMessage::ABMessage(Guild * guild)
-    : bot(guild->bot)
+    : _bot(guild->_bot)
     , _channel(nullptr)
     , _member(nullptr)
     , _guild(guild)
 {
-
+    //should theoretically never happen
+    if (guild->_bot == nullptr)
+        throw std::runtime_error(fmt::format("3 ABMessage _bot nullptr guildid {}", guild->id));
 }
 
 void Channel::getMessages(uint64_t messageid, ABMessageCallback callback)
@@ -98,7 +116,7 @@ void Channel::sendMessage(std::string content, ABMessageCallback callback)
 
 void Channel::sendMessageEmbed(json content, json embed, ABMessageCallback callback /*= ABMessageCallback()*/)
 {
-    if (!getPermission().canSendMessages())
+    if (!getPermission().canEmbed())
          return;
 
     json obj;
@@ -159,12 +177,12 @@ void Channel::deleteChannel(ABMessageCallback callback)
 
 Permission & Channel::getPermission()
 {
-    return permission_cache[guild().bot.userId];
+    return permission_cache[guild().shard().userId];
 }
 
 void Channel::UpdatePermissions()
 {
-    uint64_t botid = guild().bot.userId;
+    uint64_t botid = guild().shard().userId;
 
     permission_cache.clear();
 

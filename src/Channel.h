@@ -66,6 +66,7 @@ public:
     void bulkDelete(std::vector<std::string> messages, ABMessageCallback callback = ABMessageCallback());
     void deleteChannel(ABMessageCallback callback = ABMessageCallback());
     void UpdatePermissions();
+    bool ready() { return _guild != nullptr; }
 
     uint64_t id = 0;
     uint64_t last_message_id = 0;

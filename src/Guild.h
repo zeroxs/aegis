@@ -32,6 +32,7 @@
 #include "Channel.h"
 #include "Role.h"
 #include "../lib/json/src/json.hpp"
+#include "../lib/fmt/fmt/ostream.h"
 #include "RateLimits.h"
 #include "AegisModule.h"
 
@@ -42,10 +43,18 @@ using json = nlohmann::json;
 class Guild
 {
 public:
-    Guild(AegisBot & bot, uint64_t id);
+    Guild(AegisBot * bot, uint64_t id);
+    Guild(uint64_t id);
     ~Guild();
 
-    AegisBot & bot;
+    AegisBot & shard()
+    {
+        if (_bot == nullptr)
+        {
+            throw std::runtime_error(fmt::format("_bot nullptr guildid {}", id));
+        }
+        return *_bot;
+    }
 
     void processMessage(json obj);
     void addCommand(std::string command, ABMessageCallback callback);
@@ -57,8 +66,7 @@ public:
     void removeAttachmentHandler();
     void modifyMember(json content, uint64_t guildid, uint64_t memberid, ABMessageCallback callback = ABMessageCallback());
     void createVoice(json content, uint64_t guildid, ABMessageCallback callback = ABMessageCallback());
-
-    void RecalculatePermissions();
+    bool ready() { return _bot != nullptr; }
 
     void leave(ABMessageCallback callback = ABMessageCallback());
 
@@ -120,5 +128,7 @@ public:
 
     void UpdatePermissions();
     void LoadCommandSettings();
+    
+    AegisBot * _bot;
 };
 

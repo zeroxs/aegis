@@ -28,13 +28,25 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
 
-Guild::Guild(AegisBot & bot, uint64_t id)
-    : bot(bot)
+Guild::Guild(AegisBot * bot, uint64_t id)
+    : _bot(bot)
     , id(id)
 {
     //Load settings
 
-    std::string t = bot.cache->get(fmt::format("config:guild:{}:prefix", id));
+    std::string t = AegisBot::cache->get(fmt::format("config:guild:{}:prefix", id));
+    if (t != "")
+        prefix = t;
+
+}
+
+Guild::Guild(uint64_t id)
+    : id(id)
+    , _bot(0)
+{
+    //Load settings
+
+    std::string t = AegisBot::cache->get(fmt::format("config:guild:{}:prefix", id));
     if (t != "")
         prefix = t;
 
@@ -376,7 +388,7 @@ void Guild::processMessage(json obj)
                                 json j = { { "id", i.id },{ "type", static_cast<int>(i.type) } };
                                 ins.push_back(j);
                             }
-                            channellist[channel_id]->sendMessage(fmt::format("Added user `{}` to command `{}`", bot.memberlist[uid]->getFullName(), cmditer->first));
+                            channellist[channel_id]->sendMessage(fmt::format("Added user `{}` to command `{}`", shard().memberlist[uid]->getFullName(), cmditer->first));
                             AegisBot::cache->put(fmt::format("config:guild:{}:{}:idlist", id, cmditer->first), ins.dump());
                             return;
                         }
@@ -416,7 +428,7 @@ void Guild::processMessage(json obj)
                                 json j = { { "id", i.id },{ "type", static_cast<int>(i.type) } };
                                 ins.push_back(j);
                             }
-                            channellist[channel_id]->sendMessage(fmt::format("Removed user `{}` from command `{}`", bot.memberlist[uid]->getFullName(), cmditer->first));
+                            channellist[channel_id]->sendMessage(fmt::format("Removed user `{}` from command `{}`", shard().memberlist[uid]->getFullName(), cmditer->first));
                             AegisBot::cache->put(fmt::format("config:guild:{}:{}:idlist", id, cmditer->first), ins.dump());
                             return;
                         }
@@ -627,31 +639,31 @@ void Guild::removeAttachmentHandler()
 void Guild::modifyMember(json content, uint64_t guildid, uint64_t memberid, ABMessageCallback callback)
 {
     //TODO: also needs to check perm for connecting to channel
-    if (content.count("channel_id") && !permission_cache[bot.userId].canVoiceMove())
+    if (content.count("channel_id") && !permission_cache[shard().userId].canVoiceMove())
     {
         if (silentperms)
             return;
         throw no_permission("MOVE_MEMBERS");
     }
-    if (content.count("nick") && !permission_cache[bot.userId].canManageNames())
+    if (content.count("nick") && !permission_cache[shard().userId].canManageNames())
     {
         if (silentperms)
             return;
         throw no_permission("MANAGE_NICKNAMES");
     }
-    if (content.count("roles") && !permission_cache[bot.userId].canManageRoles())
+    if (content.count("roles") && !permission_cache[shard().userId].canManageRoles())
     {
         if (silentperms)
             return;
         throw no_permission("MANAGE_ROLES");
     }
-    if (content.count("mute") && !permission_cache[bot.userId].canVoiceMute())
+    if (content.count("mute") && !permission_cache[shard().userId].canVoiceMute())
     {
         if (silentperms)
             return;
         throw no_permission("MUTE_MEMBERS");
     }
-    if (content.count("deaf") && !permission_cache[bot.userId].canVoiceDeafen())
+    if (content.count("deaf") && !permission_cache[shard().userId].canVoiceDeafen())
     {
         if (silentperms)
             return;
@@ -671,7 +683,7 @@ void Guild::modifyMember(json content, uint64_t guildid, uint64_t memberid, ABMe
 
 void Guild::createVoice(json content, uint64_t guildid, ABMessageCallback callback)
 {
-    if (!permission_cache[bot.userId].canManageGuild())
+    if (!permission_cache[shard().userId].canManageGuild())
     {
         if (silentperms)
             return;
@@ -709,7 +721,8 @@ void Guild::UpdatePermissions()
 //     
     for (auto & c : channellist)
     {
-        c.second->UpdatePermissions();
+        if (_bot->botready)
+            c.second->UpdatePermissions();
     }
 
     for (auto & m : memberlist)
@@ -773,7 +786,7 @@ void Guild::LoadCommandSettings()
         }
         catch (std::invalid_argument & e)
         {
-            bot.log(fmt::format("Error processing command permission loading for guild[{0}] {1}", id, (std::string)e.what()), severity_level::error);
+            shard().log(fmt::format("Error processing command permission loading for guild[{0}] {1}", id, (std::string)e.what()), severity_level::error);
         }
     }
 }
