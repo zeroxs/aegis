@@ -92,10 +92,11 @@ public:
     std::string query;
     ABMessageCallback callback;
     json obj;
-    AegisBot & bot;
+    AegisBot & bot() { return*_bot; }
 
 private:
     Channel * _channel;
     Member * _member;
     Guild * _guild;
+    AegisBot * _bot;
 };
